@@ -49,6 +49,13 @@ shared types) through the aliases `fastlanelabs/api` and `fastlanelabs/types`,
 which core's `vite.config.ts` resolves to its own `src/api.ts`/`src/types.ts`.
 Anything else is a dependency the app repo has to bring itself.
 
+Core types this against its own `AppModule` interface once the app is
+installed, so a plain literal like `group: 'secondary'` needs `as const` (or
+an explicit type annotation) in the app's own `index.tsx` -- otherwise
+TypeScript widens it to `string` there, before core ever sees it, and the
+generated binding fails to compile with a type mismatch nothing in the app
+repo itself would have caught.
+
 ## Installing an app
 
 Core's `deploy/install_apps.py` reads `apps.yaml`, `pip install`s each
