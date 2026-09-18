@@ -1,10 +1,17 @@
-"""The catalog: which apps exist, and where their code lives.
+"""The catalog: which apps exist, and where their published releases live.
 
 A static, bundled file today, deliberately -- the point of this first pass is
 proving that an app's code can be pulled in and bound at install time at all.
 What decides *which* apps a given client should be offered, discovery beyond
 a hand-maintained YAML file, and versioning policy are explicitly future work
 (see this repo's README).
+
+`repo` is kept per app as a human reference -- "this is where it was built
+from" -- but is no longer read at install time. What an install actually
+pulls from is the shared Blob Storage account/container in `storage()`: one
+`versions.json` and one wheel/tarball pair per released version, published by
+each app repo's own CI on a tag push. See `deploy/install_apps.py` and
+`fastlanelabs_sdk.azure_blob`.
 
 Bundled as package data (`registry_data/apps.yaml`) rather than read from a
 path relative to the repo checkout, so `load()` works the same way whether
@@ -30,9 +37,14 @@ except ImportError:  # pragma: no cover - Python <3.9 fallback
 class RegistryEntry:
     id: str
     repo: str
-    ref: str
     backend_package: str
     frontend_package: str
+
+
+@dataclass(frozen=True)
+class Storage:
+    account: str
+    container: str
 
 
 def _source() -> str:
@@ -51,3 +63,13 @@ def load() -> Dict[str, RegistryEntry]:
         app_id: RegistryEntry(id=app_id, **fields)
         for app_id, fields in (data.get("apps") or {}).items()
     }
+
+
+def storage() -> Storage:
+    data = yaml.safe_load(_source()) or {}
+    reg = data.get("registry") or {}
+    if not reg.get("account") or not reg.get("container"):
+        raise RuntimeError(
+            "apps.yaml has no registry.account/registry.container -- "
+            "where would an install pull artifacts from?")
+    return Storage(account=reg["account"], container=reg["container"])
