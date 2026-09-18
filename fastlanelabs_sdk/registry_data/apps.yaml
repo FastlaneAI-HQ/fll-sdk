@@ -1,0 +1,17 @@
+# The catalog: which apps FastlaneLabs offers, and where their code lives.
+#
+# `ref` is a git tag, pinned deliberately -- an install resolves and records
+# the exact commit it used (see install_apps.py's lockfile), so a redeploy
+# reproduces what was installed rather than whatever the tag currently points
+# to if it were ever moved.
+apps:
+  contacts:
+    repo: https://github.com/FastlaneAI-HQ/fll-contacts.git
+    ref: v1.0.0
+    backend_package: fastlanelabs_app_contacts
+    frontend_package: "@fastlanelabs/app-contacts"
+  power-tools:
+    repo: https://github.com/FastlaneAI-HQ/fll-power-tools.git
+    ref: v1.0.0
+    backend_package: fastlanelabs_app_power_tools
+    frontend_package: "@fastlanelabs/app-power-tools"

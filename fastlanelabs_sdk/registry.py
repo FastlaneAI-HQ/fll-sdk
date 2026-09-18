@@ -1,0 +1,53 @@
+"""The catalog: which apps exist, and where their code lives.
+
+A static, bundled file today, deliberately -- the point of this first pass is
+proving that an app's code can be pulled in and bound at install time at all.
+What decides *which* apps a given client should be offered, discovery beyond
+a hand-maintained YAML file, and versioning policy are explicitly future work
+(see this repo's README).
+
+Bundled as package data (`registry_data/apps.yaml`) rather than read from a
+path relative to the repo checkout, so `load()` works the same way whether
+this package was installed with `-e` for local development or pulled from git
+as a dependency -- the caller never has to know which.
+"""
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict
+
+import yaml
+
+try:
+    from importlib.resources import files
+except ImportError:  # pragma: no cover - Python <3.9 fallback
+    from importlib_resources import files  # type: ignore
+
+
+@dataclass(frozen=True)
+class RegistryEntry:
+    id: str
+    repo: str
+    ref: str
+    backend_package: str
+    frontend_package: str
+
+
+def _source() -> str:
+    # An operator can point at a fork or a local checkout while iterating on
+    # the registry itself, without publishing a new fll-hq release first.
+    override = os.environ.get("FASTLANELABS_REGISTRY_PATH")
+    if override:
+        return Path(override).read_text("utf-8")
+    return (files("fastlanelabs_sdk.registry_data")
+            .joinpath("apps.yaml").read_text("utf-8"))
+
+
+def load() -> Dict[str, RegistryEntry]:
+    data = yaml.safe_load(_source()) or {}
+    return {
+        app_id: RegistryEntry(id=app_id, **fields)
+        for app_id, fields in (data.get("apps") or {}).items()
+    }
