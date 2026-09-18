@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 from fastapi import APIRouter
 
+from .graph import AgentGraphContribution
 from .spec import AppSpec
 
 
@@ -26,3 +27,7 @@ class AppPlugin:
     # with it.
     schema: str = ""
     migrate: Optional[Callable[[sqlite3.Connection], None]] = None
+    # Set only by an app that is also an agent -- contributes nodes/edges to
+    # the shared chat graph rather than (or as well as) a REST surface. Most
+    # apps (Contacts, Power Tools) leave this unset.
+    graph: Optional[AgentGraphContribution] = None
