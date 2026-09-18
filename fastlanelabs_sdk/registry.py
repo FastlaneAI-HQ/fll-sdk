@@ -49,7 +49,7 @@ class Storage:
 
 def _source() -> str:
     # An operator can point at a fork or a local checkout while iterating on
-    # the registry itself, without publishing a new fll-hq release first.
+    # the registry itself, without publishing a new fll-sdk release first.
     override = os.environ.get("FASTLANELABS_REGISTRY_PATH")
     if override:
         return Path(override).read_text("utf-8")

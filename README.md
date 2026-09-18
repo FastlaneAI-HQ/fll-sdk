@@ -1,4 +1,4 @@
-# fll-hq
+# fll-sdk
 
 The SDK and app registry for FastlaneLabs deployments.
 
