@@ -30,6 +30,17 @@ class PlatformDeps(Protocol):
 
     def require_app(self, app_id: str) -> Callable: ...
 
+    def entitled(self, app_id: str) -> bool:
+        """Whether this tenant has `app_id` enabled, with no session/user in
+        hand. `require_app()` already covers the session-authenticated
+        case (it raises 404 for a route reached without the right
+        entitlement); this is the same check for a route authenticated by
+        something other than a cookie -- a shared-secret machine surface,
+        for instance -- where there is no `User` to build a `require_app`
+        dependency around.
+        """
+        ...
+
     def get_settings(self) -> Any: ...
 
     def resolve_effort(self, effort: Any) -> Any:
