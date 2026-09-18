@@ -38,7 +38,10 @@ class RegistryEntry:
     id: str
     repo: str
     backend_package: str
-    frontend_package: str
+    # Empty for a backend-only app (FastAI: its chat UI is core's own, not a
+    # separate installable frontend package) -- `deploy/install_apps.py`
+    # skips the npm install/import step when this is blank.
+    frontend_package: str = ""
 
 
 @dataclass(frozen=True)
