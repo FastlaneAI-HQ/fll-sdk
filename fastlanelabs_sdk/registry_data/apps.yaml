@@ -18,3 +18,10 @@ apps:
     repo: https://github.com/FastlaneAI-HQ/fll-power-tools.git
     backend_package: fastlanelabs_app_power_tools
     frontend_package: "@fastlanelabs/app-power-tools"
+  # This registry key is the install-time selector (`install_apps.py --apps
+  # fastai`); the app's own AppSpec.id is "chat" (kept unchanged from when it
+  # lived in core's CORE_APPS) -- the two don't have to match. No
+  # frontend_package: the chat UI is core's own, unchanged by the extraction.
+  fastai:
+    repo: https://github.com/FastlaneAI-HQ/fll-fastai.git
+    backend_package: fastlanelabs_app_fastai
