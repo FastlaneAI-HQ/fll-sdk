@@ -25,3 +25,8 @@ apps:
   fastai:
     repo: https://github.com/FastlaneAI-HQ/fll-fastai.git
     backend_package: fastlanelabs_app_fastai
+  # RFQ's registry key and AppSpec.id both happen to be "rfq" -- no frontend
+  # package here either, same reason as fastai's.
+  rfq:
+    repo: https://github.com/FastlaneAI-HQ/fll-rfq.git
+    backend_package: fastlanelabs_app_rfq
