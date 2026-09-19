@@ -1,5 +1,6 @@
 from .spec import AppSpec
 from .graph import AgentGraphContribution
+from .mcp_tools import McpToolHandler, McpToolSpec
 from .plugin import AppPlugin
 from .deps import PersonError, PlatformDeps, RerankUnavailable
 from .chart_schema import (
@@ -10,6 +11,8 @@ from .chart_schema import (
 __all__ = [
     "AppSpec",
     "AgentGraphContribution",
+    "McpToolSpec",
+    "McpToolHandler",
     "AppPlugin",
     "PlatformDeps",
     "RerankUnavailable",
