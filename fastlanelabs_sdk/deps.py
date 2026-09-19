@@ -128,6 +128,36 @@ class PlatformDeps(Protocol):
     # `triage_stats()`.
     emtl: Any
 
+    # FastTools: FastAI as an MCP *client*, able to call external MCP
+    # servers as tools mid-conversation. The opposite direction from
+    # `AppPlugin.mcp_tools` (FastMCP: FastlaneLabs exposing ITS OWN apps'
+    # operations as tools to an external client) -- do not confuse the
+    # two, and note core's own `mcp_plugins` accessor for FastMCP is a
+    # separate, non-protocol, duck-typed extra, not part of this
+    # namespace. One namespace, same reasoning as `runtime`/`directory`/
+    # `emtl`: `list_servers() -> List[dict]`, `get_server(id) ->
+    # Optional[dict]`, `register_server(name, endpoint_url, auth_type,
+    # secret, header_name="", by="") -> dict`, `remove_server(id) ->
+    # None`, `discover_tools(server_id) -> List[dict]` (calls the live
+    # server's `tools/list`, upserts stored rows -- a tool is never
+    # auto-approved, whether new or re-discovered), `set_tool_approved(
+    # server_id, tool_name, approved: bool) -> None`, `approved_tools() ->
+    # List[dict]` (Anthropic-tool-schema shape, `name` namespaced
+    # `<server_slug>__<tool_name>` -- not a dot: Anthropic's tool-name
+    # schema is `^[a-zA-Z0-9_-]{1,128}$` and rejects one),
+    # `call_tool(qualified_name, args: dict)
+    # -> McpCallResult` (see `mcp_client_schema.McpCallResult`) -- always
+    # returns a result, even on failure; re-checks approval/enabled state
+    # live rather than trusting an earlier `approved_tools()` snapshot,
+    # since approval can be revoked mid-turn. Raises `McpServerError` for
+    # a registration/discovery problem an app can catch without importing
+    # core, and `McpToolNotApproved` is reserved for a caller that wants
+    # to distinguish "not approved" from other failures rather than
+    # reading `McpCallResult.error` (today's `call_tool()` returns a
+    # failed `McpCallResult` for this case instead of raising, so an app
+    # can treat it identically to any other tool failure).
+    mcp: Any
+
     def ingest_document(
         self, filename: str, mime: str, data: bytes, uploaded_by: str,
         store_original: Callable[[str, bytes], bool],
@@ -156,4 +186,23 @@ class PersonError(ValueError):
     `PlatformDeps.directory.create_user()`/`set_user_role()` from whatever
     core's own `auth.AuthError` says, under one name an app can catch
     without importing core.
+    """
+
+
+class McpServerError(RuntimeError):
+    """A FastTools MCP server-registration or discovery call that doesn't
+    hold together -- a bad endpoint URL, an unreachable server, a failed
+    handshake. Re-raised by `PlatformDeps.mcp.register_server()`/
+    `discover_tools()` from whatever core's own mechanism raises, under
+    one name an app can catch without importing core.
+    """
+
+
+class McpToolNotApproved(RuntimeError):
+    """Reserved for a caller of `PlatformDeps.mcp` that wants to
+    distinguish "this tool isn't (or is no longer) approved" from other
+    tool-call failures as an exception, rather than reading
+    `McpCallResult.error` -- `call_tool()` itself does not raise this
+    today; it returns a failed `McpCallResult` for that case instead, so
+    the tool loop never needs a separate exception path.
     """
