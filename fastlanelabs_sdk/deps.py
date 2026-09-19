@@ -143,7 +143,9 @@ class PlatformDeps(Protocol):
     # auto-approved, whether new or re-discovered), `set_tool_approved(
     # server_id, tool_name, approved: bool) -> None`, `approved_tools() ->
     # List[dict]` (Anthropic-tool-schema shape, `name` namespaced
-    # `<server_slug>.<tool_name>`), `call_tool(qualified_name, args: dict)
+    # `<server_slug>__<tool_name>` -- not a dot: Anthropic's tool-name
+    # schema is `^[a-zA-Z0-9_-]{1,128}$` and rejects one),
+    # `call_tool(qualified_name, args: dict)
     # -> McpCallResult` (see `mcp_client_schema.McpCallResult`) -- always
     # returns a result, even on failure; re-checks approval/enabled state
     # live rather than trusting an earlier `approved_tools()` snapshot,
