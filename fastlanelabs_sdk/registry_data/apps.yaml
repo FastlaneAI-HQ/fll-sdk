@@ -34,3 +34,11 @@ apps:
     repo: https://github.com/FastlaneAI-HQ/fll-fasttables.git
     backend_package: fastlanelabs_app_fasttables
     frontend_package: "@fastlanelabs/app-fasttables"
+  # Reads FastTables' own tables (same Mongo database, same SQLite schema
+  # catalog) rather than owning any data of its own beyond dashboard
+  # layout -- installing fastboards without fasttables leaves it with
+  # nothing to chart.
+  fastboards:
+    repo: https://github.com/FastlaneAI-HQ/fll-fastboards.git
+    backend_package: fastlanelabs_app_fastboards
+    frontend_package: "@fastlanelabs/app-fastboards"
