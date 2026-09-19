@@ -42,3 +42,27 @@ apps:
     repo: https://github.com/FastlaneAI-HQ/fll-fastboards.git
     backend_package: fastlanelabs_app_fastboards
     frontend_package: "@fastlanelabs/app-fastboards"
+  # No schema of its own -- reads/writes core's own `users` table entirely
+  # through PlatformDeps.directory (backend/app/directory_ops.py).
+  directory:
+    repo: https://github.com/FastlaneAI-HQ/fll-directory.git
+    backend_package: fastlanelabs_app_directory
+    frontend_package: "@fastlanelabs/app-directory"
+  # No schema of its own either -- the EmTL connection state it manages
+  # (runtime knobs, the vector store) already lives in core, reached
+  # through PlatformDeps.emtl (backend/app/emtl_maintenance.py).
+  connectors:
+    repo: https://github.com/FastlaneAI-HQ/fll-connectors.git
+    backend_package: fastlanelabs_app_connectors
+    frontend_package: "@fastlanelabs/app-connectors"
+  artifacts:
+    repo: https://github.com/FastlaneAI-HQ/fll-artifacts.git
+    backend_package: fastlanelabs_app_artifacts
+    frontend_package: "@fastlanelabs/app-artifacts"
+  # Reads FastTables' schema catalog the same way fastboards does; writes
+  # its own fastanalytics_predictions table, which fastboards' own
+  # fastanalytics_bridge.py reads directly for a model-sourced chart.
+  fastanalytics:
+    repo: https://github.com/FastlaneAI-HQ/fll-fastanalytics.git
+    backend_package: fastlanelabs_app_fastanalytics
+    frontend_package: "@fastlanelabs/app-fastanalytics"
