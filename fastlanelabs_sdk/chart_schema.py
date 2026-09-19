@@ -43,7 +43,16 @@ CHART_PLAN_SCHEMA: Dict[str, Any] = {
         "query": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["aggregations"],
+            # group_by is required (an empty string is a valid, explicit
+            # "no grouping") rather than merely optional -- an LLM's
+            # structured output under a schema that allows omitting a field
+            # tends to actually omit it rather than weigh whether it
+            # applies, which silently produced a single grand-total chart
+            # for a request that named a category to break down by (caught
+            # by running a real chart request against a real model, not by
+            # reading this schema). Requiring it forces the decision every
+            # time instead of defaulting to skipping it.
+            "required": ["group_by", "aggregations"],
             "properties": {
                 "filter": {
                     "type": "array",
