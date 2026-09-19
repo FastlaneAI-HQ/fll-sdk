@@ -30,3 +30,7 @@ apps:
   rfq:
     repo: https://github.com/FastlaneAI-HQ/fll-rfq.git
     backend_package: fastlanelabs_app_rfq
+  fasttables:
+    repo: https://github.com/FastlaneAI-HQ/fll-fasttables.git
+    backend_package: fastlanelabs_app_fasttables
+    frontend_package: "@fastlanelabs/app-fasttables"
