@@ -100,3 +100,60 @@ class PlatformDeps(Protocol):
     # accessors an app needs is not something this contract can predict in
     # advance.
     runtime: Any
+
+    # Account management primitives (`fll-directory`'s own bespoke
+    # authorization -- who may grant which role, the last-fastlane-admin
+    # guard, self-action guards -- lives in that app, not here; this is
+    # just the mechanism it's built from). One namespace, same reasoning
+    # as `runtime`: `list_users()`, `get_user(user_id)`,
+    # `create_user(email, name, role, by="") -> (user_dict, invite_token)`,
+    # `issue_invite(user_id, by="") -> token`,
+    # `set_user_role(user_id, role) -> user_dict`,
+    # `set_user_disabled(user_id, disabled) -> user_dict`,
+    # `last_fastlane_admin(user_id) -> bool`, `valid_roles() -> List[str]`,
+    # `invite_days() -> int`, `min_password_length() -> int`. Raises
+    # `PersonError` (below) for a caller-facing problem (bad email, unknown
+    # role, duplicate account) the same way `RerankUnavailable` works.
+    directory: Any
+
+    # EmTL maintenance/status primitives (`fll-connectors`'s own REST
+    # surface and UI; the inbound webhook and the vector-store/embedding
+    # engine itself stay in core, reached only through `get_store()`/
+    # `rerank()`/`embed_queries()` above). One namespace, same reasoning as
+    # `runtime`: `status()`, `alignment_report(refresh=False)`,
+    # `start_backfill(with_chunks=True)`, `backfill_status()`,
+    # `reclaim_survey()`, `reclaim_run()`, `reset_index(purge_vectors)`,
+    # `triage_queue(limit=40)`, `triage_senders(...)`,
+    # `triage_sender(address, samples=5)`, `triage_decide(sender, decision)`,
+    # `triage_stats()`.
+    emtl: Any
+
+    def ingest_document(
+        self, filename: str, mime: str, data: bytes, uploaded_by: str,
+        store_original: Callable[[str, bytes], bool],
+    ) -> Any:
+        """Runs the existing extract/chunk/embed pipeline over `data`
+        exactly as core's own upload flow does, writing chunks/vectors and
+        an `uploads` row -- but where the *original bytes* end up is the
+        caller's choice, not this pipeline's: `store_original(content_hash,
+        data)` is called once, its return value recorded as whether the
+        original was kept anywhere at all. `fll-artifacts` supplies a
+        closure that writes to Azure Blob or S3; a caller with nowhere to
+        put the original can pass one that always returns `False` -- the
+        extracted/chunked/embedded copy still works for retrieval either
+        way, same as an upload whose remote push already fails today.
+
+        Returns the same shape core's own upload endpoint already returns
+        (content_hash, status, chunks, text_chars, etc.) plus whatever
+        `store_original` reported.
+        """
+        ...
+
+
+class PersonError(ValueError):
+    """A directory-management call that doesn't hold together -- a bad
+    email, an unknown role, an account that already exists. Re-raised by
+    `PlatformDeps.directory.create_user()`/`set_user_role()` from whatever
+    core's own `auth.AuthError` says, under one name an app can catch
+    without importing core.
+    """

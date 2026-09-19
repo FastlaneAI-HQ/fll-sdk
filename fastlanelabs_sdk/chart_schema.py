@@ -211,9 +211,38 @@ def validate_chart_spec(obj: Any) -> Dict[str, Any]:
     if not title:
         raise ChartSpecError("a chart needs a title")
 
+    x = str(obj.get("x") or "").strip()
+    if not x:
+        raise ChartSpecError("a chart needs an x field")
+
+    options = obj.get("options") if isinstance(obj.get("options"), dict) else {}
+    common = {
+        "chart_type": chart_type,
+        "title": title,
+        "x": x,
+        "series": _validate_series(obj.get("series")),
+        "options": {
+            "stacked": bool(options.get("stacked", False)),
+            "horizontal": bool(options.get("horizontal", False)),
+        },
+    }
+
+    # A chart's data comes from exactly one source: a FastTables query, or
+    # a FastAnalytics model's already-materialized predictions
+    # (fll-fastboards' own `fastanalytics_bridge.py` reads those directly,
+    # the same "read the other app's table" convention `fasttables_bridge`
+    # already uses -- there is nothing here for this module to validate
+    # beyond which source was chosen, since a model's predictions carry no
+    # further query of their own).
+    model_id = str(obj.get("model_id") or "").strip()
     table_id = str(obj.get("table_id") or "").strip()
+    if model_id and table_id:
+        raise ChartSpecError("a chart needs a table_id or a model_id, not both")
+    if model_id:
+        return {**common, "model_id": model_id, "table_id": None, "query": None}
+
     if not table_id:
-        raise ChartSpecError("a chart needs a table_id")
+        raise ChartSpecError("a chart needs a table_id or a model_id")
 
     query = obj.get("query")
     if not isinstance(query, dict):
@@ -225,15 +254,9 @@ def validate_chart_spec(obj: Any) -> Dict[str, Any]:
     if not isinstance(limit, int) or limit < 1:
         raise ChartSpecError("query.limit must be a positive integer")
 
-    x = str(obj.get("x") or "").strip()
-    if not x:
-        raise ChartSpecError("a chart needs an x field")
-
-    options = obj.get("options") if isinstance(obj.get("options"), dict) else {}
-
     return {
-        "chart_type": chart_type,
-        "title": title,
+        **common,
+        "model_id": None,
         "table_id": table_id,
         "query": {
             "filter": _validate_filter(query.get("filter")),
@@ -242,11 +265,5 @@ def validate_chart_spec(obj: Any) -> Dict[str, Any]:
             "sort_by": str(query.get("sort_by") or "").strip() or None,
             "sort_desc": bool(query.get("sort_desc", False)),
             "limit": min(limit, 200),
-        },
-        "x": x,
-        "series": _validate_series(obj.get("series")),
-        "options": {
-            "stacked": bool(options.get("stacked", False)),
-            "horizontal": bool(options.get("horizontal", False)),
         },
     }

@@ -1,6 +1,6 @@
 [project]
 name = "fastlanelabs-sdk"
-version = "1.3.1"
+version = "1.4.0"
 description = "Plugin contract and app registry for FastlaneLabs deployments."
 requires-python = ">=3.9"
 dependencies = [
