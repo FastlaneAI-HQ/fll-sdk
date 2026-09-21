@@ -42,6 +42,13 @@ class RegistryEntry:
     # separate installable frontend package) -- `deploy/install_apps.py`
     # skips the npm install/import step when this is blank.
     frontend_package: str = ""
+    # For showing an app that isn't installed yet in a picker (a live-install
+    # deployment's whole point -- see backend/app/live_install.py) -- an app
+    # with no code present at all still needs a human-readable name and a
+    # one-line description to be chosen from. Kept in sync with the app's
+    # own AppSpec.label/.purpose by hand; nothing enforces they match.
+    label: str = ""
+    purpose: str = ""
 
 
 @dataclass(frozen=True)

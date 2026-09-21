@@ -5,6 +5,13 @@
 # and every deployment reads from -- see fastlanelabs_sdk.azure_blob and
 # deploy/install_apps.py. `repo` on each app is a human reference only; it is
 # not read at install time.
+#
+# `label`/`purpose` exist so an app that ISN'T installed yet can still be
+# shown properly in a picker (Admin's app list, the Quickstart wizard) --
+# without them, an app nobody has installed has no human-readable name to
+# show at all, only its bare registry key. Kept in sync with each app's own
+# AppSpec by hand; the two can drift, since nothing enforces they match, but
+# they're the same values on purpose.
 registry:
   account: flappregistry1c019f1b
   container: apps
@@ -14,10 +21,14 @@ apps:
     repo: https://github.com/FastlaneAI-HQ/fll-contacts.git
     backend_package: fastlanelabs_app_contacts
     frontend_package: "@fastlanelabs/app-contacts"
+    label: Directory
+    purpose: Everyone the client corresponds with, read out of the signatures on their mail.
   power-tools:
     repo: https://github.com/FastlaneAI-HQ/fll-power-tools.git
     backend_package: fastlanelabs_app_power_tools
     frontend_package: "@fastlanelabs/app-power-tools"
+    label: Power Tools
+    purpose: Every request the assistant answered, what it cost, how it was produced.
   # This registry key is the install-time selector (`install_apps.py --apps
   # fastai`); the app's own AppSpec.id is "chat" (kept unchanged from when it
   # lived in core's CORE_APPS) -- the two don't have to match. No
@@ -25,15 +36,21 @@ apps:
   fastai:
     repo: https://github.com/FastlaneAI-HQ/fll-fastai.git
     backend_package: fastlanelabs_app_fastai
+    label: Assistant
+    purpose: Ask across everything the assistant is connected to.
   # RFQ's registry key and AppSpec.id both happen to be "rfq" -- no frontend
   # package here either, same reason as fastai's.
   rfq:
     repo: https://github.com/FastlaneAI-HQ/fll-rfq.git
     backend_package: fastlanelabs_app_rfq
+    label: RFQ Drafter
+    purpose: Turn an inbound request into a priced quote, with every figure traceable to the row it came from.
   fasttables:
     repo: https://github.com/FastlaneAI-HQ/fll-fasttables.git
     backend_package: fastlanelabs_app_fasttables
     frontend_package: "@fastlanelabs/app-fasttables"
+    label: FastTables
+    purpose: A tenant's own structured tables -- define a schema, browse and query rows.
   # Reads FastTables' own tables (same Mongo database, same SQLite schema
   # catalog) rather than owning any data of its own beyond dashboard
   # layout -- installing fastboards without fasttables leaves it with
@@ -42,23 +59,31 @@ apps:
     repo: https://github.com/FastlaneAI-HQ/fll-fastboards.git
     backend_package: fastlanelabs_app_fastboards
     frontend_package: "@fastlanelabs/app-fastboards"
-  # No schema of its own -- reads/writes core's own `users` table entirely
-  # through PlatformDeps.directory (backend/app/directory_ops.py).
-  directory:
-    repo: https://github.com/FastlaneAI-HQ/fll-directory.git
-    backend_package: fastlanelabs_app_directory
-    frontend_package: "@fastlanelabs/app-directory"
-  # No schema of its own either -- the EmTL connection state it manages
-  # (runtime knobs, the vector store) already lives in core, reached
-  # through PlatformDeps.emtl (backend/app/emtl_maintenance.py).
+    label: FastBoards
+    purpose: Dashboards built from a FastTables query or a FastAnalytics model.
+  # Renamed from "directory" -- the old registry key/repo/package names are
+  # gone, not aliased; nothing should still be resolving the old ones.
+  identity:
+    repo: https://github.com/FastlaneAI-HQ/fll-identity.git
+    backend_package: fastlanelabs_app_identity
+    frontend_package: "@fastlanelabs/app-identity"
+    label: Identity
+    purpose: Who can sign in, and what they may reach.
+  # No schema of its own -- the EmTL connection state it manages (runtime
+  # knobs, the vector store) already lives in core, reached through
+  # PlatformDeps.emtl (backend/app/emtl_maintenance.py).
   connectors:
     repo: https://github.com/FastlaneAI-HQ/fll-connectors.git
     backend_package: fastlanelabs_app_connectors
     frontend_package: "@fastlanelabs/app-connectors"
+    label: Connectors
+    purpose: What the assistant can see -- mailbox status, what's indexed.
   artifacts:
     repo: https://github.com/FastlaneAI-HQ/fll-artifacts.git
     backend_package: fastlanelabs_app_artifacts
     frontend_package: "@fastlanelabs/app-artifacts"
+    label: Artifacts
+    purpose: Uploaded documents -- extracted, chunked, embedded, stored in S3/Azure Blob.
   # Reads FastTables' schema catalog the same way fastboards does; writes
   # its own fastanalytics_predictions table, which fastboards' own
   # fastanalytics_bridge.py reads directly for a model-sourced chart.
@@ -66,3 +91,30 @@ apps:
     repo: https://github.com/FastlaneAI-HQ/fll-fastanalytics.git
     backend_package: fastlanelabs_app_fastanalytics
     frontend_package: "@fastlanelabs/app-fastanalytics"
+    label: FastAnalytics
+    purpose: Small, safe ML analyses (forecasts, regressions) over FastTables data.
+  fastskills:
+    repo: https://github.com/FastlaneAI-HQ/fll-fastskills.git
+    backend_package: fastlanelabs_app_fastskills
+    frontend_package: "@fastlanelabs/app-fastskills"
+    label: FastSkills
+    purpose: A catalog of Anthropic Agent Skills the assistant can draw on, with a per-skill on/off toggle.
+  fastmcp:
+    repo: https://github.com/FastlaneAI-HQ/fll-fastmcp.git
+    backend_package: fastlanelabs_app_fastmcp
+    frontend_package: "@fastlanelabs/app-fastmcp"
+    label: FastMCP
+    purpose: Runs an MCP server, exposing this deployment's installed apps as tools to an external client.
+  fasttools:
+    repo: https://github.com/FastlaneAI-HQ/fll-fasttools.git
+    backend_package: fastlanelabs_app_fasttools
+    frontend_package: "@fastlanelabs/app-fasttools"
+    label: FastTools
+    purpose: Lets the assistant call external MCP servers as tools mid-conversation, once an admin approves them.
+  # No frontend package -- machine-to-machine only (the webhook EmTL itself
+  # calls); no person-facing page at all.
+  emtl-webhook:
+    repo: https://github.com/FastlaneAI-HQ/fll-emtl-webhook.git
+    backend_package: fastlanelabs_app_emtl_webhook
+    label: Mail Delivery
+    purpose: Receive mail chunks and vectors EmTL delivers -- the one route ingestion itself depends on.
