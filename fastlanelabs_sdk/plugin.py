@@ -7,6 +7,7 @@ from typing import Callable, List, Optional
 
 from fastapi import APIRouter
 
+from .config_status import ConfigStatusFn
 from .graph import AgentGraphContribution
 from .mcp_tools import McpToolSpec
 from .spec import AppSpec
@@ -38,3 +39,9 @@ class AppPlugin:
     # versa) and independent of whether FastAI is even installed on this
     # tenant. Most apps leave this unset, same convention as `graph`.
     mcp_tools: Optional[List[McpToolSpec]] = None
+    # Set only by an app that has something a tenant admin can meaningfully
+    # configure -- an API key, a connection URL, a secret. Reported to
+    # Admin's Setup checklist; most apps (Contacts, Power Tools, Identity)
+    # have nothing to configure and leave this unset, same convention as
+    # `graph`/`mcp_tools`.
+    config_status: Optional[ConfigStatusFn] = None

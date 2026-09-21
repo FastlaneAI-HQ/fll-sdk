@@ -1,4 +1,5 @@
 from .spec import AppSpec
+from .config_status import ConfigItem, ConfigStatusFn
 from .graph import AgentGraphContribution
 from .mcp_tools import McpToolHandler, McpToolSpec
 from .plugin import AppPlugin
@@ -14,6 +15,8 @@ __all__ = [
     "AgentGraphContribution",
     "McpToolSpec",
     "McpToolHandler",
+    "ConfigItem",
+    "ConfigStatusFn",
     "AppPlugin",
     "PlatformDeps",
     "RerankUnavailable",
