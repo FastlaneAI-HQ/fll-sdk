@@ -43,6 +43,7 @@ apps:
   rfq:
     repo: https://github.com/FastlaneAI-HQ/fll-rfq.git
     backend_package: fastlanelabs_app_rfq
+    frontend_package: "@fastlanelabs/app-rfq"
     label: RFQ Drafter
     purpose: Turn an inbound request into a priced quote, with every figure traceable to the row it came from.
   fasttables:
