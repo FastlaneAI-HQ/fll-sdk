@@ -28,14 +28,16 @@ pipeline {
             }
         }
         stage('Test') {
-            // A copy outside the workspace, same as the app pipelines, so
-            // nothing the test run writes is ever mistaken for source.
+            // The SDK's suite on python3.12 -- the version the production
+            // image runs -- from a copy outside the workspace, the same way
+            // the app pipelines test. Nothing is published: the tag itself is
+            // the release, so a FAILED build here means "do not pin this".
             steps {
                 sh '''
                     T=$(mktemp -d)
                     trap 'rm -rf "$T"' EXIT
                     cp -r . "$T/src"
-                    python3.9 -m venv "$T/venv"
+                    python3.12 -m venv "$T/venv"
                     "$T/venv/bin/pip" install -q --upgrade pip
                     "$T/venv/bin/pip" install -q "$T/src" pytest
                     cd "$T/src" && "$T/venv/bin/python" -m pytest -q -p no:cacheprovider tests
