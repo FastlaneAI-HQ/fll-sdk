@@ -1,0 +1,21 @@
+{
+  "name": "@fastlanelabs/sdk",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "frontend"
+  ],
+  "dependencies": {
+    "esbuild": "0.25.12",
+    "tailwindcss": "3.4.17",
+    "postcss": "8.4.49"
+  },
+  "peerDependencies": {
+    "react": ">=18 <19",
+    "lucide-react": ">=0.469.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

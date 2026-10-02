@@ -62,3 +62,13 @@ Core's `deploy/install_apps.py` reads `apps.yaml`, `pip install`s each
 requested app's `backend/` subdirectory and `npm install`s its (repo-root)
 frontend package, then generates the binding files core reads at startup. See
 that script, and the main FastlaneLabs repo's plan doc, for the full flow.
+
+## Registry runtime contract v1.1
+
+Production apps are published wheels and browser-ready ESM/CSS, not core image dependencies. Catalog metadata carries registry selectors separately from runtime app IDs. `FASTLANELABS_REGISTRY_REMOTE=true` reads `catalog.json`; the last validated catalog remains cached on the persistent data volume. Local catalog overrides remain supported for development.
+
+App CI runs `frontend/build-app.mjs` and publishes `app.js` and `app.css` with a frontend API version and SHA-256 hashes. The bundle uses the host's React, JSX runtime and platform API. Shared form primitives are available as `fastlanelabs/ui` (Field, Button, Notice and inputClass); the public types live in `frontend/contracts.ts`. Do not bundle a separate React instance or import core's private source paths.
+
+`AppPlugin.unload` is optional for stateless apps and required when an app owns connection pools, transport tasks, workers or caches. It must stop/release those resources without deleting persistent content. Disabled app routes and graph references are removed; in-flight calls retain their references until they finish. Native dependencies shared with the platform are not process-isolated.
+
+Themes use `themes.validate_theme`, API v1. They supply the complete ink/accent palettes, surface, primary text, font stacks, radius and supported layout choices. They cannot execute code or replace authentication/application behavior. Theme source and publishing rules live in the separate `fll-themes` repository.

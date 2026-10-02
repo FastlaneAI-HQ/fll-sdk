@@ -4,3 +4,7 @@ __pycache__/
 build/
 dist/
 .venv/
+
+node_modules/
+
+node_modules

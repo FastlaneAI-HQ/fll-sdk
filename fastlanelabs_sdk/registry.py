@@ -21,6 +21,10 @@ as a dependency -- the caller never has to know which.
 from __future__ import annotations
 
 import os
+import json
+import logging
+import time
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
@@ -49,6 +53,10 @@ class RegistryEntry:
     # own AppSpec.label/.purpose by hand; nothing enforces they match.
     label: str = ""
     purpose: str = ""
+    app_id: str = ""
+    always: bool = False
+    min_role: str = "member"
+    group: str = "primary"
 
 
 @dataclass(frozen=True)
@@ -67,12 +75,73 @@ def _source() -> str:
             .joinpath("apps.yaml").read_text("utf-8"))
 
 
+_cached_catalog = None
+_catalog_expires = 0.0
+
+
 def load() -> Dict[str, RegistryEntry]:
+    """Read registry metadata, without importing application packages.
+
+    Production reads catalog.json from Blob Storage and caches it for a
+    minute. A saved catalog keeps Admin available during a registry outage.
+    A local path override explicitly selects development/offline mode.
+    """
+    global _cached_catalog, _catalog_expires
     data = yaml.safe_load(_source()) or {}
-    return {
-        app_id: RegistryEntry(id=app_id, **fields)
-        for app_id, fields in (data.get("apps") or {}).items()
-    }
+    remote = os.environ.get('FASTLANELABS_REGISTRY_REMOTE', '').lower() == 'true'
+    if remote and not os.environ.get('FASTLANELABS_REGISTRY_PATH'):
+        if _cached_catalog is not None and time.monotonic() < _catalog_expires:
+            return dict(_cached_catalog)
+        cache = Path(os.environ.get('FASTLANELABS_REGISTRY_CACHE',
+                                    str(Path(os.environ.get('DATA_DIR', '/data')) / 'apps/catalog.json')))
+        try:
+            from . import azure_blob
+            location = storage()
+            data = azure_blob.get_json(location.account, location.container, 'catalog.json')
+            result = _entries(data)
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile('w', dir=cache.parent, delete=False) as output:
+                json.dump(data, output)
+                pending = output.name
+            os.replace(pending, cache)
+        except Exception as exc:
+            logging.getLogger(__name__).warning('Registry catalog unavailable: %s', exc)
+            if _cached_catalog is not None:
+                result = _cached_catalog
+            elif cache.exists():
+                result = _entries(json.loads(cache.read_text()))
+            else:
+                result = _entries(yaml.safe_load(_source()) or {})
+        _cached_catalog = result
+        _catalog_expires = time.monotonic() + 60
+        return dict(result)
+    return _entries(data)
+
+
+def _entries(data) -> Dict[str, RegistryEntry]:
+    import re
+    if data.get('api_version', 1) != 1:
+        raise ValueError('Unsupported registry catalog API version')
+    apps = data.get('apps')
+    if not isinstance(apps, dict):
+        raise ValueError('Registry catalog must contain an apps map')
+    result = {}
+    for key, fields in apps.items():
+        entry = RegistryEntry(id=key, **fields)
+        if not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', key):
+            raise ValueError('Invalid registry selector')
+        if not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', entry.app_id or key):
+            raise ValueError('Invalid registry app id')
+        if not re.fullmatch(r'fastlanelabs_app_[a-z0-9_]+', entry.backend_package):
+            raise ValueError('Invalid registry package')
+        if type(entry.always) is not bool:
+            raise ValueError('Registry always must be boolean')
+        if entry.min_role not in ('member','tenant_admin','fastlane_admin') or entry.group not in ('primary','secondary'):
+            raise ValueError('Invalid registry app access metadata')
+        result[key] = entry
+    if len({e.app_id or e.id for e in result.values()}) != len(result):
+        raise ValueError('Duplicate registry app id')
+    return result
 
 
 def storage() -> Storage:

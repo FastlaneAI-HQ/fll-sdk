@@ -45,3 +45,8 @@ class AppPlugin:
     # have nothing to configure and leave this unset, same convention as
     # `graph`/`mcp_tools`.
     config_status: Optional[ConfigStatusFn] = None
+
+    # Called before the app is removed from the live runtime. Stop owned
+    # background workers, close clients and release app caches here. Tables,
+    # uploads and persistent files must never be deleted by this hook.
+    unload: Optional[Callable[[], None]] = None
