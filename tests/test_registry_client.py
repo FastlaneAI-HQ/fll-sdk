@@ -142,12 +142,17 @@ def test_malformed_key_is_rejected_without_echoing_it(server, monkeypatch):
     assert server.seen == []
 
 
-def test_base_url_defaults_from_apps_yaml_and_refuses_placeholder_or_plain_http(monkeypatch):
+def test_base_url_defaults_from_apps_yaml_and_refuses_placeholder_or_plain_http(monkeypatch, tmp_path):
     monkeypatch.delenv('FASTLANELABS_REGISTRY_URL', raising=False)
     monkeypatch.delenv('FASTLANELABS_REGISTRY_PATH', raising=False)
-    # The bundled apps.yaml still carries the placeholder until it is filled.
+    assert registry_client.base_url().startswith('https://fll-registry.')
+    # A config still carrying the placeholder is refused, not called.
+    placeholder = tmp_path / 'apps.yaml'
+    placeholder.write_text('registry:\n  url: https://REGISTRY_URL_PLACEHOLDER\napps: {}\n')
+    monkeypatch.setenv('FASTLANELABS_REGISTRY_PATH', str(placeholder))
     with pytest.raises(registry_client.RegistryConfigError):
         registry_client.base_url()
+    monkeypatch.delenv('FASTLANELABS_REGISTRY_PATH')
     monkeypatch.setenv('FASTLANELABS_REGISTRY_URL', 'https://registry.example.com/')
     assert registry_client.base_url() == 'https://registry.example.com'
     monkeypatch.setenv('FASTLANELABS_REGISTRY_URL', 'http://registry.example.com')
