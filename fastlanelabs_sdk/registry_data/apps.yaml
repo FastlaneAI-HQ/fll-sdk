@@ -148,3 +148,14 @@ apps:
     always: false
     min_role: tenant_admin
     group: secondary
+  themes:
+    repo: https://github.com/FastlaneAI-HQ/fll-themes.git
+    backend_package: fastlanelabs_app_themes
+    frontend_package: '@fastlanelabs/app-themes'
+    label: Themes
+    purpose: Preview and choose this tenant's appearance.
+    app_id: themes
+    always: false
+    default_enabled: true
+    min_role: tenant_admin
+    group: secondary

@@ -17,3 +17,4 @@ class AppSpec:
     always: bool = False
     min_role: str = "member"
     group: str = "primary"
+    default_enabled: bool = False

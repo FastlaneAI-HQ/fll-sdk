@@ -58,7 +58,8 @@ class PlatformDeps(Protocol):
 
     def tenant_identity(self) -> Any:
         """The current tenant's identity. `.owner_name` and `.org_domain`
-        are the contractual fields (used to personalize prompts); other
+        and `.slug` are the contractual fields (used to personalize prompts and
+        pin tenant app settings); other
         attributes may exist on the returned object but are not part of
         this contract.
         """

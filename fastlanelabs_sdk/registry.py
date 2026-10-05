@@ -57,6 +57,7 @@ class RegistryEntry:
     always: bool = False
     min_role: str = "member"
     group: str = "primary"
+    default_enabled: bool = False
 
 
 @dataclass(frozen=True)
@@ -134,7 +135,7 @@ def _entries(data) -> Dict[str, RegistryEntry]:
             raise ValueError('Invalid registry app id')
         if not re.fullmatch(r'fastlanelabs_app_[a-z0-9_]+', entry.backend_package):
             raise ValueError('Invalid registry package')
-        if type(entry.always) is not bool:
+        if type(entry.always) is not bool or type(entry.default_enabled) is not bool:
             raise ValueError('Registry always must be boolean')
         if entry.min_role not in ('member','tenant_admin','fastlane_admin') or entry.group not in ('primary','secondary'):
             raise ValueError('Invalid registry app access metadata')

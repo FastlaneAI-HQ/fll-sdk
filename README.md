@@ -72,3 +72,7 @@ App CI runs `frontend/build-app.mjs` and publishes `app.js` and `app.css` with a
 `AppPlugin.unload` is optional for stateless apps and required when an app owns connection pools, transport tasks, workers or caches. It must stop/release those resources without deleting persistent content. Disabled app routes and graph references are removed; in-flight calls retain their references until they finish. Native dependencies shared with the platform are not process-isolated.
 
 Themes use `themes.validate_theme`, API v1. They supply the complete ink/accent palettes, surface, primary text, font stacks, radius and supported layout choices. They cannot execute code or replace authentication/application behavior. Theme source and publishing rules live in the separate `fll-themes` repository.
+
+### Default, removable applications
+
+AppSpec and RegistryEntry support `default_enabled` independently of `always`. A default app is installed and enabled during new-tenant setup but can subsequently be disabled in Admin. An explicit disabled row must not be overwritten on restart. Themes is a default app maintained in fll-themes; its code is fetched from the app registry, not bundled into the SDK or core image. The SDK retains only the theme contract, catalog metadata and built-in fallback manifest.
