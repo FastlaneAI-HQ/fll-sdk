@@ -1,5 +1,5 @@
 registry:
-  url: https://REGISTRY_URL_PLACEHOLDER
+  url: https://fll-registry.orangeocean-58c9802f.eastus2.azurecontainerapps.io
   account: flappregistry1c019f1b
   container: apps
 apps:
