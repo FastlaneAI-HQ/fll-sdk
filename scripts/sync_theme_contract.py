@@ -8,3 +8,7 @@ source=Path(__file__).resolve().parents[1]/'frontend/theme-contract.ts'
 target=args.host/'frontend/src/generated/theme-contract.ts'
 target.parent.mkdir(parents=True,exist_ok=True)
 target.write_bytes(source.read_bytes())
+
+pack_source=source.with_name('theme-pack-contract.ts')
+pack_target=target.with_name('theme-pack-contract.ts')
+pack_target.write_bytes(pack_source.read_bytes())

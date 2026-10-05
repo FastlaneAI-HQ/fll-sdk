@@ -15,6 +15,7 @@ declare module 'fastlanelabs/ui' {
   export const inputClass: string
 }
 declare module 'fastlanelabs/theme' {
+  export function installPackTemplates(library: import('./theme-contract').TemplateLibrary): void
   export function ThemeSlot<K extends import('./theme-contract').ThemeComponentId>(props: {
     id: K; props: import('./theme-contract').ThemeProps[K]; fallback: import('react').ComponentType<import('./theme-contract').ThemeProps[K]>
   }): import('react').ReactNode

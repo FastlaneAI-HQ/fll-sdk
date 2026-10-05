@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react'
 export const FRONTEND_API_VERSION = 1 as const
 export interface AppModule {
   themeTemplates?: import('./theme-contract').TemplateLibrary
+  createThemePackTemplates?: import('./theme-pack-contract').ThemePackTemplateFactory
   id: string
   label: string
   short: string

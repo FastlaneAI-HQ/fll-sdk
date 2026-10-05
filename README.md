@@ -73,6 +73,8 @@ App CI runs `frontend/build-app.mjs` and publishes `app.js` and `app.css` with a
 
 Themes use `themes.validate_theme`, API v1. They supply the complete ink/accent palettes, surface, primary text, font stacks, radius and supported layout choices. The JSON manifest cannot execute code. Separately reviewed JSX templates may rearrange registered presentation slots while authentication and application behavior remain host-owned. Theme source and publishing rules live in the separate `fll-themes` repository.
 
+`theme_packs.create_theme_pack` and `validate_theme_pack` provide the data-only ZIP contract for client uploads. The four root JSON entries carry an immutable client identity, checksummed manifest, bounded layout tree, supported component variants and source evidence. `ThemePackError.errors` identifies invalid files/fields. No uploaded code executes. `frontend/theme-pack-contract.ts` types validated definitions; only the enabled Themes app's optional `createThemePackTemplates` factory compiles them into reviewed presentation components. The host merges imported components separately from its reviewed library and offloads both when Themes is removed.
+
 ### Default, removable applications
 
 AppSpec and RegistryEntry support `default_enabled` independently of `always`. A default app is installed and enabled during new-tenant setup but can subsequently be disabled in Admin. An explicit disabled row must not be overwritten on restart. Themes is a default app maintained in fll-themes; its code is fetched from the app registry, not bundled into the SDK or core image. The SDK retains only the theme contract, catalog metadata and built-in fallback manifest.

@@ -16,7 +16,7 @@ await build({
     b.onLoad({ filter: /.*/, namespace: 'platform' }, args => {
       if (args.path === 'react') return { contents: `const r=globalThis.__FASTLANE_PLATFORM__.react; export default r; ${reactExports.map(name=>`export const ${name}=r.${name};`).join('')}` }
       if (args.path === 'react/jsx-runtime') return { contents: 'const r=globalThis.__FASTLANE_PLATFORM__.jsx; export const jsx=r.jsx, jsxs=r.jsxs, Fragment=r.Fragment;' }
-      if (args.path === 'fastlanelabs/theme') return { contents: 'const theme=globalThis.__FASTLANE_PLATFORM__.theme; export const ThemeSlot=theme.ThemeSlot, ThemePreview=theme.ThemePreview, themeStyle=theme.themeStyle;' }
+      if (args.path === 'fastlanelabs/theme') return { contents: 'const theme=globalThis.__FASTLANE_PLATFORM__.theme; export const installPackTemplates=theme.installPackTemplates, ThemeSlot=theme.ThemeSlot, ThemePreview=theme.ThemePreview, themeStyle=theme.themeStyle;' }
       if (args.path === 'fastlanelabs/ui') return { contents: 'const ui=globalThis.__FASTLANE_PLATFORM__.ui; export const Workspace=ui.Workspace, Sidebar=ui.Sidebar, Topbar=ui.Topbar, NavigationItem=ui.NavigationItem, Message=ui.Message, Composer=ui.Composer, Field=ui.Field, Button=ui.Button, Notice=ui.Notice, Input=ui.Input, Card=ui.Card, PageHeader=ui.PageHeader, inputClass=ui.inputClass;' }
       return { contents: 'export const api=globalThis.__FASTLANE_PLATFORM__.api;' }
     })
