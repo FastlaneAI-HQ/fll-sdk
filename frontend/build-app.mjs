@@ -12,11 +12,12 @@ await build({
   bundle: true, format: 'esm', platform: 'browser', target: 'es2020',
   jsx: 'automatic', minify: true,
   plugins: [{ name: 'platform-contract', setup(b) {
-    b.onResolve({ filter: /^(react(?:\/jsx-runtime)?|fastlanelabs\/(?:api|ui))$/ }, args => ({ path: args.path, namespace: 'platform' }))
+    b.onResolve({ filter: /^(react(?:\/jsx-runtime)?|fastlanelabs\/(?:api|ui|theme))$/ }, args => ({ path: args.path, namespace: 'platform' }))
     b.onLoad({ filter: /.*/, namespace: 'platform' }, args => {
       if (args.path === 'react') return { contents: `const r=globalThis.__FASTLANE_PLATFORM__.react; export default r; ${reactExports.map(name=>`export const ${name}=r.${name};`).join('')}` }
       if (args.path === 'react/jsx-runtime') return { contents: 'const r=globalThis.__FASTLANE_PLATFORM__.jsx; export const jsx=r.jsx, jsxs=r.jsxs, Fragment=r.Fragment;' }
-      if (args.path === 'fastlanelabs/ui') return { contents: 'const ui=globalThis.__FASTLANE_PLATFORM__.ui; export const Field=ui.Field, Button=ui.Button, Notice=ui.Notice, inputClass=ui.inputClass;' }
+      if (args.path === 'fastlanelabs/theme') return { contents: 'const theme=globalThis.__FASTLANE_PLATFORM__.theme; export const ThemeSlot=theme.ThemeSlot, ThemePreview=theme.ThemePreview, themeStyle=theme.themeStyle;' }
+      if (args.path === 'fastlanelabs/ui') return { contents: 'const ui=globalThis.__FASTLANE_PLATFORM__.ui; export const Field=ui.Field, Button=ui.Button, Notice=ui.Notice, Input=ui.Input, Card=ui.Card, PageHeader=ui.PageHeader, inputClass=ui.inputClass;' }
       return { contents: 'export const api=globalThis.__FASTLANE_PLATFORM__.api;' }
     })
   }}],

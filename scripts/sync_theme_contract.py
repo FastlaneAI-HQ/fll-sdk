@@ -1,0 +1,10 @@
+"""Generate the host's type-only contract without bundling SDK tooling."""
+from pathlib import Path
+import argparse
+parser=argparse.ArgumentParser()
+parser.add_argument('host',type=Path)
+args=parser.parse_args()
+source=Path(__file__).resolve().parents[1]/'frontend/theme-contract.ts'
+target=args.host/'frontend/src/generated/theme-contract.ts'
+target.parent.mkdir(parents=True,exist_ok=True)
+target.write_bytes(source.read_bytes())

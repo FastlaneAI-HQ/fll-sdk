@@ -76,3 +76,11 @@ Themes use `themes.validate_theme`, API v1. They supply the complete ink/accent 
 ### Default, removable applications
 
 AppSpec and RegistryEntry support `default_enabled` independently of `always`. A default app is installed and enabled during new-tenant setup but can subsequently be disabled in Admin. An explicit disabled row must not be overwritten on restart. Themes is a default app maintained in fll-themes; its code is fetched from the app registry, not bundled into the SDK or core image. The SDK retains only the theme contract, catalog metadata and built-in fallback manifest.
+
+### JSX theme template contract
+
+`frontend/theme-contract.ts` defines stable presentation IDs and their typed properties. Templates are optional replacements for `layout.workspace`, `navigation.sidebar`, `page.header`, `surface.card`, `control.button`, `control.input`, `control.field`, `feedback.notice`, `chat.message` and `chat.composer`. An AppModule can provide `themeTemplates: { api_version: 1, templates: [...] }`. The enabled Themes app supplies this library; other apps cannot replace it.
+
+Core compiles against a generated, type-only copy of the SDK contract: `python scripts/sync_theme_contract.py /path/to/FastlaneLabs`. Its local contract synchronization test detects drift. This avoids shipping developer build tooling in the production frontend image. App packages compile against the SDK directly and use `frontend/platform.d.ts` for the host UI/theme module declarations.
+
+The host's theme resolver retains default components and callbacks, isolates preview selection, and falls back on missing or failed presentation components. New slot IDs or breaking property changes require a coordinated contract release. Only reviewed application code may supply JSX templates; this is not a sandbox for arbitrary code.
