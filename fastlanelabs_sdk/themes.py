@@ -1,4 +1,4 @@
-"""Versioned, data-only tenant theme contract. Themes cannot execute code."""
+"""Versioned, data-only theme manifests; reviewed JSX templates are separate bundles."""
 from __future__ import annotations
 
 import re
@@ -64,6 +64,6 @@ def validate_theme(value: Any) -> dict:
     layout = value["layout"]
     if not isinstance(layout, dict) or set(layout) != {"density", "navigation"}:
         raise ThemeError("Layout must supply density and navigation")
-    if layout["density"] not in ("comfortable", "compact") or layout["navigation"] != "rail":
+    if layout["density"] not in ("comfortable", "compact") or layout["navigation"] not in ("rail", "sidebar"):
         raise ThemeError("Unsupported layout option")
     return dict(value, tokens=dict(tokens), layout=dict(layout))

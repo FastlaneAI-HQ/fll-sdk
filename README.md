@@ -71,7 +71,7 @@ App CI runs `frontend/build-app.mjs` and publishes `app.js` and `app.css` with a
 
 `AppPlugin.unload` is optional for stateless apps and required when an app owns connection pools, transport tasks, workers or caches. It must stop/release those resources without deleting persistent content. Disabled app routes and graph references are removed; in-flight calls retain their references until they finish. Native dependencies shared with the platform are not process-isolated.
 
-Themes use `themes.validate_theme`, API v1. They supply the complete ink/accent palettes, surface, primary text, font stacks, radius and supported layout choices. They cannot execute code or replace authentication/application behavior. Theme source and publishing rules live in the separate `fll-themes` repository.
+Themes use `themes.validate_theme`, API v1. They supply the complete ink/accent palettes, surface, primary text, font stacks, radius and supported layout choices. The JSON manifest cannot execute code. Separately reviewed JSX templates may rearrange registered presentation slots while authentication and application behavior remain host-owned. Theme source and publishing rules live in the separate `fll-themes` repository.
 
 ### Default, removable applications
 
@@ -79,8 +79,10 @@ AppSpec and RegistryEntry support `default_enabled` independently of `always`. A
 
 ### JSX theme template contract
 
-`frontend/theme-contract.ts` defines stable presentation IDs and their typed properties. Templates are optional replacements for `layout.workspace`, `navigation.sidebar`, `page.header`, `surface.card`, `control.button`, `control.input`, `control.field`, `feedback.notice`, `chat.message` and `chat.composer`. An AppModule can provide `themeTemplates: { api_version: 1, templates: [...] }`. The enabled Themes app supplies this library; other apps cannot replace it.
+`frontend/theme-contract.ts` defines stable presentation IDs and their typed properties. Templates are optional replacements for `layout.workspace`, `navigation.sidebar`, `navigation.item`, `navigation.topbar`, `page.header`, `surface.card`, `control.button`, `control.input`, `control.field`, `feedback.notice`, `chat.message` and `chat.composer`. An AppModule can provide `themeTemplates: { api_version: 1, templates: [...] }`. The enabled Themes app supplies this library; other apps cannot replace it.
 
-Core compiles against a generated, type-only copy of the SDK contract: `python scripts/sync_theme_contract.py /path/to/FastlaneLabs`. Its local contract synchronization test detects drift. This avoids shipping developer build tooling in the production frontend image. App packages compile against the SDK directly and use `frontend/platform.d.ts` for the host UI/theme module declarations.
+Core compiles against a generated copy of the SDK contract: `python scripts/sync_theme_contract.py /path/to/FastlaneLabs`. Its local contract synchronization test detects drift. This avoids shipping developer build tooling in the production frontend image. App packages compile against the SDK directly and use `frontend/platform.d.ts` for the host UI/theme module declarations.
+
+Workspace receives typed authorized product items, account actions and tenant metadata separately from its app-content children. Themes can compose different sidebar/topbar layouts with the host UI wrappers; callbacks, permissions, data and app mounting remain in core.
 
 The host's theme resolver retains default components and callbacks, isolates preview selection, and falls back on missing or failed presentation components. New slot IDs or breaking property changes require a coordinated contract release. Only reviewed application code may supply JSX templates; this is not a sandbox for arbitrary code.

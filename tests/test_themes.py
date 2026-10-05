@@ -31,3 +31,9 @@ def test_unsupported_or_executable_themes_are_rejected(change):
     change(candidate)
     with pytest.raises(ThemeError):
         validate_theme(candidate)
+
+
+def test_sidebar_layout_is_supported_without_changing_tokens():
+    candidate = theme()
+    candidate['layout']['navigation'] = 'sidebar'
+    assert validate_theme(candidate)['layout']['navigation'] == 'sidebar'

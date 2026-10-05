@@ -1,5 +1,11 @@
 /** Type declarations for the host-owned modules available to registry apps. */
 declare module 'fastlanelabs/ui' {
+  export const Workspace: import('./contracts').PlatformUI['Workspace']
+  export const Sidebar: import('./contracts').PlatformUI['Sidebar']
+  export const Topbar: import('./contracts').PlatformUI['Topbar']
+  export const NavigationItem: import('./contracts').PlatformUI['NavigationItem']
+  export const Message: import('./contracts').PlatformUI['Message']
+  export const Composer: import('./contracts').PlatformUI['Composer']
   export const Field: import('./contracts').PlatformUI['Field']
   export const Button: import('./contracts').PlatformUI['Button']
   export const Notice: import('./contracts').PlatformUI['Notice']

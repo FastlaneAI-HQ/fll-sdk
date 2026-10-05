@@ -16,6 +16,12 @@ export interface AppModule {
   artifacts?: Record<string, ComponentType<{ data: any; messageKey: string }>>
 }
 export interface PlatformUI {
+  Workspace: ComponentType<import('./theme-contract').ThemeProps['layout.workspace']>
+  Sidebar: ComponentType<import('./theme-contract').ThemeProps['navigation.sidebar']>
+  Topbar: ComponentType<import('./theme-contract').ThemeProps['navigation.topbar']>
+  NavigationItem: ComponentType<import('./theme-contract').ThemeProps['navigation.item']>
+  Message: ComponentType<import('./theme-contract').ThemeProps['chat.message']>
+  Composer: ComponentType<import('./theme-contract').ThemeProps['chat.composer']>
   Input: ComponentType<import('./theme-contract').ThemeProps['control.input']>
   Card: ComponentType<import('./theme-contract').ThemeProps['surface.card']>
   PageHeader: ComponentType<import('./theme-contract').ThemeProps['page.header']>
