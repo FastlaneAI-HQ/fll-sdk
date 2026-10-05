@@ -1,7 +1,7 @@
 from dataclasses import asdict
 import json
 import pytest
-from fastlanelabs_sdk import registry, azure_blob
+from fastlanelabs_sdk import registry, registry_client
 
 
 def test_remote_catalog_is_cached_and_survives_an_outage(tmp_path, monkeypatch):
@@ -13,12 +13,12 @@ def test_remote_catalog_is_cached_and_survives_an_outage(tmp_path, monkeypatch):
     monkeypatch.setenv('FASTLANELABS_REGISTRY_CACHE', str(cache))
     monkeypatch.setattr(registry, '_cached_catalog', None)
     monkeypatch.setattr(registry, '_catalog_expires', 0)
-    monkeypatch.setattr(azure_blob, 'get_json', lambda *args: data)
+    monkeypatch.setattr(registry_client, 'get_json', lambda path: data if path == 'catalog.json' else None)
     assert registry.load()['fastai'].app_id == 'chat'
     assert json.loads(cache.read_text()) == data
     monkeypatch.setattr(registry, '_cached_catalog', None)
     monkeypatch.setattr(registry, '_catalog_expires', 0)
-    monkeypatch.setattr(azure_blob, 'get_json', lambda *args: (_ for _ in ()).throw(RuntimeError('offline')))
+    monkeypatch.setattr(registry_client, 'get_json', lambda *args: (_ for _ in ()).throw(RuntimeError('offline')))
     assert registry.load()['fastai'].app_id == 'chat'
 
 

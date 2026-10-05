@@ -1,4 +1,5 @@
 registry:
+  url: https://REGISTRY_URL_PLACEHOLDER
   account: flappregistry1c019f1b
   container: apps
 apps:

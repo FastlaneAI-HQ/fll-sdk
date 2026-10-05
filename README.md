@@ -67,6 +67,10 @@ that script, and the main FastlaneLabs repo's plan doc, for the full flow.
 
 Production apps are published wheels and browser-ready ESM/CSS, not core image dependencies. Catalog metadata carries registry selectors separately from runtime app IDs. `FASTLANELABS_REGISTRY_REMOTE=true` reads `catalog.json`; the last validated catalog remains cached on the persistent data volume. Local catalog overrides remain supported for development.
 
+### Registry access (v1.2)
+
+The registry's storage account is private. Tenant installs read it only through the fll-registry HTTP service, via `fastlanelabs_sdk.registry_client` (`get_blob`, `get_json`, `whoami`): `GET {base}/v1/files/<path>` with `Authorization: Bearer <key>`. The base URL is `registry.url` in `apps.yaml`, overridden by `FASTLANELABS_REGISTRY_URL`; the key is `FASTLANELABS_REGISTRY_KEY` (`flr_<tenant>_<8 hex>_<48 hex>`, issued per tenant). The key is access control only: callers keep checking every artifact's sha256 against `versions.json`. `registry.storage()` remains for operator publishing tooling that writes with its own `az` credentials.
+
 App CI runs `frontend/build-app.mjs` and publishes `app.js` and `app.css` with a frontend API version and SHA-256 hashes. The bundle uses the host's React, JSX runtime and platform API. Shared form primitives are available as `fastlanelabs/ui` (Field, Button, Notice and inputClass); the public types live in `frontend/contracts.ts`. Do not bundle a separate React instance or import core's private source paths.
 
 `AppPlugin.unload` is optional for stateless apps and required when an app owns connection pools, transport tasks, workers or caches. It must stop/release those resources without deleting persistent content. Disabled app routes and graph references are removed; in-flight calls retain their references until they finish. Native dependencies shared with the platform are not process-isolated.

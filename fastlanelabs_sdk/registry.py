@@ -8,10 +8,11 @@ a hand-maintained YAML file, and versioning policy are explicitly future work
 
 `repo` is kept per app as a human reference -- "this is where it was built
 from" -- but is no longer read at install time. What an install actually
-pulls from is the shared Blob Storage account/container in `storage()`: one
-`versions.json` and one wheel/tarball pair per released version, published by
-each app repo's own CI on a tag push. See `deploy/install_apps.py` and
-`fastlanelabs_sdk.azure_blob`.
+pulls from is the fll-registry HTTP service (`registry.url`, authenticated
+with the tenant's registry key): one `versions.json` and one wheel/tarball
+pair per released version, published by each app repo's own CI on a tag push
+into the private storage account/container named in `storage()`. See
+`deploy/install_apps.py` and `fastlanelabs_sdk.registry_client`.
 
 Bundled as package data (`registry_data/apps.yaml`) rather than read from a
 path relative to the repo checkout, so `load()` works the same way whether
@@ -83,8 +84,8 @@ _catalog_expires = 0.0
 def load() -> Dict[str, RegistryEntry]:
     """Read registry metadata, without importing application packages.
 
-    Production reads catalog.json from Blob Storage and caches it for a
-    minute. A saved catalog keeps Admin available during a registry outage.
+    Production reads catalog.json from the registry service (already
+    filtered to this tenant's entitled apps) and caches it for a minute. A saved catalog keeps Admin available during a registry outage.
     A local path override explicitly selects development/offline mode.
     """
     global _cached_catalog, _catalog_expires
@@ -96,9 +97,8 @@ def load() -> Dict[str, RegistryEntry]:
         cache = Path(os.environ.get('FASTLANELABS_REGISTRY_CACHE',
                                     str(Path(os.environ.get('DATA_DIR', '/data')) / 'apps/catalog.json')))
         try:
-            from . import azure_blob
-            location = storage()
-            data = azure_blob.get_json(location.account, location.container, 'catalog.json')
+            from . import registry_client
+            data = registry_client.get_json('catalog.json')
             result = _entries(data)
             cache.parent.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile('w', dir=cache.parent, delete=False) as output:
@@ -146,6 +146,9 @@ def _entries(data) -> Dict[str, RegistryEntry]:
 
 
 def storage() -> Storage:
+    """The registry's private storage account/container. Only publishing
+    (operator tooling with its own `az` credentials) writes here directly;
+    tenant installs read through `registry_client`."""
     data = yaml.safe_load(_source()) or {}
     reg = data.get("registry") or {}
     if not reg.get("account") or not reg.get("container"):
