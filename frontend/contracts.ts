@@ -15,6 +15,30 @@ export interface AppModule {
   group?: 'primary' | 'secondary'
   persistent?: boolean
   artifacts?: Record<string, ComponentType<{ data: any; messageKey: string }>>
+  /** A mail-client task pane (QuoteIQ in Outlook), rendered by core's
+   *  quoteiq.html with the open message and the host's actions. */
+  mailAddin?: ComponentType<MailAddinProps>
+}
+export interface MailContext {
+  host: 'outlook' | 'preview'
+  mode: 'read' | 'compose'
+  conversationId: string
+  itemId: string
+  subject: string
+  fromName: string
+  fromAddress: string
+  body: string
+  mailbox: string
+}
+export interface MailAddinProps {
+  mail: MailContext
+  host: {
+    /** Open a reply (reading) or insert at the cursor (composing). Never sends. */
+    insertReply: (html: string) => Promise<void>
+    openUrl: (url: string) => void
+    connectedAs: { email: string; name: string }
+    disconnect: () => Promise<void>
+  }
 }
 export interface PlatformUI {
   Workspace: ComponentType<import('./theme-contract').ThemeProps['layout.workspace']>
