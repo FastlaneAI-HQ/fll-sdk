@@ -14,6 +14,8 @@ export interface AppModule {
   Component: ComponentType
   group?: 'primary' | 'secondary'
   persistent?: boolean
+  /** The page scrolls as a whole when the theme sets layout.scroll to `page`. It must drop its own scroll container. */
+  pageScroll?: boolean
   artifacts?: Record<string, ComponentType<{ data: any; messageKey: string }>>
   /** A mail-client task pane (QuoteIQ in Outlook), rendered by core's
    *  quoteiq.html with the open message and the host's actions. */
@@ -54,4 +56,8 @@ export interface PlatformUI {
   Button: ComponentType<{ children: ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; loading?: boolean; tone?: 'primary' | 'quiet' | 'danger' }>
   Notice: ComponentType<{ tone?: 'bad' | 'good' | 'info'; children: ReactNode }>
   inputClass: string
+  /** The three below exist only on hosts that support theme API v2; apps feature-detect them. */
+  Badge?: ComponentType<{ children: ReactNode; tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info' }>
+  Modal?: ComponentType<{ open: boolean; title?: string; onClose: () => void; children: ReactNode; footer?: ReactNode }>
+  Tabs?: ComponentType<{ tabs: { id: string; label: string }[]; value: string; onChange: (id: string) => void; children?: ReactNode }>
 }

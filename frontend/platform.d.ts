@@ -13,12 +13,23 @@ declare module 'fastlanelabs/ui' {
   export const Card: import('./contracts').PlatformUI['Card']
   export const PageHeader: import('./contracts').PlatformUI['PageHeader']
   export const inputClass: string
+  /** Present only on hosts that support theme API v2. */
+  export const Badge: import('./contracts').PlatformUI['Badge']
+  export const Modal: import('./contracts').PlatformUI['Modal']
+  export const Tabs: import('./contracts').PlatformUI['Tabs']
 }
 declare module 'fastlanelabs/theme' {
   export function installPackTemplates(library: import('./theme-contract').TemplateLibrary): void
   export function ThemeSlot<K extends import('./theme-contract').ThemeComponentId>(props: {
     id: K; props: import('./theme-contract').ThemeProps[K]; fallback: import('react').ComponentType<import('./theme-contract').ThemeProps[K]>
   }): import('react').ReactNode
-  export function ThemePreview(props: {id:string;version:string;tokens:Record<string,string>;density:string;children:import('react').ReactNode}): import('react').ReactNode
+  /** A v1 pack previews by id, version and tokens. A v2 draft passes `theme`: its variables and layout are scoped to
+   *  the wrapper (data-fl-theme-root) and its template key never matches a v1 template. */
+  export function ThemePreview(props: ({id:string;version:string;tokens:Record<string,string>;density:string} | {theme: import('./theme-contract').ThemeManifestV2}) & {children:import('react').ReactNode}): import('react').ReactNode
   export function themeStyle(tokens: Record<string,string>): import('react').CSSProperties
+  /** The next three exist only on hosts that support theme API v2 (feature-detect `resolveTheme`). */
+  export const resolveTheme: undefined | ((theme: import('./theme-pack-contract').ThemeManifest | import('./theme-contract').ThemeManifestV2) => import('./theme-contract').ResolvedTheme)
+  export const applyResolved: undefined | ((resolved: import('./theme-contract').ResolvedTheme) => void)
+  /** Scopes a layout for a preview, so a draft's layout renders without changing the tenant's. */
+  export const ShellLayoutProvider: undefined | ((props: { layout: import('./theme-contract').LayoutV2; children: import('react').ReactNode }) => import('react').ReactNode)
 }

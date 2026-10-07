@@ -1,5 +1,5 @@
-/** Data-only theme pack format v1. Uploaded files never supply executable components. */
-import type { ThemeTemplate } from './theme-contract'
+/** Data-only theme pack formats 1 and 2. Uploaded files never supply executable components. */
+import type { ThemeManifestV2, ThemeTemplate } from './theme-contract'
 export interface ThemeManifest {
   api_version: 1; id: string; version: string; label: string
   tokens: Record<string,string>
@@ -21,5 +21,8 @@ export interface PresentationStyles {
   'chat.composer'?: {variant:'panel'|'plain'}
 }
 export interface ThemePackPresentation {api_version:1;workspace:LayoutNode;styles:PresentationStyles}
-export interface ThemePackDefinition {theme:ThemeManifest;presentation:ThemePackPresentation}
+export interface ThemePackDefinitionV1 {theme:ThemeManifest;presentation:ThemePackPresentation}
+/** Format 2 packs carry their layout in the manifest, so there is no presentation. */
+export interface ThemePackDefinitionV2 {theme:ThemeManifestV2;presentation:null}
+export type ThemePackDefinition = ThemePackDefinitionV1 | ThemePackDefinitionV2
 export type ThemePackTemplateFactory = (packs:ThemePackDefinition[]) => ThemeTemplate[]
