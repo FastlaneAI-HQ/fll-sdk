@@ -3,6 +3,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -49,7 +50,7 @@ def test_typescript_layout_and_registry_types_follow_the_registry():
 
 
 def test_sync_script_copies_the_v2_runtime_files(tmp_path):
-    subprocess.run(['python', str(ROOT / 'scripts/sync_theme_contract.py'), str(tmp_path)], check=True)
+    subprocess.run([sys.executable, str(ROOT / 'scripts/sync_theme_contract.py'), str(tmp_path)], check=True)
     generated = tmp_path / 'frontend/src/generated'
     assert sorted(path.name for path in generated.iterdir()) == [
         'tailwind-preset.mjs', 'theme-contract.ts', 'theme-defaults.css', 'theme-pack-contract.ts',
