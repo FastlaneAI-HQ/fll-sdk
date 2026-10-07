@@ -2,7 +2,7 @@
  *  upgrade_v1, project_v1, contrast_report); shared golden fixtures keep the two in step.
  *  Inputs are assumed valid: the server validates, and the editor validates before it applies. */
 import registryData from './theme-registry.json'
-import type { LayoutV2, ResolvedTheme, ThemeManifestV2 } from './theme-contract'
+import type { ColorMode, ColorScheme, LayoutV2, ResolvedTheme, ThemeManifestV2, TokenLayers } from './theme-contract'
 import type { LayoutNode, ThemeManifest, ThemePackPresentation } from './theme-pack-contract'
 
 interface TokenSpec {
@@ -21,6 +21,9 @@ interface Registry {
   component_contrast_pairs: { id: string; fg: string; bg: string }[]
   nav_bars: { bar: 'sidebar' | 'navbar'; tone: string; bg: string }[]
   webfonts: { family: string; weights: number[] }[]
+  modes: { names: string[]; since: number; overridable: string[]; required: string[]; ramps: string[] }
+  hues: Record<string, string[]>
+  black: { light: string; dark: string }
 }
 const registry = registryData as unknown as Registry
 const index = new Map(registry.tokens.map(token => [token.name, token]))
@@ -32,9 +35,37 @@ export const tokenSpecs = registry.tokens as readonly TokenSpec[]
 const triplet = (color: string) => [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16)).join(' ')
 const isColor = (value: string) => /^#[0-9a-fA-F]{6}$/.test(value)
 
-/** Follow `{ref}`s to the literal; every reference points at a token the theme sets. */
-function flatten(theme: ThemeManifestV2): Record<string, string> {
+const LAYERS = ['primitives', 'semantic', 'components'] as const
+
+/** The modes a theme offers: light only, dark only, or both (a v1 theme offers light). */
+export function offeredModes(theme: { api_version: number; color_scheme?: ColorScheme }): ColorMode[] {
+  if (theme.api_version !== 2) return ['light']
+  return theme.color_scheme === 'dark' ? ['dark'] : theme.color_scheme === 'auto' ? ['light', 'dark'] : ['light']
+}
+
+/** The mode to show: the only one a theme offers, else the user's choice (`system`/undefined follows the OS). */
+export function effectiveMode(theme: { api_version: number; color_scheme?: ColorScheme }, preference?: string | null, systemDark = false): ColorMode {
+  const offered = offeredModes(theme)
+  if (offered.length === 1) return offered[0]
+  if (preference === 'light' || preference === 'dark') return preference
+  return systemDark ? 'dark' : 'light'
+}
+
+/** Every token the theme sets, with modes.dark applied when the dark palette of an auto theme is wanted. */
+function rawTokens(theme: ThemeManifestV2, mode: ColorMode): Record<string, string> {
   const raw: Record<string, string> = { ...theme.tokens.primitives, ...theme.tokens.semantic, ...theme.tokens.components }
+  if (mode === 'dark' && theme.color_scheme === 'auto' && theme.modes) {
+    for (const layer of LAYERS) Object.assign(raw, theme.modes.dark[layer])
+  }
+  return raw
+}
+
+/** Follow `{ref}`s to the literal; every reference points at a token the theme sets. */
+function flatten(theme: ThemeManifestV2, mode: ColorMode = 'light'): Record<string, string> {
+  return flattenRaw(rawTokens(theme, mode))
+}
+
+function flattenRaw(raw: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
   const follow = (name: string): string => {
     if (!(name in out)) {
@@ -56,7 +87,7 @@ function cssValue(spec: TokenSpec, literal: string, raw: string): string {
   return literal
 }
 
-export function resolveTheme(theme: ThemeManifest | ThemeManifestV2): ResolvedTheme {
+export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: ColorMode | null): ResolvedTheme {
   if (theme.api_version === 1) {
     return {
       api_version: 1,
@@ -65,11 +96,12 @@ export function resolveTheme(theme: ThemeManifest | ThemeManifestV2): ResolvedTh
       layout: { ...theme.layout }, shell: { attrs: {}, vars: {} }, fonts: [], enums: {},
     }
   }
-  const resolved = flatten(theme)
+  const scheme = theme.color_scheme ?? 'light'
+  const chosen = effectiveMode(theme, mode)
+  const raw = rawTokens(theme, chosen)
+  const resolved = flattenRaw(raw)
   const vars: Record<string, string> = {}
-  for (const layer of ['primitives', 'semantic', 'components'] as const) {
-    for (const [name, raw] of Object.entries(theme.tokens[layer])) vars[`--fl-${name}`] = cssValue(index.get(name)!, resolved[name], raw)
-  }
+  for (const [name, content] of Object.entries(raw)) vars[`--fl-${name}`] = cssValue(index.get(name)!, resolved[name], content)
   const { sidebar, navbar, content } = theme.layout
   const step = (name: string) => (name === 'none' ? '0px' : `var(--fl-space-${name})`)
   const allow = new Map(registry.webfonts.map(font => [font.family.toLowerCase(), font]))
@@ -78,9 +110,9 @@ export function resolveTheme(theme: ThemeManifest | ThemeManifestV2): ResolvedTh
     const font = allow.get(resolved[name].split(',')[0].trim().replace(/^['"]|['"]$/g, '').toLowerCase())
     if (font && !fonts.some(item => item.family === font.family)) fonts.push({ family: font.family, weights: [...font.weights] })
   }
-  return {
-    api_version: 2, vars,
-    attrs: { 'data-density': theme.layout.density, 'data-theme': theme.id, 'data-fl-contract': '2' },
+  const attrs: Record<string, string> = { 'data-density': theme.layout.density, 'data-theme': theme.id, 'data-fl-contract': '2' }
+  const result: ResolvedTheme = {
+    api_version: 2, vars, attrs,
     layout: JSON.parse(JSON.stringify(theme.layout)),
     shell: {
       attrs: {
@@ -100,15 +132,28 @@ export function resolveTheme(theme: ThemeManifest | ThemeManifestV2): ResolvedTh
     fonts,
     enums: Object.fromEntries(registry.tokens.filter(t => t.type === 'enum').map(t => [t.name, resolved[t.name] ?? (t.default as string)])),
   }
+  if (scheme !== 'light') {
+    attrs['data-fl-mode'] = chosen
+    result.scheme = { offered: offeredModes(theme), mode: chosen }
+  }
+  return result
 }
 
-export function defaultThemeV2(id = 'fastlane', version = '2.0.0', label = 'Fastlane'): ThemeManifestV2 {
+export function defaultThemeV2(id = 'fastlane', version = '2.0.0', label = 'Fastlane', scheme: ColorScheme = 'light', registryRevision = REGISTRY_REVISION): ThemeManifestV2 {
   const layer = (name: string) => Object.fromEntries(registry.tokens.filter(t => t.layer === name).map(t => [t.name, t.default as string]))
-  return {
-    api_version: 2, registry_revision: REGISTRY_REVISION, id, version, label, color_scheme: 'light',
+  const theme: ThemeManifestV2 = {
+    api_version: 2, registry_revision: registryRevision, id, version, label, color_scheme: 'light',
     tokens: { primitives: layer('primitive'), semantic: layer('semantic'), components: {} },
     layout: JSON.parse(JSON.stringify(registry.layout_defaults)),
   }
+  if (scheme !== 'light') {
+    if (registryRevision < 2) throw new Error('Dark mode needs registry revision 2')
+    const dark = deriveDark(theme)
+    theme.color_scheme = scheme
+    if (scheme === 'auto') theme.modes = { dark }
+    else for (const key of LAYERS) Object.assign(theme.tokens[key], dark[key])
+  }
+  return theme
 }
 
 export function defaultLayout(style: 'rail' | 'panel' = 'rail'): LayoutV2 {
@@ -144,9 +189,9 @@ function findSlot(node: LayoutNode, name: string): (LayoutNode & { type: 'slot' 
   return undefined
 }
 
-export function upgradeV1Report(theme: ThemeManifest, presentation?: ThemePackPresentation | null): { theme: ThemeManifestV2; notes: string[] } {
+export function upgradeV1Report(theme: ThemeManifest, presentation?: ThemePackPresentation | null, registryRevision = REGISTRY_REVISION): { theme: ThemeManifestV2; notes: string[] } {
   const notes = ['A v2 fork approximates the v1 original; compare them before publishing.']
-  const result = defaultThemeV2(theme.id, theme.version, theme.label)
+  const result = defaultThemeV2(theme.id, theme.version, theme.label, 'light', registryRevision)
   const { primitives, semantic, components } = result.tokens
   for (const name of [...V1_COLOR_TOKENS, 'font-sans', 'font-mono', 'radius']) primitives[name] = theme.tokens[name]
   primitives['font-display'] = theme.tokens['font-sans']
@@ -230,8 +275,8 @@ function upgradePresentation(presentation: ThemePackPresentation, layout: Layout
   notes.push('Layout, tones and component variants were mapped from presentation.json; unmapped details use registry defaults.')
 }
 
-export function upgradeV1(theme: ThemeManifest, presentation?: ThemePackPresentation | null): ThemeManifestV2 {
-  return upgradeV1Report(theme, presentation).theme
+export function upgradeV1(theme: ThemeManifest, presentation?: ThemePackPresentation | null, registryRevision = REGISTRY_REVISION): ThemeManifestV2 {
+  return upgradeV1Report(theme, presentation, registryRevision).theme
 }
 
 /** The v1 manifest an old client can apply: 27 literal tokens, density and navigation. */
@@ -261,11 +306,21 @@ export function contrastRatio(first: string, second: string): number {
 export interface ContrastRow {
   id: string; fg: string; bg: string; fg_value: string; bg_value: string
   ratio: number; min: number | null; level: 'error' | 'warning'; pass: boolean
+  /** Present only for a theme with a dark palette. */
+  mode?: ColorMode
 }
 
-/** Every contrast pair judged for a v2 theme (same rows as contrast_report in Python). */
+/** Every contrast pair judged for a v2 theme (same rows as contrast_report in Python): a light-only
+ *  theme's rows as registry revision 1 produced them, a theme with a dark palette also its dark rows. */
 export function contrastReport(theme: ThemeManifestV2): ContrastRow[] {
-  const resolved = flatten(theme)
+  const scheme = theme.color_scheme ?? 'light'
+  if (scheme === 'light') return contrastRows(theme, 'light', false)
+  if (scheme === 'dark') return contrastRows(theme, 'dark', true)
+  return [...contrastRows(theme, 'light', true), ...contrastRows(theme, 'dark', true)]
+}
+
+function contrastRows(theme: ThemeManifestV2, mode: ColorMode, label: boolean): ContrastRow[] {
+  const resolved = flatten(theme, mode)
   const enumValue = (name: string) => resolved[name] ?? (index.get(name)!.default as string)
   const effective = (name: string, tone?: string, depth = 0): string | undefined => {
     if (name in resolved) return resolved[name]
@@ -281,7 +336,9 @@ export function contrastReport(theme: ThemeManifestV2): ContrastRow[] {
     const fg = effective(fgName, tone), bg = effective(bgName, tone)
     if (!fg || !bg || !isColor(fg) || !isColor(bg)) return
     const ratio = contrastRatio(fg, bg)
-    rows.push({ id, fg: fgName, bg: bgName, fg_value: fg, bg_value: bg, ratio: Math.round(ratio * 100) / 100, min, level, pass: ratio >= min })
+    const row: ContrastRow = { id, fg: fgName, bg: bgName, fg_value: fg, bg_value: bg, ratio: Math.round(ratio * 100) / 100, min, level, pass: ratio >= min }
+    if (label) row.mode = mode
+    rows.push(row)
   }
   for (const p of registry.contrast_pairs) pair(p.id, p.fg, p.bg, p.min, p.level)
   const { sidebar, navbar } = theme.layout
@@ -290,4 +347,127 @@ export function contrastReport(theme: ThemeManifestV2): ContrastRow[] {
   if (visible.navbar) pair('navbar-fg-on-navbar-bg', 'navbar-fg', 'navbar-bg', 4.5, 'warning', enumValue('navbar-tone'))
   for (const p of registry.component_contrast_pairs) pair(p.id, p.fg, p.bg, 4.5, 'warning')
   return rows
+}
+
+// --- Dark palette derivation: the same arithmetic as themes.derive_dark, step for step. -------------
+
+const channels = (color: string): [number, number, number] => [parseInt(color.slice(1, 3), 16), parseInt(color.slice(3, 5), 16), parseInt(color.slice(5, 7), 16)]
+const toHex = (r: number, g: number, b: number) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
+const midpoint = (first: string, second: string) => {
+  const a = channels(first), b = channels(second)
+  return toHex(...([0, 1, 2].map(i => Math.floor((a[i] + b[i] + 1) / 2)) as [number, number, number]))
+}
+
+function hueChannel(p: number, q: number, t: number) {
+  if (t < 0) t += 1
+  if (t > 1) t -= 1
+  if (t < 1 / 6) return p + (q - p) * 6 * t
+  if (t < 1 / 2) return q
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+  return p
+}
+
+/** The same hue and saturation with lightness 1 - L (HSL). */
+function reflectLightness(color: string): string {
+  const [r, g, b] = channels(color).map(c => c / 255)
+  const high = Math.max(r, g, b), low = Math.min(r, g, b)
+  let lightness = (high + low) / 2
+  let hue = 0, saturation = 0
+  if (high !== low) {
+    const delta = high - low
+    saturation = lightness > 0.5 ? delta / (2 - high - low) : delta / (high + low)
+    if (high === r) hue = ((g - b) / delta + (g < b ? 6 : 0)) / 6
+    else if (high === g) hue = ((b - r) / delta + 2) / 6
+    else hue = ((r - g) / delta + 4) / 6
+  }
+  lightness = 1 - lightness
+  let values: number[]
+  if (saturation === 0) values = [lightness, lightness, lightness]
+  else {
+    const q = lightness < 0.5 ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation
+    const p = 2 * lightness - q
+    values = [hueChannel(p, q, hue + 1 / 3), hueChannel(p, q, hue), hueChannel(p, q, hue - 1 / 3)]
+  }
+  const [x, y, z] = values.map(v => Math.floor(v * 255 + 0.5))
+  return toHex(x, y, z)
+}
+
+const percent = (hundredths: number) => {
+  const whole = Math.floor(hundredths / 100), part = hundredths % 100
+  return part ? `${whole}.${String(part).padStart(2, '0')}`.replace(/0+$/, '') : String(whole)
+}
+
+/** Stronger, black shadows: a shadow that reads on white vanishes on a dark surface. */
+function boostShadow(text: string): string {
+  return text.replace(/rgba\( *([0-9]{1,3}) *, *([0-9]{1,3}) *, *([0-9]{1,3}) *, *([0-9]*\.?[0-9]+) *\)/g,
+    (_all, _r, _g, _b, alpha) => `rgba(0,0,0,${percent(Math.min(Math.floor(parseFloat(alpha) * 2.5 * 100 + 0.5), 85))})`)
+}
+
+/** `color` moved toward `target` in tenths until it reaches `minimum`:1 against `against` (or is `target`). */
+function moveUntil(color: string, target: string, against: string, minimum: number): string {
+  if (contrastRatio(color, against) >= minimum) return color
+  const from = channels(color), to = channels(target)
+  for (let tenth = 1; tenth <= 10; tenth++) {
+    const moved = toHex(...([0, 1, 2].map(i => Math.floor((from[i] * (10 - tenth) + to[i] * tenth + 5) / 10)) as [number, number, number]))
+    if (contrastRatio(moved, against) >= minimum) return moved
+  }
+  return target
+}
+
+/** The `modes.dark` block derived from a v2 theme's own (light) tokens: every ramp reversed, the
+ *  surface between the page and ink-100, readable `on-primary`, a dark scrim, stronger shadows and the
+ *  `light` bar tone (the dark-looking one on reversed ramps). Complete in color, sparse elsewhere. */
+export function deriveDark(theme: { tokens: TokenLayers }): TokenLayers {
+  const tokens = theme.tokens
+  const primitives: Record<string, string> = {}
+  const rampStep = new Map<string, string>()
+  for (const palette of registry.modes.ramps) {
+    const light = registry.shades.map(shade => tokens.primitives[`${palette}-${shade}`])
+    registry.shades.forEach((shade, i) => { primitives[`${palette}-${shade}`] = light[light.length - 1 - i] })
+    registry.shades.forEach((shade, i) => { const key = light[i].toLowerCase(); if (!rampStep.has(key)) rampStep.set(key, `${palette}-${shade}`) })
+  }
+  for (const spec of registry.tokens) {
+    if (spec.layer === 'primitive' && spec.type === 'shadow' && spec.name in tokens.primitives) primitives[spec.name] = boostShadow(tokens.primitives[spec.name])
+  }
+  const mapped = (color: string) => { const step = rampStep.get(color.toLowerCase()); return step ? primitives[step] : reflectLightness(color) }
+  const overridable = new Set(registry.modes.overridable)
+  const semantic: Record<string, string> = { surface: midpoint(primitives['ink-50'], primitives['ink-100']), scrim: '#000000' }
+  const components: Record<string, string> = { 'sidebar-tone': 'light', 'navbar-tone': 'light', 'modal-scrim-alpha': '0.6', 'drawer-scrim-alpha': '0.6' }
+  for (const [layer, out] of [['semantic', semantic], ['components', components]] as const) {
+    for (const [name, value] of Object.entries(tokens[layer])) {
+      const spec = index.get(name)!
+      if (overridable.has(name) && spec.type === 'color' && /^#[0-9a-fA-F]{6}$/.test(value) && !['surface', 'on-primary', 'scrim'].includes(name)) out[name] = mapped(value)
+      else if (spec.type === 'shadow' && !REF.test(value) && value !== 'none') out[name] = boostShadow(value)
+    }
+  }
+  for (const [name, value] of [['nav-item-active-bg', '{ink-200}'], ['nav-item-active-fg', '{text}'], ['chat-message-user-bg', '{ink-200}'],
+    ['chat-message-user-fg', '{text}'], ['input-placeholder', '{ink-500}']]) {
+    if (!(name in tokens.components)) components[name] = value
+  }
+  // Text a theme set as `{text-inverse}` sits on a fill that is now a quiet dark one, so it becomes the plain text colour.
+  for (const [name, fill] of [['navbar-fg', null], ['nav-item-hover-fg', null], ['nav-item-active-fg', 'nav-item-active-bg'], ['chat-message-user-fg', 'chat-message-user-bg']] as const) {
+    if (tokens.components[name] === '{text-inverse}' && (fill === null || !(fill in tokens.components))) components[name] = '{text}'
+  }
+  for (const bar of ['sidebar', 'navbar']) if (`${bar}-bg` in tokens.components) components[`${bar}-bg`] = '{surface}'
+  // A reversed accent can land mid-way, too dark to read as a link or too light for white text. The steps the
+  // theme's own roles point at are moved toward white or black, in tenths, until the validator's pairs hold.
+  const surface = semantic['surface']
+  const steps: Record<string, string> = {}
+  for (const role of ['text-link', 'focus-ring', 'primary']) {
+    const match = REF.exec(tokens.semantic[role] ?? '')
+    if (match && match[1] in primitives && index.get(match[1])!.type === 'color') steps[role] = match[1]
+  }
+  for (const [role, minimum] of [['text-link', 4.5], ['focus-ring', 3.0]] as const) {
+    if (role in steps) primitives[steps[role]] = moveUntil(primitives[steps[role]], '#ffffff', surface, minimum)
+  }
+  // Text on the primary color: the darker or the lighter end of the dark ramp, whichever reads better.
+  const primary = flattenRaw({ ...tokens.primitives, ...tokens.semantic, ...tokens.components, ...primitives, ...semantic, ...components })['primary']
+  const ends = [primitives['ink-50'], primitives['ink-950']]
+  const end = contrastRatio(ends[1], primary) > contrastRatio(ends[0], primary) ? ends[1] : ends[0]
+  const toward = end === ends[0] ? '#ffffff' : '#000000'
+  for (const name of [...new Set(['accent-600', ...('primary' in steps ? [steps['primary']] : [])])].sort()) {
+    primitives[name] = moveUntil(primitives[name], toward, end, 4.5)
+  }
+  semantic['on-primary'] = end
+  return { primitives, semantic, components }
 }

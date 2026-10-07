@@ -53,7 +53,7 @@ export const THEME_COMPONENT_IDS = [
   'chat.message', 'chat.composer',
 ] as const satisfies readonly ThemeComponentId[]
 
-/** Theme API v2 (registry revision 1): data only, three token layers plus layout variants.
+/** Theme API v2 (registry revisions 1 and 2): data only, three token layers plus layout variants.
  *  The field list lives in theme-registry.json; theme-resolve.ts applies it. */
 export const THEME_API_VERSION_V2 = 2 as const
 export type LayoutStep = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -68,22 +68,29 @@ export interface LayoutV2 {
   navbar: { position: 'hidden' | 'top' | 'bottom'; behavior: BarBehavior; height: number; align: 'start' | 'center' | 'between'; show_brand: boolean }
   content: { max_width: number; align: 'start' | 'center'; padding: LayoutStep; gap: LayoutStep }
 }
+/** `light` and `dark` themes have one palette (the tokens); an `auto` theme's tokens are its light
+ *  palette and `modes.dark` overrides them. Registry revision 1 allows `light` only. */
+export type ColorScheme = 'light' | 'dark' | 'auto'
+export type ColorMode = 'light' | 'dark'
+export interface TokenLayers {
+  /** Every primitive is required and literal. */
+  primitives: Record<string, string>
+  /** Every semantic role is required; a value is a literal or a `{token}` reference. */
+  semantic: Record<string, string>
+  /** Sparse: an unset component token follows its registry fallback. */
+  components: Record<string, string>
+}
 export interface ThemeManifestV2 {
   api_version: 2
   registry_revision: number
   id: string
   version: string
   label: string
-  /** Must be `light` in registry revision 1; dark mode is reserved. */
-  color_scheme: 'light'
-  tokens: {
-    /** Every primitive is required and literal. */
-    primitives: Record<string, string>
-    /** Every semantic role is required; a value is a literal or a `{token}` reference. */
-    semantic: Record<string, string>
-    /** Sparse: an unset component token follows its registry fallback. */
-    components: Record<string, string>
-  }
+  color_scheme: ColorScheme
+  /** Registry revision 2, `color_scheme: 'auto'` only. Each layer is a sparse override of `tokens`;
+   *  the dark palette must set every color ramp and `surface`. */
+  modes?: { dark: TokenLayers }
+  tokens: TokenLayers
   layout: LayoutV2
 }
 /** What the host applies; produced by resolveTheme with no DOM access. */
@@ -100,4 +107,6 @@ export interface ResolvedTheme {
   fonts: { family: string; weights: number[] }[]
   /** Effective value of every variant/tone/position token. */
   enums: Record<string, string>
+  /** Present only for a theme with a dark palette: the modes it offers and the one resolved. */
+  scheme?: { offered: ColorMode[]; mode: ColorMode }
 }

@@ -52,7 +52,7 @@ def test_names_are_unique_kebab_case_and_layered():
             assert token.name.startswith(token.component + '-'), token.name
             assert token.component in registry.COMPONENTS
     assert {t.layer for t in registry.TOKENS} == set(registry.LAYERS)
-    assert registry.REGISTRY_REVISION == 1 == themes.REGISTRY_REVISION
+    assert registry.REGISTRY_REVISION == 2 == themes.REGISTRY_REVISION
 
 
 def test_token_counts_are_what_the_contract_documents():

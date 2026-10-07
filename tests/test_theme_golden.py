@@ -9,6 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / 'tests/golden/theme-resolve'
+FROZEN = ROOT / 'tests/golden/frozen-r1'
 
 
 def generator():
@@ -21,7 +22,7 @@ def generator():
 def test_python_results_match_the_golden_files():
     stale = [path.name for path, content in generator().outputs().items() if not path.exists() or path.read_text() != content]
     assert stale == [], 'run scripts/gen_theme_golden.py'
-    assert len(list(GOLDEN.glob('*.json'))) == 7
+    assert len(list(GOLDEN.glob('*.json'))) == 13
 
 
 def close(expected, actual):
@@ -34,14 +35,32 @@ def close(expected, actual):
     return expected == actual
 
 
-def test_typescript_resolver_agrees_with_python():
+def typescript(set_name):
     if not shutil.which('node') or not (ROOT / 'node_modules/esbuild').exists():
         pytest.skip('node and the SDK dev dependencies (npm install) are required')
-    run = subprocess.run(['node', str(ROOT / 'tests/golden/run_resolve.mjs')], capture_output=True, text=True, timeout=120)
+    run = subprocess.run(['node', str(ROOT / 'tests/golden/run_resolve.mjs'), set_name], capture_output=True, text=True, timeout=120)
     assert run.returncode == 0, run.stderr
-    produced = json.loads(run.stdout)
+    return json.loads(run.stdout)
+
+
+KEYS = ('upgrade', 'resolve_v1', 'project', 'resolve', 'contrast', 'resolve_dark', 'derive')
+
+
+def test_typescript_resolver_agrees_with_python():
+    produced = typescript('theme-resolve')
     for path in sorted(GOLDEN.glob('*.json')):
+        golden = json.loads(path.read_text())
+        for key in KEYS:
+            if key in golden:
+                assert close(golden[key], produced[path.name][key]), f'{path.name}: {key} differs between Python and TypeScript'
+
+
+def test_typescript_resolver_still_produces_every_frozen_revision_1_result():
+    produced = typescript('frozen-r1')
+    assert len(produced) == 7
+    for path in sorted(FROZEN.glob('*.json')):
         golden = json.loads(path.read_text())
         for key in ('upgrade', 'resolve_v1', 'project', 'resolve', 'contrast'):
             if key in golden:
-                assert close(golden[key], produced[path.name][key]), f'{path.name}: {key} differs between Python and TypeScript'
+                assert close(golden[key], produced[path.name][key]), f'{path.name}: {key} changed'
+        assert 'resolve_dark' not in produced[path.name]

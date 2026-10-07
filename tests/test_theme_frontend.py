@@ -83,12 +83,25 @@ FOLLOW_THE_THEME = ['border', 'rounded', 'rounded-md', 'rounded-sm', 'shadow-sm'
                     'border-amber-200', 'bg-sky-50', 'bg-sky-100', 'ring-red-500/20']
 
 
+# What the preset newly maps to a theme variable or a mode-following platform ramp: Tailwind's own value at defaults.
+NEWLY_MAPPED = ['border-white', 'ring-white', 'ring-offset-white', 'divide-white', 'from-white', 'via-white', 'to-white', 'fill-white', 'stroke-white',
+                'text-black', 'text-black/50', 'border-black', 'bg-slate-50', 'text-slate-700', 'border-violet-200', 'bg-violet-50', 'text-violet-700',
+                'bg-rose-50', 'text-rose-700/50', 'bg-gray-100', 'text-gray-500', 'divide-gray-200', 'text-orange-600', 'ring-teal-500', 'bg-indigo-600',
+                'from-blue-50', 'fill-zinc-400', 'placeholder-stone-400', 'border-pink-300', 'bg-yellow-50', 'text-lime-800', 'bg-cyan-100',
+                'text-fuchsia-600', 'bg-purple-100', 'bg-green-50', 'bg-neutral-200']
+
+
 def rules(css):
     return {m.group(1).strip(): ' '.join(m.group(2).split()) for m in re.finditer(r'([^{}]+)\{([^{}]*)\}', css)}
 
 
+BARE_DEFAULTS = {'--fl-surface': '255 255 255', '--fl-on-primary': '255 255 255'}
+
+
 def with_defaults(value):
     """Replace var(--fl-x, default) by default, then normalise equivalent spellings."""
+    for name, default in BARE_DEFAULTS.items():
+        value = value.replace(f'var({name})', default)
     while True:
         start = value.find('var(--fl-')
         if start < 0:
@@ -107,6 +120,8 @@ def with_defaults(value):
     value = re.sub(r'calc\(([0-9.]+rem) \* 1\)', r'\1', value)
     value = re.sub(r'([0-9.]+)rem', lambda m: f'{float(m.group(1)) * 16:g}px', value)  # Tailwind spells 4px as 0.25rem.
     value = re.sub(r'rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)', r'rgb(\1 \2 \3 / \4)', value)
+    value = re.sub(r'#([0-9a-f])([0-9a-f])([0-9a-f])\b', r'#\1\1\2\2\3\3', value)
+    value = re.sub(r'#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})\b', lambda m: 'rgb(%d %d %d / 1)' % tuple(int(g, 16) for g in m.groups()), value)  # A solid colour, spelled either way.
     value = re.sub(r'--tw-shadow-colored: [^;]*; ', '', value)  # Colored shadows cannot be derived from a var().
     return re.sub(r'\s*,\s*', ', ', value)
 
@@ -142,3 +157,41 @@ def test_classes_that_now_follow_the_theme_keep_their_default_rendering():
     bare = [m for m in re.findall(r'var\((--fl-[a-z0-9-]+)\)', preset)
             if not m.startswith(('--fl-ink-', '--fl-accent-', '--fl-surface', '--fl-on-primary'))]
     assert bare == []
+
+
+def test_newly_mapped_classes_render_as_tailwind_does_at_defaults():
+    """White also paints borders, rings and glyphs now; the remaining hues and black text follow the colour mode."""
+    if not shutil.which('node') or not (ROOT / 'node_modules/tailwindcss').exists():
+        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+    old, new = compare(NEWLY_MAPPED)
+    assert set(old) == set(new) and len(old) >= len(NEWLY_MAPPED) - 3
+    for selector in old:
+        assert with_defaults(new[selector]) == with_defaults(old[selector]), selector
+    assert 'var(--fl-hue-rose-700' in new[next(s for s in new if 'text-rose-700' in s)]
+
+
+def test_every_hue_var_the_preset_reads_is_declared_for_both_modes():
+    css = (ROOT / 'frontend/theme-defaults.css').read_text()
+    light, dark = css.split("[data-fl-mode='dark'] {")
+    preset = (ROOT / 'frontend/tailwind-preset.mjs').read_text()
+    wanted = set(re.findall(r'var\((--fl-(?:hue-[a-z]+-[0-9]+|black))', preset))
+    from fastlanelabs_sdk import theme_registry as registry
+    assert len(wanted) == len(registry.HUE_RAMPS) * 11 + 1
+    for name in wanted:
+        assert f'{name}:' in light and f'{name}:' in dark, name
+    assert 'color-scheme: dark' in dark and "[data-fl-theme-root]:not([data-fl-mode='dark']) { color-scheme: light; }" in light
+
+
+def test_platform_hues_are_tailwind_3_colors_and_reverse_in_dark():
+    from fastlanelabs_sdk import theme_registry as registry
+    colors = ROOT / 'node_modules/tailwindcss/colors.js'
+    if not colors.exists() or not shutil.which('node'):
+        pytest.skip('tailwindcss is not installed')
+    script = "const c=require(process.argv[1]);console.log(JSON.stringify(Object.fromEntries(process.argv.slice(2).map(h=>[h,c[h]]))))"
+    hues = list(registry.HUE_RAMPS)
+    palettes = json.loads(subprocess.run(['node', '-e', script, str(colors), *hues], capture_output=True, text=True, check=True).stdout)
+    for hue, ramp in registry.HUE_RAMPS.items():
+        assert list(ramp) == [palettes[hue][str(shade)] for shade in registry.SHADES], hue
+    css = (ROOT / 'frontend/theme-defaults.css').read_text().split("[data-fl-mode='dark'] {")[1]
+    rose = registry.HUE_RAMPS['rose']
+    assert f"--fl-hue-rose-50: {' '.join(str(int(rose[10][i:i + 2], 16)) for i in (1, 3, 5))};" in css

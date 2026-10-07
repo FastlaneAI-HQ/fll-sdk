@@ -4,9 +4,14 @@
     python scripts/gen_theme_golden.py --check    # exit 1 if a fixture is stale
 
 Each fixture holds an input manifest (and optional v1 presentation) with the
-expected resolve, upgrade, projection and contrast results. pytest recomputes
+expected resolve, upgrade, projection and contrast results; a theme with a dark
+palette also holds the dark resolve and the derived dark block. pytest recomputes
 them in Python and, where node and esbuild exist, runs frontend/theme-resolve.ts
 over the same files (tests/golden/run_resolve.mjs).
+
+tests/golden/frozen-r1 holds what SDK 1.3 produced for registry revision 1. It is
+never regenerated: tests/test_theme_frozen_r1.py checks that today's code still
+produces every byte of it.
 """
 from pathlib import Path
 import argparse
@@ -50,6 +55,31 @@ def inputs():
     custom["layout"]["sidebar"].update({"side": "right", "style": "panel", "width": 240, "behavior": "sticky", "surface": "flush"})
     custom["layout"]["navbar"].update({"position": "top", "behavior": "sticky", "align": "center", "show_brand": False})
     custom["layout"]["content"].update({"max_width": 1200, "align": "center", "padding": "lg", "gap": "sm"})
+    # A brand that sets literals outside its ramps, a custom shadow and an explicit navbar: the cases a
+    # derived dark palette must map rather than reverse.
+    warm = themes.default_theme_v2("client-warm", "1.0.0", "Warm")
+    warm["tokens"]["primitives"].update({
+        "accent-500": "#0d9488", "accent-600": "#0f766e", "accent-700": "#115e59", "shadow-card": "0 2px 8px 0 rgba(60,40,10,0.08)",
+        "ink-50": "#faf8f5", "ink-100": "#f1ede6"})
+    warm["tokens"]["semantic"].update({"surface": "#fffdf9", "text-link": "#b45309", "primary": "{accent-700}", "scrim": "#2a2118"})
+    warm["tokens"]["components"].update({"button-secondary-border": "#c9bfae", "card-shadow": "0 1px 4px 0 rgba(0,0,0,0.12)",
+                                         "sidebar-tone": "light", "navbar-bg": "{ink-800}", "toast-position": "top-center",
+                                         "navbar-fg": "{text-inverse}", "nav-item-active-fg": "{text-inverse}", "chat-message-user-bg": "{accent-800}",
+                                         "chat-message-user-fg": "{text-inverse}", "nav-item-hover-fg": "{text-inverse}"})
+    warm["layout"]["navbar"].update({"position": "top"})
+    warm_auto = copy.deepcopy(warm)
+    warm_auto["color_scheme"], warm_auto["modes"] = "auto", {"dark": themes.derive_dark(warm)}
+    custom_auto = copy.deepcopy(custom)
+    custom_auto["color_scheme"], custom_auto["modes"] = "auto", {"dark": themes.derive_dark(custom)}
+    # A hand-tuned dark palette: derived, then adjusted (the accent stays saturated, a warm surface).
+    tuned = themes.default_theme_v2("client-tuned", "1.0.0", "Tuned", scheme="auto")
+    tuned["modes"]["dark"]["primitives"].update({"accent-600": "#2b57db", "accent-500": "#4b74ee", "ink-50": "#0b0c10"})
+    tuned["modes"]["dark"]["semantic"].update({"surface": "#14161d", "on-primary": "#ffffff", "text-link": "#8eb5ff"})
+    tuned["modes"]["dark"]["components"].update({"button-primary-bg": "{accent-500}", "sidebar-bg": "#0b0c10"})
+    dark_only = copy.deepcopy(warm_auto)
+    dark_only["id"], dark_only["color_scheme"] = "client-warm-dark", "dark"
+    dark_only["tokens"] = {key: dict(dark_only["tokens"][key], **dark_only["modes"]["dark"][key]) for key in ("primitives", "semantic", "components")}
+    del dark_only["modes"]
     return [
         ("default-v2", themes.default_theme_v2(), None),
         ("fastlane-v1", load("fastlane-1.0.0.json"), None),
@@ -58,6 +88,12 @@ def inputs():
         ("pack-right-panel-v1", dict(load("precision-hose-1.1.0.json"), id="client-acme"), validate_presentation(default_pack)),
         ("pack-top-navigation-v1", dict(load("fastlane-1.0.0.json"), id="client-top"), validate_presentation(top_navigation)),
         ("custom-v2", custom, None),
+        ("default-auto-v2", themes.default_theme_v2("fastlane", "2.1.0", "Fastlane", scheme="auto"), None),
+        ("default-dark-v2", themes.default_theme_v2("fastlane-dark", "2.1.0", "Fastlane Dark", scheme="dark"), None),
+        ("warm-auto-v2", warm_auto, None),
+        ("custom-auto-v2", custom_auto, None),
+        ("tuned-auto-v2", tuned, None),
+        ("warm-dark-v2", dark_only, None),
     ]
 
 
@@ -73,6 +109,10 @@ def compute(manifest, presentation):
         v2 = manifest
     result["resolve"] = themes.resolve_theme(v2)
     result["contrast"] = themes.contrast_report(v2)
+    if v2.get("color_scheme", "light") != "light":
+        result["resolve_dark"] = themes.resolve_theme(v2, "dark")
+        result["check"] = themes.check_theme(v2)
+        result["derive"] = themes.derive_dark(v2) if v2["color_scheme"] == "auto" else None
     return json.loads(json.dumps(result))
 
 

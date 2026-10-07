@@ -268,10 +268,8 @@ def _is_v2(value: Any) -> bool:
     return isinstance(value, dict) and type(value.get("api_version")) is int and value["api_version"] == THEME_API_VERSION_V2
 
 
-def _check_header(value: dict, problems: _Problems) -> int:
-    """Top-level fields; returns the registry revision to check tokens against."""
-    if "modes" in value:
-        problems.error("modes", "modes is reserved for a later registry revision and must be absent")
+def _check_header(value: dict, problems: _Problems) -> Tuple[int, str]:
+    """Top-level fields; returns the registry revision to check tokens against and the color scheme."""
     keys = set(value) - {"modes"}
     if keys != set(registry.TOP_LEVEL_KEYS):
         problems.error("", "Theme must contain only " + ", ".join(registry.TOP_LEVEL_KEYS))
@@ -289,9 +287,79 @@ def _check_header(value: dict, problems: _Problems) -> int:
         problems.error("version", "Theme version must be major.minor.patch")
     if "label" in value and (not isinstance(value["label"], str) or not 1 <= len(value["label"]) <= 80):
         problems.error("label", "Theme label must be 1–80 characters")
-    if "color_scheme" in value and value["color_scheme"] != "light":
-        problems.error("color_scheme", "color_scheme must be light; dark mode is reserved for a later registry revision")
-    return revision
+    scheme = "light"
+    if revision <= 1:
+        # Registry revision 1: dark mode is reserved. These rules never change.
+        if "modes" in value:
+            problems.error("modes", "modes is reserved for a later registry revision and must be absent")
+        if "color_scheme" in value and value["color_scheme"] != "light":
+            problems.error("color_scheme", "color_scheme must be light; dark mode is reserved for a later registry revision")
+    elif "color_scheme" in value:
+        allowed = registry.color_schemes(revision)
+        if not isinstance(value["color_scheme"], str) or value["color_scheme"] not in allowed:
+            problems.error("color_scheme", "color_scheme must be " + ", ".join(allowed[:-1]) + " or " + allowed[-1])
+        else:
+            scheme = value["color_scheme"]
+    return revision, scheme
+
+
+def _check_modes(value: dict, revision: int, scheme: str, problems: _Problems) -> Optional[dict]:
+    """Structure of `modes` (registry revision 2 and later); returns modes.dark when it is well formed."""
+    if revision < 2:
+        return None
+    if scheme != "auto":
+        if "modes" in value:
+            problems.error("modes", "modes is only allowed with color_scheme auto")
+        return None
+    if "modes" not in value:
+        problems.error("modes", "color_scheme auto requires modes.dark")
+        return None
+    modes = value["modes"]
+    if not isinstance(modes, dict) or set(modes) != set(registry.MODE_NAMES):
+        problems.error("modes", "modes must contain exactly " + ", ".join(registry.MODE_NAMES))
+        return None
+    dark = modes["dark"]
+    if not isinstance(dark, dict) or set(dark) != set(registry.LAYER_KEYS):
+        problems.error("modes.dark", "modes.dark must contain exactly primitives, semantic and components")
+        return None
+    known = registry.for_revision(revision)
+    start = len(problems.errors)
+    for layer_key, layer in _LAYER_OF.items():
+        values, path = dark[layer_key], f"modes.dark.{layer_key}"
+        if not isinstance(values, dict):
+            problems.error(path, f"{layer_key} must be an object")
+            continue
+        for name, content in values.items():
+            token = known.get(name)
+            if token is None:
+                problems.error(f"{path}.{name}", f"Unknown token {name}")
+            elif token.layer != layer:
+                problems.error(f"{path}.{name}", f"{name} belongs in {next(k for k, v in _LAYER_OF.items() if v == token.layer)}")
+            elif name not in registry.MODE_TOKENS:
+                problems.error(f"{path}.{name}", f"{name} cannot vary by mode; only colors, shadows, scrim opacities and bar tones can")
+            elif not isinstance(content, str):
+                problems.error(f"{path}.{name}", "Token values must be strings")
+    if len(problems.errors) > start:
+        return None
+    for name in registry.DARK_REQUIRED:
+        layer_key = _layer_key(known[name].layer)
+        if name not in dark[layer_key]:
+            problems.error(f"modes.dark.{layer_key}.{name}", f"Dark mode must set {name}; a dark palette supplies every color ramp and the surface")
+    return dark if len(problems.errors) == start else None
+
+
+def _check_dark_tokens(tokens: dict, dark: dict, revision: int, problems: _Problems) -> Tuple[Dict[str, str], bool]:
+    """The theme's tokens with modes.dark applied, validated by the same rules as the base."""
+    merged = {key: dict(tokens[key], **dark[key]) for key in registry.LAYER_KEYS}
+    sub = _Problems()
+    resolved, valid = _check_tokens(merged, revision, sub)
+    for error in sub.errors:
+        parts = error["path"].split(".", 2)
+        if len(parts) == 3 and parts[0] == "tokens" and parts[2] in dark.get(parts[1], {}):
+            problems.error(f"modes.dark.{parts[1]}.{parts[2]}", error["message"])
+        else:
+            problems.error(error["path"], "In dark mode, " + error["message"][:1].lower() + error["message"][1:])
+    return resolved, valid
 
 
 def _check_tokens(tokens: Any, revision: int, problems: _Problems) -> Tuple[Dict[str, str], bool]:
@@ -454,7 +522,11 @@ class _Effective:
         return self.get(match.group(1), tone, depth + 1) if match else default
 
 
-def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems) -> None:
+def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems,
+                    mode: Optional[str] = None, where: str = "tokens", prefix: str = "") -> None:
+    """Judge every contrast pair. `mode` labels the rows of a theme that has a dark palette;
+    `where` is the path root errors point at and `prefix` starts their message. With no mode
+    (every light-only theme) the rows are exactly what registry revision 1 produced."""
     effective = _Effective(resolved)
 
     def pair(key: str, fg_name: str, bg_name: str, minimum: Optional[float], level: str, tone: Optional[str] = None):
@@ -465,13 +537,18 @@ def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems)
         row = {"id": key, "fg": fg_name, "bg": bg_name, "fg_value": fg, "bg_value": bg,
                "ratio": round(ratio, 2), "min": minimum, "level": level,
                "pass": minimum is None or ratio >= minimum}
+        if mode:
+            row["mode"] = mode
         problems.contrast.append(row)
         if minimum is not None and ratio < minimum:
             message = f"{fg_name} on {bg_name} must meet {minimum:g}:1 contrast (got {ratio:.2f}:1)"
+            if prefix:
+                message = prefix + message
+            path = f"{where}.{_layer_key(registry.INDEX[fg_name].layer)}.{fg_name}"
             if level == "error":
-                problems.error(f"tokens.{_layer_key(registry.INDEX[fg_name].layer)}.{fg_name}", message)
+                problems.error(path, message)
             else:
-                problems.warn(f"tokens.{_layer_key(registry.INDEX[fg_name].layer)}.{fg_name}", message)
+                problems.warn(path, message)
 
     for key, fg, bg, minimum, level in registry.CONTRAST_PAIRS:
         pair(key, fg, bg, minimum, level)
@@ -485,12 +562,22 @@ def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems)
         pair(key, fg, bg, 4.5, "warning")
 
 
+def _check_dark_character(resolved: Dict[str, str], problems: _Problems, where: str, prefix: str) -> None:
+    """A dark palette has light text on dark surfaces and a dark scrim. Contrast alone would accept the reverse."""
+    effective = _Effective(resolved)
+    text, surface, scrim = effective.get("text"), effective.get("surface"), effective.get("scrim")
+    if text and surface and _COLOR.fullmatch(text) and _COLOR.fullmatch(surface) and _luminance(text) <= _luminance(surface):
+        problems.error(f"{where}.semantic.text", prefix + "the text must be lighter than the surface in a dark palette")
+    if scrim and surface and _COLOR.fullmatch(scrim) and _COLOR.fullmatch(surface) and _luminance(scrim) > _luminance(surface):
+        problems.warn(f"{where}.semantic.scrim", prefix + "the scrim should be darker than the surface in a dark palette")
+
+
 def _check_v2(value: Any) -> dict:
     problems = _Problems()
     if not isinstance(value, dict):
         problems.error("", "Theme must be an object")
         return problems.as_dict()
-    revision = _check_header(value, problems)
+    revision, scheme = _check_header(value, problems)
     resolved, tokens_valid = {}, False
     if "tokens" in value:
         resolved, tokens_valid = _check_tokens(value["tokens"], revision, problems)
@@ -500,8 +587,21 @@ def _check_v2(value: Any) -> dict:
         _check_layout(value["layout"], problems)
     else:
         problems.error("layout", "Theme must contain layout")
+    dark = _check_modes(value, revision, scheme, problems)
+    dark_resolved, dark_valid = {}, False
+    if dark is not None and tokens_valid:
+        dark_resolved, dark_valid = _check_dark_tokens(value["tokens"], dark, revision, problems)
     if tokens_valid and not any(e["path"].startswith("layout") for e in problems.errors):
-        _check_contrast(resolved, value["layout"], problems)
+        if scheme == "light":
+            _check_contrast(resolved, value["layout"], problems)
+        elif scheme == "dark":
+            _check_contrast(resolved, value["layout"], problems, mode="dark")
+            _check_dark_character(resolved, problems, "tokens", "")
+        else:
+            _check_contrast(resolved, value["layout"], problems, mode="light")
+            if dark_valid:
+                _check_contrast(dark_resolved, value["layout"], problems, mode="dark", where="modes.dark", prefix="In dark mode, ")
+                _check_dark_character(dark_resolved, problems, "modes.dark", "In dark mode, ")
     return problems.as_dict()
 
 
@@ -541,16 +641,25 @@ def check_theme(value: Any) -> dict:
 def contrast_report(theme: Any) -> List[dict]:
     """Every contrast pair judged for a v2 theme, with ratio, minimum, level and pass.
 
+    A theme with a dark palette also reports it: its rows carry `mode` ("light" and "dark");
+    a light-only theme's rows are what registry revision 1 produced, without the key.
     Returns an empty list when the theme has structural errors, since colors
     cannot be resolved; use `check_theme` for those.
     """
     return check_theme(theme)["contrast"] if _is_v2(theme) else []
 
 
-def default_theme_v2(theme_id: str = "fastlane", version: str = "2.0.0", label: str = "Fastlane") -> dict:
-    """The registry defaults as a complete v2 manifest (what a fresh v1 `fastlane` upgrades to)."""
-    return {
-        "api_version": THEME_API_VERSION_V2, "registry_revision": REGISTRY_REVISION,
+def default_theme_v2(theme_id: str = "fastlane", version: str = "2.0.0", label: str = "Fastlane",
+                     scheme: str = "light", registry_revision: Optional[int] = None) -> dict:
+    """The registry defaults as a complete v2 manifest (what a fresh v1 `fastlane` upgrades to).
+
+    `scheme` "auto" adds the derived default dark palette as `modes.dark`; "dark" makes the
+    theme's own tokens that palette. Both need registry revision 2 (the default).
+    `registry_revision=1` reproduces what SDK 1.3 produced.
+    """
+    revision = REGISTRY_REVISION if registry_revision is None else registry_revision
+    theme = {
+        "api_version": THEME_API_VERSION_V2, "registry_revision": revision,
         "id": theme_id, "version": version, "label": label, "color_scheme": "light",
         "tokens": {
             "primitives": {t.name: t.default for t in registry.PRIMITIVES},
@@ -559,6 +668,17 @@ def default_theme_v2(theme_id: str = "fastlane", version: str = "2.0.0", label: 
         },
         "layout": registry.default_layout("rail"),
     }
+    if scheme != "light":
+        if revision < 2 or scheme not in registry.COLOR_SCHEMES:
+            raise ThemeError("Dark mode needs registry revision 2 and a color scheme of light, dark or auto", "color_scheme")
+        dark = derive_dark(theme)
+        theme["color_scheme"] = scheme
+        if scheme == "auto":
+            theme["modes"] = {"dark": dark}
+        else:
+            for key in registry.LAYER_KEYS:
+                theme["tokens"][key].update(dark[key])
+    return theme
 
 
 webfonts = registry.webfonts
@@ -586,7 +706,210 @@ def _var_value(token: "registry.Token", literal: str, raw: str) -> str:
     return literal
 
 
-def resolve_theme(value: Any) -> dict:
+# --- Dark palette derivation ---------------------------------------------------------------------
+#
+# A dark palette is derived, not a naive inversion. Each color ramp is reversed (ink-50, the page,
+# becomes the darkest step and ink-950 the lightest), so every existing `bg-ink-50`, `text-ink-900`,
+# `border-ink-200` or `bg-accent-600` class lands on a coherent dark value without a new class.
+# The pieces that a reversal would get wrong are then set by hand: the surface sits between the
+# page and ink-100, `on-primary` is whichever of the palette's two ends reads on the primary colour,
+# the scrim stays dark, shadows get stronger, the active nav item and the user's message become quiet
+# raised fills instead of the lightest colour on the page, and both bars use the `light` tone (which, on reversed
+# ramps, is the dark-looking one). Literal colours a theme sets outside its ramps are mapped to the
+# ramp step they equal, or have their lightness reflected; a bar painted by hand falls back to the
+# surface (a derived palette cannot know which dark colour the brand wants there). The same arithmetic, step for step, is
+# frontend/theme-resolve.ts `deriveDark`; tests/golden checks they agree.
+
+_RGBA = re.compile(r"rgba\( *([0-9]{1,3}) *, *([0-9]{1,3}) *, *([0-9]{1,3}) *, *([0-9]*\.?[0-9]+) *\)")
+_SHADOW_BOOST = 2.5
+_SHADOW_ALPHA_CAP = 0.85
+
+
+def _channels(color: str) -> Tuple[int, int, int]:
+    return int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+
+
+def _hex(r: int, g: int, b: int) -> str:
+    return "#%02x%02x%02x" % (r, g, b)
+
+
+def _midpoint(first: str, second: str) -> str:
+    return _hex(*((a + b + 1) // 2 for a, b in zip(_channels(first), _channels(second))))
+
+
+def _reflect_lightness(color: str) -> str:
+    """The same hue and saturation with lightness 1 - L (HSL)."""
+    r, g, b = (c / 255 for c in _channels(color))
+    high, low = max(r, g, b), min(r, g, b)
+    lightness = (high + low) / 2
+    if high == low:
+        hue = saturation = 0.0
+    else:
+        delta = high - low
+        saturation = delta / (2 - high - low) if lightness > 0.5 else delta / (high + low)
+        if high == r:
+            hue = ((g - b) / delta + (6 if g < b else 0)) / 6
+        elif high == g:
+            hue = ((b - r) / delta + 2) / 6
+        else:
+            hue = ((r - g) / delta + 4) / 6
+    lightness = 1 - lightness
+
+    def channel(p: float, q: float, t: float) -> float:
+        if t < 0:
+            t += 1
+        if t > 1:
+            t -= 1
+        if t < 1 / 6:
+            return p + (q - p) * 6 * t
+        if t < 1 / 2:
+            return q
+        if t < 2 / 3:
+            return p + (q - p) * (2 / 3 - t) * 6
+        return p
+
+    if saturation == 0:
+        values = (lightness, lightness, lightness)
+    else:
+        q = lightness * (1 + saturation) if lightness < 0.5 else lightness + saturation - lightness * saturation
+        p = 2 * lightness - q
+        values = (channel(p, q, hue + 1 / 3), channel(p, q, hue), channel(p, q, hue - 1 / 3))
+    return _hex(*(int(v * 255 + 0.5) for v in values))
+
+
+def _percent(hundredths: int) -> str:
+    whole, part = divmod(hundredths, 100)
+    return str(whole) if not part else f"{whole}.{part:02d}".rstrip("0")
+
+
+def _boost_shadow(text: str) -> str:
+    """Stronger, black shadows: a shadow that reads on white vanishes on a dark surface."""
+    def boost(match):
+        hundredths = min(int(float(match.group(4)) * _SHADOW_BOOST * 100 + 0.5), int(_SHADOW_ALPHA_CAP * 100))
+        return f"rgba(0,0,0,{_percent(hundredths)})"
+    return _RGBA.sub(boost, text)
+
+
+def _move_until(color: str, target: str, against: str, minimum: float) -> str:
+    """`color` moved toward `target` in tenths until it reaches `minimum`:1 against `against` (or is `target`)."""
+    if contrast_ratio(color, against) >= minimum:
+        return color
+    start, end = _channels(color), _channels(target)
+    for tenth in range(1, 11):
+        moved = _hex(*((a * (10 - tenth) + b * tenth + 5) // 10 for a, b in zip(start, end)))
+        if contrast_ratio(moved, against) >= minimum:
+            return moved
+    return target
+
+
+def derive_dark(theme: Any) -> dict:
+    """The `modes.dark` block derived from a v2 theme's own (light) tokens.
+
+    Complete in color (every ramp and the surface), sparse elsewhere. The theme must be a
+    valid v2 manifest; its existing `modes` and `color_scheme` are ignored. Deterministic.
+    """
+    tokens = theme["tokens"]
+    primitives: Dict[str, str] = {}
+    ramp_step: Dict[str, str] = {}  # a light ramp color -> the name of the step it occupies
+    dark_of: Dict[str, str] = {}  # that step's name -> the dark value at the same name
+    for palette in registry.COLOR_RAMPS:
+        light = [tokens["primitives"][f"{palette}-{shade}"] for shade in registry.SHADES]
+        for shade, color in zip(registry.SHADES, reversed(light)):
+            primitives[f"{palette}-{shade}"] = color
+        for shade, color in zip(registry.SHADES, light):
+            ramp_step.setdefault(color.lower(), f"{palette}-{shade}")
+    for name, token in registry.INDEX.items():
+        if token.layer == "primitive" and token.type == "shadow" and name in tokens["primitives"]:
+            primitives[name] = _boost_shadow(tokens["primitives"][name])
+
+    def mapped(color: str) -> str:
+        step = ramp_step.get(color.lower())
+        return primitives[step] if step else _reflect_lightness(color)
+
+    semantic: Dict[str, str] = {}
+    semantic["surface"] = _midpoint(primitives["ink-50"], primitives["ink-100"])
+    semantic["scrim"] = "#000000"
+    components: Dict[str, str] = {"sidebar-tone": "light", "navbar-tone": "light",
+                                  "modal-scrim-alpha": "0.6", "drawer-scrim-alpha": "0.6"}
+    for layer, out in (("semantic", semantic), ("components", components)):
+        for name, value in tokens[layer].items():
+            token = registry.INDEX[name]
+            if name in registry.MODE_TOKENS and token.type == "color" and _COLOR.fullmatch(value) and name not in ("surface", "on-primary", "scrim"):
+                out[name] = mapped(value)
+            elif token.type == "shadow" and not registry.REF.fullmatch(value) and value != "none":
+                out[name] = _boost_shadow(value)
+    # Where the light palette fills with the strongest ink (the active nav item, the user's message), reversal
+    # would fill with the lightest colour on the page: a quiet raised fill with plain text is what a dark UI uses.
+    for name, value in (("nav-item-active-bg", "{ink-200}"), ("nav-item-active-fg", "{text}"),
+                        ("chat-message-user-bg", "{ink-200}"), ("chat-message-user-fg", "{text}"),
+                        ("input-placeholder", "{ink-500}")):  # the ramp's own placeholder step reads at 2.5:1
+        if name not in tokens["components"]:
+            components[name] = value
+    # Text a theme set as `{text-inverse}` (white on a dark bar, when its primary needs dark text) sits on a fill that is
+    # now a quiet dark one, so it becomes the plain text colour. The fills it sat on are the ones set just above.
+    for name, fill in (("navbar-fg", None), ("nav-item-hover-fg", None), ("nav-item-active-fg", "nav-item-active-bg"),
+                       ("chat-message-user-fg", "chat-message-user-bg")):
+        if tokens["components"].get(name) == "{text-inverse}" and (fill is None or fill not in tokens["components"]):
+            components[name] = "{text}"
+    for bar in ("sidebar", "navbar"):
+        if f"{bar}-bg" in tokens["components"]:
+            # A bar the theme painted by hand has no dark counterpart to reverse to: it falls back to the surface,
+            # and the theme can colour it in modes.dark.
+            components[f"{bar}-bg"] = "{surface}"
+    # A reversed accent can land mid-way, too dark to read as a link or too light for white text. The steps the
+    # theme's own roles point at are moved toward white or black, in tenths, until the pairs the validator
+    # judges hold. Each step is only ever moved by this function, never by the theme's other tokens.
+    surface = semantic["surface"]
+    steps = {}
+    for role in ("text-link", "focus-ring", "primary"):
+        match = registry.REF.fullmatch(tokens["semantic"].get(role, ""))
+        if match and match.group(1) in primitives and registry.INDEX[match.group(1)].type == "color":
+            steps[role] = match.group(1)
+    for role, minimum in (("text-link", 4.5), ("focus-ring", 3.0)):
+        if role in steps:
+            primitives[steps[role]] = _move_until(primitives[steps[role]], "#ffffff", surface, minimum)
+    # Text on the primary color: the darker or the lighter end of the dark ramp, whichever reads better.
+    merged = {name: content for layer in registry.LAYER_KEYS for name, content in tokens[layer].items()}
+    merged.update(primitives)
+    merged.update(semantic)
+    merged.update(components)
+    ends = (primitives["ink-50"], primitives["ink-950"])
+    primary = _flatten(merged)["primary"]
+    end = max(ends, key=lambda candidate: (contrast_ratio(candidate, primary), candidate == ends[0]))
+    toward = "#ffffff" if end == ends[0] else "#000000"
+    for name in sorted({"accent-600"} | ({steps["primary"]} if "primary" in steps else set())):
+        primitives[name] = _move_until(primitives[name], toward, end, 4.5)
+    semantic["on-primary"] = end
+    return {"primitives": primitives, "semantic": semantic, "components": components}
+
+
+def offered_modes(theme: Any) -> List[str]:
+    """The modes a theme offers: ["light"], ["dark"] or ["light", "dark"] (a v1 theme offers light)."""
+    scheme = theme.get("color_scheme", "light") if _is_v2(theme) else "light"
+    return {"light": ["light"], "dark": ["dark"], "auto": ["light", "dark"]}.get(scheme, ["light"])
+
+
+def effective_mode(theme: Any, preference: Optional[str] = None, system_dark: bool = False) -> str:
+    """The mode to show: the only one a theme offers, else the user's choice ("light", "dark" or
+    "system"/None, which follows the operating system)."""
+    offered = offered_modes(theme)
+    if len(offered) == 1:
+        return offered[0]
+    if preference in offered:
+        return preference
+    return "dark" if system_dark else "light"
+
+
+def _raw_tokens(theme: dict, mode: str) -> Dict[str, str]:
+    """Every token the theme sets, with modes.dark applied when the dark palette of an auto theme is wanted."""
+    raw = {name: content for layer in registry.LAYER_KEYS for name, content in theme["tokens"][layer].items()}
+    if mode == "dark" and theme.get("color_scheme") == "auto":
+        for layer in registry.LAYER_KEYS:
+            raw.update(theme["modes"]["dark"][layer])
+    return raw
+
+
+def resolve_theme(value: Any, mode: Optional[str] = None) -> dict:
     """Flatten a theme into what the host applies; pure, with no DOM access.
 
     v2: {api_version, vars, attrs, layout, shell, fonts, enums}. `vars` holds every
@@ -595,6 +918,10 @@ def resolve_theme(value: Any) -> dict:
     is the effective value of every variant/tone/position token, for the
     data-* attributes components branch on. `shell` carries the data-*
     attributes and variables for the workspace frame.
+    A theme with a dark palette (color_scheme dark or auto) resolves for `mode`
+    ("light" or "dark"; an auto theme without one is light, a dark theme is always
+    dark) and adds `scheme` {offered, mode} and the `data-fl-mode` attribute. A
+    light-only theme resolves to exactly what registry revision 1 produced.
     v1: exactly what the v1 applier sets (27 variables, density and theme).
     """
     theme = validate_theme(value)
@@ -606,11 +933,13 @@ def resolve_theme(value: Any) -> dict:
             "attrs": {"data-density": theme["layout"]["density"], "data-theme": theme["id"]},
             "layout": dict(theme["layout"]), "shell": {"attrs": {}, "vars": {}}, "fonts": [], "enums": {},
         }
-    resolved = _all_resolved(theme)
+    scheme = theme.get("color_scheme", "light")
+    chosen = effective_mode(theme, mode)
+    raw = _raw_tokens(theme, chosen)
+    resolved = _flatten(raw)
     variables: Dict[str, str] = {}
-    for layer_key in registry.LAYER_KEYS:
-        for name, raw in theme["tokens"][layer_key].items():
-            variables[f"--fl-{name}"] = _var_value(registry.INDEX[name], resolved[name], raw)
+    for name, content in raw.items():
+        variables[f"--fl-{name}"] = _var_value(registry.INDEX[name], resolved[name], content)
     layout = theme["layout"]
     sidebar, navbar, content = layout["sidebar"], layout["navbar"], layout["content"]
     step = lambda name: "0px" if name == "none" else f"var(--fl-space-{name})"
@@ -634,17 +963,20 @@ def resolve_theme(value: Any) -> dict:
         item = allow.get(family.lower())
         if item and item["family"] not in [f["family"] for f in fonts]:
             fonts.append({"family": item["family"], "weights": list(item["weights"])})
-    return {
-        "api_version": 2, "vars": variables,
-        "attrs": {"data-density": layout["density"], "data-theme": theme["id"], "data-fl-contract": "2"},
+    attrs = {"data-density": layout["density"], "data-theme": theme["id"], "data-fl-contract": "2"}
+    result = {
+        "api_version": 2, "vars": variables, "attrs": attrs,
         "layout": copy.deepcopy(layout), "shell": {"attrs": shell_attrs, "vars": shell_vars}, "fonts": fonts,
         "enums": {t.name: resolved.get(t.name, t.default) for t in registry.COMPONENT_TOKENS if t.type == "enum"},
     }
+    if scheme != "light":
+        attrs["data-fl-mode"] = chosen
+        result["scheme"] = {"offered": offered_modes(theme), "mode": chosen}
+    return result
 
 
-def _all_resolved(theme: dict) -> Dict[str, str]:
-    """Resolved literal of every token the (already valid) theme sets."""
-    raw = {name: content for layer in registry.LAYER_KEYS for name, content in theme["tokens"][layer].items()}
+def _flatten(raw: Dict[str, str]) -> Dict[str, str]:
+    """Resolved literal of every token in `raw` (already validated), following references."""
     out: Dict[str, str] = {}
 
     def follow(name: str) -> str:
@@ -656,6 +988,11 @@ def _all_resolved(theme: dict) -> Dict[str, str]:
     for name in raw:
         follow(name)
     return out
+
+
+def _all_resolved(theme: dict, mode: str = "light") -> Dict[str, str]:
+    """Resolved literal of every token the (already valid) theme sets, in `mode`."""
+    return _flatten(_raw_tokens(theme, mode))
 
 
 # --- v1 <-> v2 -----------------------------------------------------------------
@@ -694,18 +1031,19 @@ def _relation(trails: Dict[str, list], kinds: Dict[int, str], first: str, second
     return "column", True
 
 
-def upgrade_v1_report(theme: Any, presentation: Optional[dict] = None) -> dict:
+def upgrade_v1_report(theme: Any, presentation: Optional[dict] = None, registry_revision: Optional[int] = None) -> dict:
     """Read-time view of a v1 theme as a v2 manifest: {"theme", "notes"}.
 
     Used for the editor, forking and export, never to render v1. A fork is an
     approximation: reviewed JSX templates are hand-written and the data-pack
     compiler adds 44px controls, strong borders and its own focus outline.
-    `presentation` is a validated v1 presentation.json, or None.
+    `presentation` is a validated v1 presentation.json, or None. The result targets the
+    current registry revision unless `registry_revision` pins an older one.
     """
     source = _validate_v1(theme)
     notes: List[str] = ["A v2 fork approximates the v1 original; compare them before publishing."]
     v1 = source["tokens"]
-    result = default_theme_v2(source["id"], source["version"], source["label"])
+    result = default_theme_v2(source["id"], source["version"], source["label"], registry_revision=registry_revision)
     primitives, semantic, components = result["tokens"]["primitives"], result["tokens"]["semantic"], result["tokens"]["components"]
     for name in _V1_COLOR_TOKENS + ("font-sans", "font-mono", "radius"):
         primitives[name] = v1[name]
@@ -801,9 +1139,9 @@ def _find_slot(node: dict, name: str) -> Optional[dict]:
     return None
 
 
-def upgrade_v1(theme: Any, presentation: Optional[dict] = None) -> dict:
+def upgrade_v1(theme: Any, presentation: Optional[dict] = None, registry_revision: Optional[int] = None) -> dict:
     """A v2 manifest equivalent in tokens and layout to the v1 theme (see upgrade_v1_report)."""
-    return upgrade_v1_report(theme, presentation)["theme"]
+    return upgrade_v1_report(theme, presentation, registry_revision)["theme"]
 
 
 def project_v1(theme: Any) -> dict:

@@ -68,6 +68,23 @@ def defaults_css():
             if isinstance(token.default, dict):
                 lines.append(f"  --fl-tone-{token.name}: {css_value(token, token.default[tone])};")
         lines.append("}")
+    # Platform hue ramps: Tailwind's other palettes, which core and the apps use as decoration. They are
+    # not theme tokens; they only follow the colour mode (light is Tailwind's own value, dark the ramp reversed).
+    lines.append("/* Platform hue ramps (not theme tokens): light is Tailwind's value, dark the same ramp reversed */")
+    lines.append(":root, [data-fl-theme-root] {")
+    for hue, ramp in registry.HUE_RAMPS.items():
+        lines.extend(f"  --fl-hue-{hue}-{shade}: {triplet(color)};" for shade, color in zip(registry.SHADES, ramp))
+    lines.append(f"  --fl-black: {triplet(registry.BLACK_LIGHT)};")
+    lines.append("}")
+    lines.append("/* A preview that is not dark ends an inherited dark scheme */")
+    lines.append("[data-fl-theme-root]:not([data-fl-mode='dark']) { color-scheme: light; }")
+    lines.append("/* Dark mode: set by the host from a theme's color scheme and the user's choice, never by tenant text */")
+    lines.append("[data-fl-mode='dark'] {")
+    lines.append("  color-scheme: dark;")
+    for hue, ramp in registry.HUE_RAMPS.items():
+        lines.extend(f"  --fl-hue-{hue}-{shade}: {triplet(color)};" for shade, color in zip(registry.SHADES, reversed(ramp)))
+    lines.append(f"  --fl-black: {triplet(registry.BLACK_DARK)};")
+    lines.append("}")
     return "\n".join(lines) + "\n"
 
 
@@ -95,6 +112,9 @@ def preset():
         body.update({part: role(f"{status}-{part}") for part in ("solid", "soft", "border", "text", "strong")})
         colors[status] = body
         colors[remap] = ramp(status)
+    for hue, hue_ramp in registry.HUE_RAMPS.items():
+        colors[hue] = {str(shade): f"rgb(var(--fl-hue-{hue}-{shade}, {triplet(color)}) / <alpha-value>)"
+                       for shade, color in zip(shades, hue_ramp)}
     colors.update({
         "page": role("surface-page"), "sunken": role("surface-sunken"), "inverse": role("surface-inverse"),
         "fg": role("text"), "fg-muted": role("text-muted"), "fg-subtle": role("text-subtle"),
@@ -113,11 +133,22 @@ def preset():
         font_size[key] = [f"calc({rem} * var(--fl-size-scale, 1))", {"lineHeight": leading}]
     spacing = {f"fl-{step}": f"calc(var(--fl-space-{step}, {default[f'space-{step}']}) * var(--fl-density, 1))"
                for step in registry.SPACE_STEPS}
+    surface = "rgb(var(--fl-surface) / <alpha-value>)"
+    on_primary = "rgb(var(--fl-on-primary) / <alpha-value>)"
     config = {
         "theme": {"extend": {
             "colors": colors,
-            "backgroundColor": {"white": "rgb(var(--fl-surface) / <alpha-value>)"},
-            "textColor": {"white": "rgb(var(--fl-on-primary) / <alpha-value>)"},
+            # `white` is the surface wherever it paints a background, line or ring, and the text on
+            # the primary color wherever it paints text or a glyph; `black` text follows the mode.
+            "backgroundColor": {"white": surface},
+            "borderColor": {"white": surface},
+            "divideColor": {"white": surface},
+            "ringColor": {"white": surface},
+            "ringOffsetColor": {"white": surface},
+            "gradientColorStops": {"white": surface},
+            "textColor": {"white": on_primary, "black": f"rgb(var(--fl-black, {triplet(registry.BLACK_LIGHT)}) / <alpha-value>)"},
+            "fill": {"white": on_primary},
+            "stroke": {"white": on_primary},
             "fontFamily": {
                 "sans": ["var(--fl-font-sans, Inter)", "ui-sans-serif", "system-ui"],
                 "mono": ["var(--fl-font-mono, ui-monospace)", "monospace"],
@@ -173,6 +204,12 @@ def tokens_doc():
                 default = " / ".join(f"{k}: `{v}`" for k, v in t.default.items()) if isinstance(t.default, dict) else f"`{t.default}`"
                 out.append(f"| `{t.name}` | {t.type} | {default} | {limits(t)} |")
         out.append("")
+    out += ["## Dark mode (registry revision 2)", "",
+            "`color_scheme` is `light`, `dark` or `auto` (revision 1 allows `light` only). A `dark` theme's own tokens are a dark palette. "
+            "An `auto` theme's tokens are its light palette and `modes.dark` overrides them; the user picks light, dark or the system's.", "",
+            f"`modes.dark` must set every colour ramp ({', '.join(registry.COLOR_RAMPS)}; {len(registry.DARK_REQUIRED) - 2} tokens), `surface` and `on-primary`. "
+            "It may also override any of these (everything else is the same in both modes):", "",
+            ", ".join(f"`{name}`" for name in registry.MODE_TOKENS if name not in registry.DARK_REQUIRED), ""]
     out += ["## Layout", "", "| Field | Values | Default |", "| --- | --- | --- |"]
     for key, spec in registry.LAYOUT_SPEC.items():
         if "type" in spec:

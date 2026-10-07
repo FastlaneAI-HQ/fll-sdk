@@ -870,7 +870,7 @@
           "width": 240
         }
       },
-      "registry_revision": 2,
+      "registry_revision": 1,
       "tokens": {
         "components": {
           "button-danger-border": "{danger-700}",
