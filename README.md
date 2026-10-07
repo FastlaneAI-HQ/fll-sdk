@@ -97,8 +97,12 @@ AppSpec and RegistryEntry support `default_enabled` independently of `always`. A
 
 `frontend/theme-contract.ts` defines stable presentation IDs and their typed properties. Templates are optional replacements for `layout.workspace`, `navigation.sidebar`, `navigation.item`, `navigation.topbar`, `page.header`, `surface.card`, `control.button`, `control.input`, `control.field`, `feedback.notice`, `chat.message` and `chat.composer`. An AppModule can provide `themeTemplates: { api_version: 1, templates: [...] }`. The enabled Themes app supplies this library; other apps cannot replace it.
 
-Core compiles against a generated copy of the SDK contract (and the v2 resolver, registry, default CSS and Tailwind preset): `python scripts/sync_theme_contract.py /path/to/FastlaneLabs`. Its local contract synchronization test detects drift. This avoids shipping developer build tooling in the production frontend image. App packages compile against the SDK directly and use `frontend/platform.d.ts` for the host UI/theme module declarations.
+Core compiles against a generated copy of the SDK contract (and the v2 resolver, registry, default CSS and Tailwind preset): `python scripts/sync_theme_contract.py /path/to/FastlaneLabs`. Core's CI clones the SDK tag its `requirements.txt` pins and fails when `frontend/src/generated` differs from it (the Themes app does the same for its skill's vendored validator). This avoids shipping developer build tooling in the production frontend image. App packages compile against the SDK directly and use `frontend/platform.d.ts` for the host UI/theme module declarations.
 
 Workspace receives typed authorized product items, account actions and tenant metadata separately from its app-content children. Themes can compose different sidebar/topbar layouts with the host UI wrappers; callbacks, permissions, data and app mounting remain in core.
 
 The host's theme resolver retains default components and callbacks, isolates preview selection, and falls back on missing or failed presentation components. New slot IDs or breaking property changes require a coordinated contract release. Only reviewed application code may supply JSX templates; this is not a sandbox for arbitrary code.
+
+## Tests
+
+`pip install -e . pytest && npm ci && python -m pytest tests`. The four tests that run the TypeScript twin and the Tailwind preset need node 20+ and `npm ci`; a local run without them skips those tests, but with `CI` or `JENKINS_URL` set (as in the Jenkinsfile) they fail instead, so a tag build always covers the TS twin. `package-lock.json` pins the dev dependencies; refresh it with `npm install` when `package.json` changes.

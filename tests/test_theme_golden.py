@@ -1,11 +1,9 @@
 """Golden fixtures keep the Python and TypeScript resolvers in step (see scripts/gen_theme_golden.py)."""
 import importlib.util
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / 'tests/golden/theme-resolve'
@@ -34,9 +32,8 @@ def close(expected, actual):
     return expected == actual
 
 
-def test_typescript_resolver_agrees_with_python():
-    if not shutil.which('node') or not (ROOT / 'node_modules/esbuild').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+def test_typescript_resolver_agrees_with_python(require_node):
+    require_node('esbuild')
     run = subprocess.run(['node', str(ROOT / 'tests/golden/run_resolve.mjs')], capture_output=True, text=True, timeout=120)
     assert run.returncode == 0, run.stderr
     produced = json.loads(run.stdout)

@@ -32,15 +32,29 @@ pipeline {
             // image runs -- from a copy outside the workspace, the same way
             // the app pipelines test. Nothing is published: the tag itself is
             // the release, so a FAILED build here means "do not pin this".
+            //
+            // The TypeScript twin of the resolver and the shared Tailwind
+            // preset are only exercised through node, so the dev dependencies
+            // are installed from package-lock.json (`npm ci`) and CI is set:
+            // with it, those tests FAIL when node (>= 20) or a dependency is
+            // missing instead of skipping, so a tag build always covers the
+            // TS twin. The build host needs node 20+ on its PATH (its npm
+            // already runs for `npm pack` in the app jobs).
             steps {
                 sh '''
                     T=$(mktemp -d)
                     trap 'rm -rf "$T"' EXIT
+                    export CI=1
                     cp -r . "$T/src"
+                    # A node_modules copied from the workspace must not stand in for the install.
+                    rm -rf "$T/src/node_modules"
                     python3.12 -m venv "$T/venv"
                     "$T/venv/bin/pip" install -q --upgrade pip
                     "$T/venv/bin/pip" install -q "$T/src" pytest
-                    cd "$T/src" && "$T/venv/bin/python" -m pytest -q -p no:cacheprovider tests
+                    cd "$T/src"
+                    node --version
+                    npm ci --no-audit --no-fund
+                    "$T/venv/bin/python" -m pytest -q -p no:cacheprovider -rs tests
                 '''
             }
         }

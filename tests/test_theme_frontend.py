@@ -1,12 +1,10 @@
 """The frontend contract files, the shared Tailwind preset and the published-release corpus."""
 import json
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from fastlanelabs_sdk.theme_packs import STYLE_OPTIONS
 from fastlanelabs_sdk.themes import check_theme, project_v1, validate_theme
 
@@ -123,16 +121,14 @@ def compare(classes):
     return rules(result['old']), rules(result['new'])
 
 
-def test_the_shared_preset_leaves_existing_classes_untouched():
-    if not shutil.which('node') or not (ROOT / 'node_modules/tailwindcss').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+def test_the_shared_preset_leaves_existing_classes_untouched(require_node):
+    require_node('tailwindcss')
     old, new = compare(UNCHANGED)
     assert old == new and len(old) >= len(UNCHANGED) - 2
 
 
-def test_classes_that_now_follow_the_theme_keep_their_default_rendering():
-    if not shutil.which('node') or not (ROOT / 'node_modules/tailwindcss').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+def test_classes_that_now_follow_the_theme_keep_their_default_rendering(require_node):
+    require_node('tailwindcss')
     old, new = compare(FOLLOW_THE_THEME)
     assert set(old) == set(new) and len(old) >= len(FOLLOW_THE_THEME) - 1
     for selector in old:
