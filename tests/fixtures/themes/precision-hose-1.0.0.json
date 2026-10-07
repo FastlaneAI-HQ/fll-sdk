@@ -1,0 +1,39 @@
+{
+  "api_version": 1,
+  "id": "precision-hose",
+  "version": "1.0.0",
+  "label": "Precision Hose",
+  "tokens": {
+    "ink-50": "#f7f7f8",
+    "ink-100": "#ececee",
+    "ink-200": "#d9dade",
+    "ink-300": "#b8bac2",
+    "ink-400": "#8f929e",
+    "ink-500": "#6c6f7d",
+    "ink-600": "#555764",
+    "ink-700": "#454652",
+    "ink-800": "#2b2c34",
+    "ink-900": "#1a1b21",
+    "ink-950": "#101117",
+    "accent-50": "#eff6ff",
+    "accent-100": "#dbeafe",
+    "accent-200": "#bfdbfe",
+    "accent-300": "#93c5fd",
+    "accent-400": "#60a5fa",
+    "accent-500": "#2563eb",
+    "accent-600": "#1d4ed8",
+    "accent-700": "#1e40af",
+    "accent-800": "#1e3a8a",
+    "accent-900": "#172554",
+    "accent-950": "#0f172a",
+    "surface": "#ffffff",
+    "on-primary": "#ffffff",
+    "font-sans": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "font-mono": "ui-monospace, SFMono-Regular, Menlo, monospace",
+    "radius": "8px"
+  },
+  "layout": {
+    "density": "comfortable",
+    "navigation": "rail"
+  }
+}

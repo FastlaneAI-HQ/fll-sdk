@@ -1,0 +1,4971 @@
+{
+  "registry_revision": 1,
+  "layers": [
+    "primitive",
+    "semantic",
+    "component"
+  ],
+  "types": [
+    "color",
+    "length",
+    "font-size",
+    "number",
+    "weight",
+    "font-stack",
+    "shadow",
+    "ease",
+    "duration",
+    "tracking",
+    "enum"
+  ],
+  "shades": [
+    50,
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    950
+  ],
+  "size_steps": [
+    "2xs",
+    "xs",
+    "sm",
+    "md",
+    "base",
+    "lg",
+    "xl",
+    "2xl",
+    "3xl"
+  ],
+  "space_steps": [
+    "xs",
+    "sm",
+    "md",
+    "lg",
+    "xl",
+    "2xl"
+  ],
+  "steps": [
+    "none",
+    "xs",
+    "sm",
+    "md",
+    "lg",
+    "xl"
+  ],
+  "v1_tokens": [
+    "accent-100",
+    "accent-200",
+    "accent-300",
+    "accent-400",
+    "accent-50",
+    "accent-500",
+    "accent-600",
+    "accent-700",
+    "accent-800",
+    "accent-900",
+    "accent-950",
+    "font-mono",
+    "font-sans",
+    "ink-100",
+    "ink-200",
+    "ink-300",
+    "ink-400",
+    "ink-50",
+    "ink-500",
+    "ink-600",
+    "ink-700",
+    "ink-800",
+    "ink-900",
+    "ink-950",
+    "on-primary",
+    "radius",
+    "surface"
+  ],
+  "components": [
+    {
+      "id": "button",
+      "label": "Button"
+    },
+    {
+      "id": "input",
+      "label": "Input, select and textarea"
+    },
+    {
+      "id": "choice",
+      "label": "Checkbox, radio and range"
+    },
+    {
+      "id": "field",
+      "label": "Form field"
+    },
+    {
+      "id": "card",
+      "label": "Card"
+    },
+    {
+      "id": "page-header",
+      "label": "Page header"
+    },
+    {
+      "id": "table",
+      "label": "Table"
+    },
+    {
+      "id": "tabs",
+      "label": "Tabs"
+    },
+    {
+      "id": "badge",
+      "label": "Badge"
+    },
+    {
+      "id": "modal",
+      "label": "Modal"
+    },
+    {
+      "id": "drawer",
+      "label": "Drawer"
+    },
+    {
+      "id": "toast",
+      "label": "Toast"
+    },
+    {
+      "id": "notice",
+      "label": "Notice"
+    },
+    {
+      "id": "sidebar",
+      "label": "Sidebar (navigation rail)"
+    },
+    {
+      "id": "nav-item",
+      "label": "Navigation item"
+    },
+    {
+      "id": "navbar",
+      "label": "Navbar"
+    },
+    {
+      "id": "workspace",
+      "label": "Workspace"
+    },
+    {
+      "id": "conversation-list",
+      "label": "Conversation list"
+    },
+    {
+      "id": "chat-message",
+      "label": "Chat message"
+    },
+    {
+      "id": "composer",
+      "label": "Composer"
+    },
+    {
+      "id": "prose",
+      "label": "Answer text"
+    },
+    {
+      "id": "link",
+      "label": "Link"
+    },
+    {
+      "id": "divider",
+      "label": "Divider"
+    },
+    {
+      "id": "progress",
+      "label": "Progress"
+    },
+    {
+      "id": "citation",
+      "label": "Citation"
+    },
+    {
+      "id": "splitter",
+      "label": "Splitter"
+    },
+    {
+      "id": "gate",
+      "label": "Sign-in card"
+    },
+    {
+      "id": "scrollbar",
+      "label": "Scrollbar"
+    },
+    {
+      "id": "skeleton",
+      "label": "Loading skeleton"
+    }
+  ],
+  "tokens": [
+    {
+      "name": "ink-50",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#f7f7f8",
+      "group": "color.ink",
+      "label": "Ink 50",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-100",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#ececee",
+      "group": "color.ink",
+      "label": "Ink 100",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-200",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#d9dade",
+      "group": "color.ink",
+      "label": "Ink 200",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-300",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#b8bac2",
+      "group": "color.ink",
+      "label": "Ink 300",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-400",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#8f929e",
+      "group": "color.ink",
+      "label": "Ink 400",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-500",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#6c6f7d",
+      "group": "color.ink",
+      "label": "Ink 500",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-600",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#555764",
+      "group": "color.ink",
+      "label": "Ink 600",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-700",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#454652",
+      "group": "color.ink",
+      "label": "Ink 700",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-800",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#2b2c34",
+      "group": "color.ink",
+      "label": "Ink 800",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-900",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#1a1b21",
+      "group": "color.ink",
+      "label": "Ink 900",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "ink-950",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#101117",
+      "group": "color.ink",
+      "label": "Ink 950",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-50",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#eef4ff",
+      "group": "color.accent",
+      "label": "Accent 50",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-100",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#d9e6ff",
+      "group": "color.accent",
+      "label": "Accent 100",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-200",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#bcd3ff",
+      "group": "color.accent",
+      "label": "Accent 200",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-300",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#8eb5ff",
+      "group": "color.accent",
+      "label": "Accent 300",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-400",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#598dff",
+      "group": "color.accent",
+      "label": "Accent 400",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-500",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#3366f2",
+      "group": "color.accent",
+      "label": "Accent 500",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-600",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#2148d8",
+      "group": "color.accent",
+      "label": "Accent 600",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-700",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#1c39ae",
+      "group": "color.accent",
+      "label": "Accent 700",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-800",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#1c3389",
+      "group": "color.accent",
+      "label": "Accent 800",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-900",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#1c2f6c",
+      "group": "color.accent",
+      "label": "Accent 900",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "accent-950",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#152450",
+      "group": "color.accent",
+      "label": "Accent 950",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "success-50",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#ecfdf5",
+      "group": "color.success",
+      "label": "Success 50",
+      "since": 1
+    },
+    {
+      "name": "success-100",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#d1fae5",
+      "group": "color.success",
+      "label": "Success 100",
+      "since": 1
+    },
+    {
+      "name": "success-200",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#a7f3d0",
+      "group": "color.success",
+      "label": "Success 200",
+      "since": 1
+    },
+    {
+      "name": "success-300",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#6ee7b7",
+      "group": "color.success",
+      "label": "Success 300",
+      "since": 1
+    },
+    {
+      "name": "success-400",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#34d399",
+      "group": "color.success",
+      "label": "Success 400",
+      "since": 1
+    },
+    {
+      "name": "success-500",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#10b981",
+      "group": "color.success",
+      "label": "Success 500",
+      "since": 1
+    },
+    {
+      "name": "success-600",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#059669",
+      "group": "color.success",
+      "label": "Success 600",
+      "since": 1
+    },
+    {
+      "name": "success-700",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#047857",
+      "group": "color.success",
+      "label": "Success 700",
+      "since": 1
+    },
+    {
+      "name": "success-800",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#065f46",
+      "group": "color.success",
+      "label": "Success 800",
+      "since": 1
+    },
+    {
+      "name": "success-900",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#064e3b",
+      "group": "color.success",
+      "label": "Success 900",
+      "since": 1
+    },
+    {
+      "name": "success-950",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#022c22",
+      "group": "color.success",
+      "label": "Success 950",
+      "since": 1
+    },
+    {
+      "name": "warning-50",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fffbeb",
+      "group": "color.warning",
+      "label": "Warning 50",
+      "since": 1
+    },
+    {
+      "name": "warning-100",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fef3c7",
+      "group": "color.warning",
+      "label": "Warning 100",
+      "since": 1
+    },
+    {
+      "name": "warning-200",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fde68a",
+      "group": "color.warning",
+      "label": "Warning 200",
+      "since": 1
+    },
+    {
+      "name": "warning-300",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fcd34d",
+      "group": "color.warning",
+      "label": "Warning 300",
+      "since": 1
+    },
+    {
+      "name": "warning-400",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fbbf24",
+      "group": "color.warning",
+      "label": "Warning 400",
+      "since": 1
+    },
+    {
+      "name": "warning-500",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#f59e0b",
+      "group": "color.warning",
+      "label": "Warning 500",
+      "since": 1
+    },
+    {
+      "name": "warning-600",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#d97706",
+      "group": "color.warning",
+      "label": "Warning 600",
+      "since": 1
+    },
+    {
+      "name": "warning-700",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#b45309",
+      "group": "color.warning",
+      "label": "Warning 700",
+      "since": 1
+    },
+    {
+      "name": "warning-800",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#92400e",
+      "group": "color.warning",
+      "label": "Warning 800",
+      "since": 1
+    },
+    {
+      "name": "warning-900",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#78350f",
+      "group": "color.warning",
+      "label": "Warning 900",
+      "since": 1
+    },
+    {
+      "name": "warning-950",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#451a03",
+      "group": "color.warning",
+      "label": "Warning 950",
+      "since": 1
+    },
+    {
+      "name": "danger-50",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fef2f2",
+      "group": "color.danger",
+      "label": "Danger 50",
+      "since": 1
+    },
+    {
+      "name": "danger-100",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fee2e2",
+      "group": "color.danger",
+      "label": "Danger 100",
+      "since": 1
+    },
+    {
+      "name": "danger-200",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fecaca",
+      "group": "color.danger",
+      "label": "Danger 200",
+      "since": 1
+    },
+    {
+      "name": "danger-300",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#fca5a5",
+      "group": "color.danger",
+      "label": "Danger 300",
+      "since": 1
+    },
+    {
+      "name": "danger-400",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#f87171",
+      "group": "color.danger",
+      "label": "Danger 400",
+      "since": 1
+    },
+    {
+      "name": "danger-500",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#ef4444",
+      "group": "color.danger",
+      "label": "Danger 500",
+      "since": 1
+    },
+    {
+      "name": "danger-600",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#dc2626",
+      "group": "color.danger",
+      "label": "Danger 600",
+      "since": 1
+    },
+    {
+      "name": "danger-700",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#b91c1c",
+      "group": "color.danger",
+      "label": "Danger 700",
+      "since": 1
+    },
+    {
+      "name": "danger-800",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#991b1b",
+      "group": "color.danger",
+      "label": "Danger 800",
+      "since": 1
+    },
+    {
+      "name": "danger-900",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#7f1d1d",
+      "group": "color.danger",
+      "label": "Danger 900",
+      "since": 1
+    },
+    {
+      "name": "danger-950",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#450a0a",
+      "group": "color.danger",
+      "label": "Danger 950",
+      "since": 1
+    },
+    {
+      "name": "info-50",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#f0f9ff",
+      "group": "color.info",
+      "label": "Info 50",
+      "since": 1
+    },
+    {
+      "name": "info-100",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#e0f2fe",
+      "group": "color.info",
+      "label": "Info 100",
+      "since": 1
+    },
+    {
+      "name": "info-200",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#bae6fd",
+      "group": "color.info",
+      "label": "Info 200",
+      "since": 1
+    },
+    {
+      "name": "info-300",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#7dd3fc",
+      "group": "color.info",
+      "label": "Info 300",
+      "since": 1
+    },
+    {
+      "name": "info-400",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#38bdf8",
+      "group": "color.info",
+      "label": "Info 400",
+      "since": 1
+    },
+    {
+      "name": "info-500",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#0ea5e9",
+      "group": "color.info",
+      "label": "Info 500",
+      "since": 1
+    },
+    {
+      "name": "info-600",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#0284c7",
+      "group": "color.info",
+      "label": "Info 600",
+      "since": 1
+    },
+    {
+      "name": "info-700",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#0369a1",
+      "group": "color.info",
+      "label": "Info 700",
+      "since": 1
+    },
+    {
+      "name": "info-800",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#075985",
+      "group": "color.info",
+      "label": "Info 800",
+      "since": 1
+    },
+    {
+      "name": "info-900",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#0c4a6e",
+      "group": "color.info",
+      "label": "Info 900",
+      "since": 1
+    },
+    {
+      "name": "info-950",
+      "layer": "primitive",
+      "type": "color",
+      "default": "#082f49",
+      "group": "color.info",
+      "label": "Info 950",
+      "since": 1
+    },
+    {
+      "name": "font-sans",
+      "layer": "primitive",
+      "type": "font-stack",
+      "default": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "group": "font",
+      "label": "Sans-serif family",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "font-mono",
+      "layer": "primitive",
+      "type": "font-stack",
+      "default": "ui-monospace, SFMono-Regular, Menlo, monospace",
+      "group": "font",
+      "label": "Monospace family",
+      "since": 1,
+      "v1": true
+    },
+    {
+      "name": "font-display",
+      "layer": "primitive",
+      "type": "font-stack",
+      "default": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "group": "font",
+      "label": "Display family",
+      "since": 1,
+      "note": "Headings, page titles and the brand name when a component selects the display family."
+    },
+    {
+      "name": "size-scale",
+      "layer": "primitive",
+      "type": "number",
+      "default": "1",
+      "group": "type-scale",
+      "label": "Type scale",
+      "since": 1,
+      "min": 0.85,
+      "max": 1.25,
+      "note": "Multiplies every text size, including the standard Tailwind sizes."
+    },
+    {
+      "name": "size-2xs",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "10px",
+      "group": "type-scale",
+      "label": "Text size 2xs",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-xs",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "11px",
+      "group": "type-scale",
+      "label": "Text size xs",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-sm",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "12px",
+      "group": "type-scale",
+      "label": "Text size sm",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-md",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "13px",
+      "group": "type-scale",
+      "label": "Text size md",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-base",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "14px",
+      "group": "type-scale",
+      "label": "Text size base",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-lg",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "15px",
+      "group": "type-scale",
+      "label": "Text size lg",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-xl",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "16px",
+      "group": "type-scale",
+      "label": "Text size xl",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-2xl",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "17px",
+      "group": "type-scale",
+      "label": "Text size 2xl",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "size-3xl",
+      "layer": "primitive",
+      "type": "font-size",
+      "default": "26px",
+      "group": "type-scale",
+      "label": "Text size 3xl",
+      "since": 1,
+      "min": 8,
+      "max": 64
+    },
+    {
+      "name": "weight-regular",
+      "layer": "primitive",
+      "type": "weight",
+      "default": "400",
+      "group": "weight",
+      "label": "Weight regular",
+      "since": 1
+    },
+    {
+      "name": "weight-medium",
+      "layer": "primitive",
+      "type": "weight",
+      "default": "500",
+      "group": "weight",
+      "label": "Weight medium",
+      "since": 1
+    },
+    {
+      "name": "weight-semibold",
+      "layer": "primitive",
+      "type": "weight",
+      "default": "600",
+      "group": "weight",
+      "label": "Weight semibold",
+      "since": 1
+    },
+    {
+      "name": "weight-bold",
+      "layer": "primitive",
+      "type": "weight",
+      "default": "700",
+      "group": "weight",
+      "label": "Weight bold",
+      "since": 1
+    },
+    {
+      "name": "leading-tight",
+      "layer": "primitive",
+      "type": "number",
+      "default": "1.25",
+      "group": "rhythm",
+      "label": "Line height tight",
+      "since": 1,
+      "min": 1,
+      "max": 2.2
+    },
+    {
+      "name": "leading-normal",
+      "layer": "primitive",
+      "type": "number",
+      "default": "1.5",
+      "group": "rhythm",
+      "label": "Line height normal",
+      "since": 1,
+      "min": 1,
+      "max": 2.2
+    },
+    {
+      "name": "leading-relaxed",
+      "layer": "primitive",
+      "type": "number",
+      "default": "1.72",
+      "group": "rhythm",
+      "label": "Line height relaxed",
+      "since": 1,
+      "min": 1,
+      "max": 2.2
+    },
+    {
+      "name": "tracking-tight",
+      "layer": "primitive",
+      "type": "tracking",
+      "default": "-0.01em",
+      "group": "rhythm",
+      "label": "Letter spacing tight",
+      "since": 1,
+      "min": -0.1,
+      "max": 0.5
+    },
+    {
+      "name": "tracking-normal",
+      "layer": "primitive",
+      "type": "tracking",
+      "default": "0",
+      "group": "rhythm",
+      "label": "Letter spacing normal",
+      "since": 1,
+      "min": -0.1,
+      "max": 0.5
+    },
+    {
+      "name": "tracking-wide",
+      "layer": "primitive",
+      "type": "tracking",
+      "default": "0.04em",
+      "group": "rhythm",
+      "label": "Letter spacing wide",
+      "since": 1,
+      "min": -0.1,
+      "max": 0.5
+    },
+    {
+      "name": "space-xs",
+      "layer": "primitive",
+      "type": "length",
+      "default": "4px",
+      "group": "spacing",
+      "label": "Space xs",
+      "since": 1,
+      "min": 0,
+      "max": 96
+    },
+    {
+      "name": "space-sm",
+      "layer": "primitive",
+      "type": "length",
+      "default": "8px",
+      "group": "spacing",
+      "label": "Space sm",
+      "since": 1,
+      "min": 0,
+      "max": 96
+    },
+    {
+      "name": "space-md",
+      "layer": "primitive",
+      "type": "length",
+      "default": "12px",
+      "group": "spacing",
+      "label": "Space md",
+      "since": 1,
+      "min": 0,
+      "max": 96
+    },
+    {
+      "name": "space-lg",
+      "layer": "primitive",
+      "type": "length",
+      "default": "16px",
+      "group": "spacing",
+      "label": "Space lg",
+      "since": 1,
+      "min": 0,
+      "max": 96
+    },
+    {
+      "name": "space-xl",
+      "layer": "primitive",
+      "type": "length",
+      "default": "24px",
+      "group": "spacing",
+      "label": "Space xl",
+      "since": 1,
+      "min": 0,
+      "max": 96
+    },
+    {
+      "name": "space-2xl",
+      "layer": "primitive",
+      "type": "length",
+      "default": "32px",
+      "group": "spacing",
+      "label": "Space 2xl",
+      "since": 1,
+      "min": 0,
+      "max": 96
+    },
+    {
+      "name": "space-compact-factor",
+      "layer": "primitive",
+      "type": "number",
+      "default": "0.8",
+      "group": "spacing",
+      "label": "Compact density factor",
+      "since": 1,
+      "min": 0.5,
+      "max": 1,
+      "note": "Scales component padding and the fl-* spacing keys in compact density; raw utilities such as p-3 do not change."
+    },
+    {
+      "name": "radius",
+      "layer": "primitive",
+      "type": "length",
+      "default": "8px",
+      "group": "shape",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 16,
+      "v1": true,
+      "note": "Base for rounded-lg; rounded-xl is 1.5x and rounded-2xl 2x."
+    },
+    {
+      "name": "radius-default",
+      "layer": "primitive",
+      "type": "length",
+      "default": "4px",
+      "group": "shape",
+      "label": "Small radius (bare rounded)",
+      "since": 1,
+      "min": 0,
+      "max": 32
+    },
+    {
+      "name": "radius-sm",
+      "layer": "primitive",
+      "type": "length",
+      "default": "2px",
+      "group": "shape",
+      "label": "Extra small radius",
+      "since": 1,
+      "min": 0,
+      "max": 32
+    },
+    {
+      "name": "radius-md",
+      "layer": "primitive",
+      "type": "length",
+      "default": "6px",
+      "group": "shape",
+      "label": "Medium radius",
+      "since": 1,
+      "min": 0,
+      "max": 32
+    },
+    {
+      "name": "radius-pill",
+      "layer": "primitive",
+      "type": "length",
+      "default": "9999px",
+      "group": "shape",
+      "label": "Pill radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999
+    },
+    {
+      "name": "border-width",
+      "layer": "primitive",
+      "type": "length",
+      "default": "1px",
+      "group": "shape",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8
+    },
+    {
+      "name": "border-width-strong",
+      "layer": "primitive",
+      "type": "length",
+      "default": "2px",
+      "group": "shape",
+      "label": "Strong border width",
+      "since": 1,
+      "min": 0,
+      "max": 8
+    },
+    {
+      "name": "shadow-sm",
+      "layer": "primitive",
+      "type": "shadow",
+      "default": "0 1px 2px 0 rgba(0,0,0,0.05)",
+      "group": "elevation",
+      "label": "Shadow small",
+      "since": 1
+    },
+    {
+      "name": "shadow-lg",
+      "layer": "primitive",
+      "type": "shadow",
+      "default": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+      "group": "elevation",
+      "label": "Shadow large",
+      "since": 1
+    },
+    {
+      "name": "shadow-xl",
+      "layer": "primitive",
+      "type": "shadow",
+      "default": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+      "group": "elevation",
+      "label": "Shadow extra large",
+      "since": 1
+    },
+    {
+      "name": "shadow-card",
+      "layer": "primitive",
+      "type": "shadow",
+      "default": "0 1px 3px 0 rgba(16,17,23,0.06)",
+      "group": "elevation",
+      "label": "Card shadow",
+      "since": 1
+    },
+    {
+      "name": "shadow-popover",
+      "layer": "primitive",
+      "type": "shadow",
+      "default": "0 8px 28px -14px rgba(16,17,23,0.28)",
+      "group": "elevation",
+      "label": "Popover shadow",
+      "since": 1
+    },
+    {
+      "name": "shadow-modal",
+      "layer": "primitive",
+      "type": "shadow",
+      "default": "0 24px 70px -20px rgba(16,17,23,0.45)",
+      "group": "elevation",
+      "label": "Modal shadow",
+      "since": 1
+    },
+    {
+      "name": "duration-fast",
+      "layer": "primitive",
+      "type": "duration",
+      "default": "120ms",
+      "group": "motion",
+      "label": "Fast transition",
+      "since": 1,
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "name": "duration-base",
+      "layer": "primitive",
+      "type": "duration",
+      "default": "150ms",
+      "group": "motion",
+      "label": "Base transition",
+      "since": 1,
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "name": "ease-standard",
+      "layer": "primitive",
+      "type": "ease",
+      "default": "cubic-bezier(0.4,0,0.2,1)",
+      "group": "motion",
+      "label": "Standard easing",
+      "since": 1
+    },
+    {
+      "name": "focus-ring-width",
+      "layer": "primitive",
+      "type": "length",
+      "default": "2px",
+      "group": "focus",
+      "label": "Focus ring width",
+      "since": 1,
+      "min": 2,
+      "max": 8
+    },
+    {
+      "name": "focus-ring-offset",
+      "layer": "primitive",
+      "type": "length",
+      "default": "2px",
+      "group": "focus",
+      "label": "Focus ring offset",
+      "since": 1,
+      "min": 0,
+      "max": 8
+    },
+    {
+      "name": "surface",
+      "layer": "semantic",
+      "type": "color",
+      "default": "#ffffff",
+      "group": "surface",
+      "label": "Surface",
+      "since": 1,
+      "v1": true,
+      "note": "bg-white maps here."
+    },
+    {
+      "name": "surface-page",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-50}",
+      "group": "surface",
+      "label": "Page background",
+      "since": 1
+    },
+    {
+      "name": "surface-sunken",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-100}",
+      "group": "surface",
+      "label": "Sunken surface",
+      "since": 1
+    },
+    {
+      "name": "surface-overlay",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{surface}",
+      "group": "surface",
+      "label": "Overlay surface",
+      "since": 1
+    },
+    {
+      "name": "surface-inverse",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-950}",
+      "group": "surface",
+      "label": "Inverse surface",
+      "since": 1
+    },
+    {
+      "name": "scrim",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-950}",
+      "group": "surface",
+      "label": "Scrim",
+      "since": 1
+    },
+    {
+      "name": "text",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-900}",
+      "group": "text",
+      "label": "Text",
+      "since": 1
+    },
+    {
+      "name": "text-muted",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-600}",
+      "group": "text",
+      "label": "Muted text",
+      "since": 1
+    },
+    {
+      "name": "text-subtle",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-500}",
+      "group": "text",
+      "label": "Subtle text",
+      "since": 1
+    },
+    {
+      "name": "text-inverse",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{surface}",
+      "group": "text",
+      "label": "Text on inverse surfaces",
+      "since": 1
+    },
+    {
+      "name": "text-link",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-600}",
+      "group": "text",
+      "label": "Link",
+      "since": 1
+    },
+    {
+      "name": "on-primary",
+      "layer": "semantic",
+      "type": "color",
+      "default": "#ffffff",
+      "group": "text",
+      "label": "Text on primary",
+      "since": 1,
+      "v1": true,
+      "note": "text-white maps here."
+    },
+    {
+      "name": "border",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-200}",
+      "group": "line",
+      "label": "Border",
+      "since": 1
+    },
+    {
+      "name": "border-strong",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-300}",
+      "group": "line",
+      "label": "Strong border",
+      "since": 1
+    },
+    {
+      "name": "border-input",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-200}",
+      "group": "line",
+      "label": "Input border",
+      "since": 1
+    },
+    {
+      "name": "focus-ring",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-500}",
+      "group": "line",
+      "label": "Focus ring",
+      "since": 1
+    },
+    {
+      "name": "primary",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-600}",
+      "group": "brand",
+      "label": "Primary",
+      "since": 1
+    },
+    {
+      "name": "primary-hover",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-700}",
+      "group": "brand",
+      "label": "Primary hover",
+      "since": 1
+    },
+    {
+      "name": "primary-soft",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-50}",
+      "group": "brand",
+      "label": "Primary tint",
+      "since": 1
+    },
+    {
+      "name": "success-solid",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{success-600}",
+      "group": "status",
+      "label": "Success solid",
+      "since": 1
+    },
+    {
+      "name": "success-soft",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{success-50}",
+      "group": "status",
+      "label": "Success soft",
+      "since": 1
+    },
+    {
+      "name": "success-border",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{success-200}",
+      "group": "status",
+      "label": "Success border",
+      "since": 1
+    },
+    {
+      "name": "success-text",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{success-700}",
+      "group": "status",
+      "label": "Success text",
+      "since": 1
+    },
+    {
+      "name": "success-strong",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{success-900}",
+      "group": "status",
+      "label": "Success strong",
+      "since": 1
+    },
+    {
+      "name": "warning-solid",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{warning-600}",
+      "group": "status",
+      "label": "Warning solid",
+      "since": 1
+    },
+    {
+      "name": "warning-soft",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{warning-50}",
+      "group": "status",
+      "label": "Warning soft",
+      "since": 1
+    },
+    {
+      "name": "warning-border",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{warning-200}",
+      "group": "status",
+      "label": "Warning border",
+      "since": 1
+    },
+    {
+      "name": "warning-text",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{warning-700}",
+      "group": "status",
+      "label": "Warning text",
+      "since": 1
+    },
+    {
+      "name": "warning-strong",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{warning-900}",
+      "group": "status",
+      "label": "Warning strong",
+      "since": 1
+    },
+    {
+      "name": "danger-solid",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{danger-600}",
+      "group": "status",
+      "label": "Danger solid",
+      "since": 1
+    },
+    {
+      "name": "danger-soft",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{danger-50}",
+      "group": "status",
+      "label": "Danger soft",
+      "since": 1
+    },
+    {
+      "name": "danger-border",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{danger-200}",
+      "group": "status",
+      "label": "Danger border",
+      "since": 1
+    },
+    {
+      "name": "danger-text",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{danger-700}",
+      "group": "status",
+      "label": "Danger text",
+      "since": 1
+    },
+    {
+      "name": "danger-strong",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{danger-900}",
+      "group": "status",
+      "label": "Danger strong",
+      "since": 1
+    },
+    {
+      "name": "info-solid",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{info-600}",
+      "group": "status",
+      "label": "Info solid",
+      "since": 1
+    },
+    {
+      "name": "info-soft",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{info-50}",
+      "group": "status",
+      "label": "Info soft",
+      "since": 1
+    },
+    {
+      "name": "info-border",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{info-200}",
+      "group": "status",
+      "label": "Info border",
+      "since": 1
+    },
+    {
+      "name": "info-text",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{info-700}",
+      "group": "status",
+      "label": "Info text",
+      "since": 1
+    },
+    {
+      "name": "info-strong",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{info-900}",
+      "group": "status",
+      "label": "Info strong",
+      "since": 1
+    },
+    {
+      "name": "button-primary-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.button",
+      "label": "Primary Background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-primary-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{on-primary}",
+      "group": "component.button",
+      "label": "Primary Text",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-primary-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.button",
+      "label": "Primary Border color",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-primary-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "0px",
+      "group": "component.button",
+      "label": "Primary Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "button"
+    },
+    {
+      "name": "button-primary-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary-hover}",
+      "group": "component.button",
+      "label": "Primary Hover background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-primary-disabled-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-300}",
+      "group": "component.button",
+      "label": "Primary Disabled background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-primary-disabled-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{on-primary}",
+      "group": "component.button",
+      "label": "Primary Disabled text",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.button",
+      "label": "Secondary Background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-700}",
+      "group": "component.button",
+      "label": "Secondary Text",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.button",
+      "label": "Secondary Border color",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.button",
+      "label": "Secondary Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.button",
+      "label": "Secondary Hover background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-disabled-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.button",
+      "label": "Secondary Disabled background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-secondary-disabled-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-400}",
+      "group": "component.button",
+      "label": "Secondary Disabled text",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.button",
+      "label": "Danger Background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-text}",
+      "group": "component.button",
+      "label": "Danger Text",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-border}",
+      "group": "component.button",
+      "label": "Danger Border color",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.button",
+      "label": "Danger Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-soft}",
+      "group": "component.button",
+      "label": "Danger Hover background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-disabled-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.button",
+      "label": "Danger Disabled background",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-danger-disabled-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-400}",
+      "group": "component.button",
+      "label": "Danger Disabled text",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}",
+      "group": "component.button",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "button"
+    },
+    {
+      "name": "button-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "14px",
+      "group": "component.button",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "button"
+    },
+    {
+      "name": "button-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-sm}",
+      "group": "component.button",
+      "label": "Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "button"
+    },
+    {
+      "name": "button-height",
+      "layer": "component",
+      "type": "length",
+      "default": "0px",
+      "group": "component.button",
+      "label": "Minimum height",
+      "since": 1,
+      "min": 32,
+      "max": 96,
+      "component": "button",
+      "note": "Unset by default; an explicit height must be at least 32px."
+    },
+    {
+      "name": "button-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-md}",
+      "group": "component.button",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "button"
+    },
+    {
+      "name": "button-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-medium}",
+      "group": "component.button",
+      "label": "Font weight",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-transform",
+      "layer": "component",
+      "type": "enum",
+      "default": "none",
+      "group": "component.button",
+      "label": "Text case",
+      "since": 1,
+      "options": [
+        "none",
+        "uppercase",
+        "capitalize"
+      ],
+      "component": "button"
+    },
+    {
+      "name": "button-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "none",
+      "group": "component.button",
+      "label": "Shadow",
+      "since": 1,
+      "component": "button"
+    },
+    {
+      "name": "button-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "solid",
+      "group": "component.button",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "solid",
+        "outline"
+      ],
+      "component": "button"
+    },
+    {
+      "name": "input-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.input",
+      "label": "Background",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text}",
+      "group": "component.input",
+      "label": "Text",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-placeholder",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-400}",
+      "group": "component.input",
+      "label": "Placeholder",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border-input}",
+      "group": "component.input",
+      "label": "Border color",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.input",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "input"
+    },
+    {
+      "name": "input-focus-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{focus-ring}",
+      "group": "component.input",
+      "label": "Focus border",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-focus-ring",
+      "layer": "component",
+      "type": "color",
+      "default": "{focus-ring}",
+      "group": "component.input",
+      "label": "Focus ring",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-focus-ring-alpha",
+      "layer": "component",
+      "type": "number",
+      "default": "0.2",
+      "group": "component.input",
+      "label": "Focus ring opacity",
+      "since": 1,
+      "min": 0,
+      "max": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}",
+      "group": "component.input",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "input"
+    },
+    {
+      "name": "input-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.input",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "input"
+    },
+    {
+      "name": "input-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-sm}",
+      "group": "component.input",
+      "label": "Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "input"
+    },
+    {
+      "name": "input-height",
+      "layer": "component",
+      "type": "length",
+      "default": "0px",
+      "group": "component.input",
+      "label": "Minimum height",
+      "since": 1,
+      "min": 32,
+      "max": 96,
+      "component": "input",
+      "note": "Unset by default; an explicit height must be at least 32px."
+    },
+    {
+      "name": "input-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-md}+0.5px",
+      "group": "component.input",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "input"
+    },
+    {
+      "name": "input-disabled-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.input",
+      "label": "Disabled background",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-disabled-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-subtle}",
+      "group": "component.input",
+      "label": "Disabled text",
+      "since": 1,
+      "component": "input"
+    },
+    {
+      "name": "input-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "outline",
+      "group": "component.input",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "outline",
+        "filled"
+      ],
+      "component": "input"
+    },
+    {
+      "name": "choice-accent",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.choice",
+      "label": "Accent",
+      "since": 1,
+      "component": "choice"
+    },
+    {
+      "name": "choice-track",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.choice",
+      "label": "Track",
+      "since": 1,
+      "component": "choice"
+    },
+    {
+      "name": "choice-thumb",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.choice",
+      "label": "Thumb",
+      "since": 1,
+      "component": "choice"
+    },
+    {
+      "name": "field-label-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-700}",
+      "group": "component.field",
+      "label": "Label Text",
+      "since": 1,
+      "component": "field"
+    },
+    {
+      "name": "field-label-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-sm}",
+      "group": "component.field",
+      "label": "Label Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "field"
+    },
+    {
+      "name": "field-label-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-medium}",
+      "group": "component.field",
+      "label": "Label Font weight",
+      "since": 1,
+      "component": "field"
+    },
+    {
+      "name": "field-hint-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-subtle}",
+      "group": "component.field",
+      "label": "Hint Text",
+      "since": 1,
+      "component": "field"
+    },
+    {
+      "name": "field-hint-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-xs}+0.5px",
+      "group": "component.field",
+      "label": "Hint Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "field"
+    },
+    {
+      "name": "field-error-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-text}",
+      "group": "component.field",
+      "label": "Error text",
+      "since": 1,
+      "component": "field"
+    },
+    {
+      "name": "field-gap",
+      "layer": "component",
+      "type": "length",
+      "default": "6px",
+      "group": "component.field",
+      "label": "Gap",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "field"
+    },
+    {
+      "name": "field-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "stacked",
+      "group": "component.field",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "stacked",
+        "inline"
+      ],
+      "component": "field"
+    },
+    {
+      "name": "card-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.card",
+      "label": "Background",
+      "since": 1,
+      "component": "card"
+    },
+    {
+      "name": "card-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.card",
+      "label": "Border color",
+      "since": 1,
+      "component": "card"
+    },
+    {
+      "name": "card-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.card",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "card"
+    },
+    {
+      "name": "card-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*1.5",
+      "group": "component.card",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "card"
+    },
+    {
+      "name": "card-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "none",
+      "group": "component.card",
+      "label": "Shadow",
+      "since": 1,
+      "component": "card"
+    },
+    {
+      "name": "card-pad",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-lg}",
+      "group": "component.card",
+      "label": "Padding",
+      "since": 1,
+      "min": 0,
+      "max": 64,
+      "component": "card"
+    },
+    {
+      "name": "card-title-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-base}",
+      "group": "component.card",
+      "label": "Title Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "card"
+    },
+    {
+      "name": "card-title-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-semibold}",
+      "group": "component.card",
+      "label": "Title Font weight",
+      "since": 1,
+      "component": "card"
+    },
+    {
+      "name": "card-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "bordered",
+      "group": "component.card",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "bordered",
+        "raised"
+      ],
+      "component": "card"
+    },
+    {
+      "name": "page-header-title-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "20px",
+      "group": "component.page-header",
+      "label": "Title Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-title-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-semibold}",
+      "group": "component.page-header",
+      "label": "Title Font weight",
+      "since": 1,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-title-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text}",
+      "group": "component.page-header",
+      "label": "Title Text",
+      "since": 1,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-title-font",
+      "layer": "component",
+      "type": "enum",
+      "default": "sans",
+      "group": "component.page-header",
+      "label": "Title Font family",
+      "since": 1,
+      "options": [
+        "sans",
+        "display"
+      ],
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-title-transform",
+      "layer": "component",
+      "type": "enum",
+      "default": "none",
+      "group": "component.page-header",
+      "label": "Title Text case",
+      "since": 1,
+      "options": [
+        "none",
+        "uppercase",
+        "capitalize"
+      ],
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-title-tracking",
+      "layer": "component",
+      "type": "tracking",
+      "default": "{tracking-normal}",
+      "group": "component.page-header",
+      "label": "Title Letter spacing",
+      "since": 1,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-sub-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-muted}",
+      "group": "component.page-header",
+      "label": "Sub Text",
+      "since": 1,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-sub-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-base}",
+      "group": "component.page-header",
+      "label": "Sub Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-gap",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-lg}",
+      "group": "component.page-header",
+      "label": "Gap",
+      "since": 1,
+      "min": 0,
+      "max": 64,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-align",
+      "layer": "component",
+      "type": "enum",
+      "default": "start",
+      "group": "component.page-header",
+      "label": "Alignment",
+      "since": 1,
+      "options": [
+        "start",
+        "center"
+      ],
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-rule-color",
+      "layer": "component",
+      "type": "color",
+      "default": "{border-strong}",
+      "group": "component.page-header",
+      "label": "Rule color",
+      "since": 1,
+      "component": "page-header"
+    },
+    {
+      "name": "page-header-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "plain",
+      "group": "component.page-header",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "plain",
+        "ruled"
+      ],
+      "component": "page-header"
+    },
+    {
+      "name": "table-head-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-sunken}",
+      "group": "component.table",
+      "label": "Head Background",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-head-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-muted}",
+      "group": "component.table",
+      "label": "Head Text",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-head-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-sm}",
+      "group": "component.table",
+      "label": "Head Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "table"
+    },
+    {
+      "name": "table-head-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-semibold}",
+      "group": "component.table",
+      "label": "Head Font weight",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-head-transform",
+      "layer": "component",
+      "type": "enum",
+      "default": "none",
+      "group": "component.table",
+      "label": "Head Text case",
+      "since": 1,
+      "options": [
+        "none",
+        "uppercase",
+        "capitalize"
+      ],
+      "component": "table"
+    },
+    {
+      "name": "table-row-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.table",
+      "label": "Row Background",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-stripe-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.table",
+      "label": "Striped row background",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-row-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.table",
+      "label": "Row Hover background",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.table",
+      "label": "Border color",
+      "since": 1,
+      "component": "table"
+    },
+    {
+      "name": "table-cell-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.table",
+      "label": "Cell Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "table"
+    },
+    {
+      "name": "table-cell-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-sm}",
+      "group": "component.table",
+      "label": "Cell Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "table"
+    },
+    {
+      "name": "table-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-md}",
+      "group": "component.table",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "table"
+    },
+    {
+      "name": "table-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}",
+      "group": "component.table",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "table"
+    },
+    {
+      "name": "tabs-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-muted}",
+      "group": "component.tabs",
+      "label": "Text",
+      "since": 1,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-active-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text}",
+      "group": "component.tabs",
+      "label": "Active text",
+      "since": 1,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-active-indicator",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.tabs",
+      "label": "Active indicator",
+      "since": 1,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.tabs",
+      "label": "Hover background",
+      "since": 1,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.tabs",
+      "label": "Border color",
+      "since": 1,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-md}",
+      "group": "component.tabs",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-medium}",
+      "group": "component.tabs",
+      "label": "Font weight",
+      "since": 1,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.tabs",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-sm}",
+      "group": "component.tabs",
+      "label": "Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "tabs"
+    },
+    {
+      "name": "tabs-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "underline",
+      "group": "component.tabs",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "underline",
+        "pill",
+        "boxed"
+      ],
+      "component": "tabs"
+    },
+    {
+      "name": "badge-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius-pill}",
+      "group": "component.badge",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "badge"
+    },
+    {
+      "name": "badge-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-sm}",
+      "group": "component.badge",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "badge"
+    },
+    {
+      "name": "badge-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "2px",
+      "group": "component.badge",
+      "label": "Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 16,
+      "component": "badge"
+    },
+    {
+      "name": "badge-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-xs}",
+      "group": "component.badge",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "badge"
+    },
+    {
+      "name": "badge-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-medium}",
+      "group": "component.badge",
+      "label": "Font weight",
+      "since": 1,
+      "component": "badge"
+    },
+    {
+      "name": "badge-transform",
+      "layer": "component",
+      "type": "enum",
+      "default": "none",
+      "group": "component.badge",
+      "label": "Text case",
+      "since": 1,
+      "options": [
+        "none",
+        "uppercase",
+        "capitalize"
+      ],
+      "component": "badge"
+    },
+    {
+      "name": "modal-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-overlay}",
+      "group": "component.modal",
+      "label": "Background",
+      "since": 1,
+      "component": "modal"
+    },
+    {
+      "name": "modal-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.modal",
+      "label": "Border color",
+      "since": 1,
+      "component": "modal"
+    },
+    {
+      "name": "modal-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.modal",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "modal"
+    },
+    {
+      "name": "modal-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*2",
+      "group": "component.modal",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "modal"
+    },
+    {
+      "name": "modal-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "{shadow-modal}",
+      "group": "component.modal",
+      "label": "Shadow",
+      "since": 1,
+      "component": "modal"
+    },
+    {
+      "name": "modal-pad",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-xl}",
+      "group": "component.modal",
+      "label": "Padding",
+      "since": 1,
+      "min": 0,
+      "max": 64,
+      "component": "modal"
+    },
+    {
+      "name": "modal-title-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-xl}",
+      "group": "component.modal",
+      "label": "Title Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "modal"
+    },
+    {
+      "name": "modal-title-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-semibold}",
+      "group": "component.modal",
+      "label": "Title Font weight",
+      "since": 1,
+      "component": "modal"
+    },
+    {
+      "name": "modal-scrim-alpha",
+      "layer": "component",
+      "type": "number",
+      "default": "0.45",
+      "group": "component.modal",
+      "label": "Scrim opacity",
+      "since": 1,
+      "min": 0,
+      "max": 0.8,
+      "component": "modal"
+    },
+    {
+      "name": "drawer-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.drawer",
+      "label": "Background",
+      "since": 1,
+      "component": "drawer"
+    },
+    {
+      "name": "drawer-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.drawer",
+      "label": "Border color",
+      "since": 1,
+      "component": "drawer"
+    },
+    {
+      "name": "drawer-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "{shadow-xl}",
+      "group": "component.drawer",
+      "label": "Shadow",
+      "since": 1,
+      "component": "drawer"
+    },
+    {
+      "name": "drawer-width",
+      "layer": "component",
+      "type": "length",
+      "default": "300px",
+      "group": "component.drawer",
+      "label": "Width",
+      "since": 1,
+      "min": 240,
+      "max": 480,
+      "component": "drawer"
+    },
+    {
+      "name": "drawer-scrim-alpha",
+      "layer": "component",
+      "type": "number",
+      "default": "0.45",
+      "group": "component.drawer",
+      "label": "Scrim opacity",
+      "since": 1,
+      "min": 0,
+      "max": 0.8,
+      "component": "drawer"
+    },
+    {
+      "name": "toast-done-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{success-border}",
+      "group": "component.toast",
+      "label": "Done Border color",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-done-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{success-soft}",
+      "group": "component.toast",
+      "label": "Done Background",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-done-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{success-strong}",
+      "group": "component.toast",
+      "label": "Done Text",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-error-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{warning-border}",
+      "group": "component.toast",
+      "label": "Error Border color",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-error-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{warning-soft}",
+      "group": "component.toast",
+      "label": "Error Background",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-error-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{warning-strong}",
+      "group": "component.toast",
+      "label": "Error Text",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-notice-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{accent-200}",
+      "group": "component.toast",
+      "label": "Notice Border color",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-notice-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary-soft}",
+      "group": "component.toast",
+      "label": "Notice Background",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-notice-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{accent-900}",
+      "group": "component.toast",
+      "label": "Notice Text",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-working-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.toast",
+      "label": "Working Border color",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-working-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.toast",
+      "label": "Working Background",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-working-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-800}",
+      "group": "component.toast",
+      "label": "Working Text",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*1.5",
+      "group": "component.toast",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "toast"
+    },
+    {
+      "name": "toast-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "{shadow-lg}",
+      "group": "component.toast",
+      "label": "Shadow",
+      "since": 1,
+      "component": "toast"
+    },
+    {
+      "name": "toast-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-sm}+0.5px",
+      "group": "component.toast",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "toast"
+    },
+    {
+      "name": "toast-position",
+      "layer": "component",
+      "type": "enum",
+      "default": "bottom-left",
+      "group": "component.toast",
+      "label": "Position",
+      "since": 1,
+      "options": [
+        "bottom-left",
+        "bottom-right",
+        "top-left",
+        "top-right",
+        "top-center",
+        "bottom-center"
+      ],
+      "component": "toast"
+    },
+    {
+      "name": "notice-bad-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-border}",
+      "group": "component.notice",
+      "label": "Bad Border color",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-bad-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-soft}",
+      "group": "component.notice",
+      "label": "Bad Background",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-bad-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{danger-strong}",
+      "group": "component.notice",
+      "label": "Bad Text",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-good-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{success-border}",
+      "group": "component.notice",
+      "label": "Good Border color",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-good-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{success-soft}",
+      "group": "component.notice",
+      "label": "Good Background",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-good-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{success-strong}",
+      "group": "component.notice",
+      "label": "Good Text",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-info-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-200}",
+      "group": "component.notice",
+      "label": "Info Border color",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-info-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-50}",
+      "group": "component.notice",
+      "label": "Info Background",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-info-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-700}",
+      "group": "component.notice",
+      "label": "Info Text",
+      "since": 1,
+      "component": "notice"
+    },
+    {
+      "name": "notice-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}",
+      "group": "component.notice",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "notice"
+    },
+    {
+      "name": "notice-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.notice",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "notice"
+    },
+    {
+      "name": "notice-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-sm}",
+      "group": "component.notice",
+      "label": "Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "notice"
+    },
+    {
+      "name": "notice-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.notice",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "notice"
+    },
+    {
+      "name": "notice-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-sm}+0.5px",
+      "group": "component.notice",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "notice"
+    },
+    {
+      "name": "notice-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "soft",
+      "group": "component.notice",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "soft",
+        "outline",
+        "solid"
+      ],
+      "component": "notice"
+    },
+    {
+      "name": "sidebar-tone",
+      "layer": "component",
+      "type": "enum",
+      "default": "dark",
+      "group": "component.sidebar",
+      "label": "tone",
+      "since": 1,
+      "options": [
+        "dark",
+        "light"
+      ],
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-bg",
+      "layer": "component",
+      "type": "color",
+      "default": {
+        "dark": "{surface-inverse}",
+        "light": "{surface}"
+      },
+      "group": "component.sidebar",
+      "label": "Background",
+      "since": 1,
+      "component": "sidebar",
+      "tone": "sidebar-tone",
+      "note": "Resolved from the sidebar tone unless set."
+    },
+    {
+      "name": "sidebar-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border-strong}",
+      "group": "component.sidebar",
+      "label": "Border color",
+      "since": 1,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "0px",
+      "group": "component.sidebar",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "sidebar",
+      "note": "A flush sidebar draws a separator of at least the border-width primitive."
+    },
+    {
+      "name": "sidebar-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*2",
+      "group": "component.sidebar",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "none",
+      "group": "component.sidebar",
+      "label": "Shadow",
+      "since": 1,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.sidebar",
+      "label": "Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "0px",
+      "group": "component.sidebar",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-gap",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-xs}",
+      "group": "component.sidebar",
+      "label": "Gap",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-brand-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.sidebar",
+      "label": "Brand Background",
+      "since": 1,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-brand-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{on-primary}",
+      "group": "component.sidebar",
+      "label": "Brand Text",
+      "since": 1,
+      "component": "sidebar"
+    },
+    {
+      "name": "sidebar-brand-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}",
+      "group": "component.sidebar",
+      "label": "Brand Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "sidebar"
+    },
+    {
+      "name": "nav-item-fg",
+      "layer": "component",
+      "type": "color",
+      "default": {
+        "dark": "{ink-300}",
+        "light": "{ink-800}"
+      },
+      "group": "component.nav-item",
+      "label": "Text",
+      "since": 1,
+      "component": "nav-item",
+      "tone": "sidebar-tone",
+      "note": "Resolved from the sidebar tone unless set."
+    },
+    {
+      "name": "nav-item-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": {
+        "dark": "{ink-800}",
+        "light": "{ink-100}"
+      },
+      "group": "component.nav-item",
+      "label": "Hover background",
+      "since": 1,
+      "component": "nav-item",
+      "tone": "sidebar-tone",
+      "note": "Resolved from the sidebar tone unless set."
+    },
+    {
+      "name": "nav-item-hover-fg",
+      "layer": "component",
+      "type": "color",
+      "default": {
+        "dark": "{on-primary}",
+        "light": "{ink-900}"
+      },
+      "group": "component.nav-item",
+      "label": "Hover text",
+      "since": 1,
+      "component": "nav-item",
+      "tone": "sidebar-tone",
+      "note": "Resolved from the sidebar tone unless set."
+    },
+    {
+      "name": "nav-item-active-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-800}",
+      "group": "component.nav-item",
+      "label": "Active background",
+      "since": 1,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-active-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{on-primary}",
+      "group": "component.nav-item",
+      "label": "Active text",
+      "since": 1,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-focus",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.nav-item",
+      "label": "Focus outline",
+      "since": 1,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*1.5",
+      "group": "component.nav-item",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-height",
+      "layer": "component",
+      "type": "length",
+      "default": "44px",
+      "group": "component.nav-item",
+      "label": "Minimum height",
+      "since": 1,
+      "min": 32,
+      "max": 96,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.nav-item",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-gap",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.nav-item",
+      "label": "Gap",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-base}",
+      "group": "component.nav-item",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-medium}",
+      "group": "component.nav-item",
+      "label": "Font weight",
+      "since": 1,
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-transform",
+      "layer": "component",
+      "type": "enum",
+      "default": "none",
+      "group": "component.nav-item",
+      "label": "Text case",
+      "since": 1,
+      "options": [
+        "none",
+        "uppercase",
+        "capitalize"
+      ],
+      "component": "nav-item"
+    },
+    {
+      "name": "nav-item-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "square",
+      "group": "component.nav-item",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "square",
+        "pill"
+      ],
+      "component": "nav-item"
+    },
+    {
+      "name": "navbar-tone",
+      "layer": "component",
+      "type": "enum",
+      "default": "dark",
+      "group": "component.navbar",
+      "label": "tone",
+      "since": 1,
+      "options": [
+        "dark",
+        "light"
+      ],
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-bg",
+      "layer": "component",
+      "type": "color",
+      "default": {
+        "dark": "{surface-inverse}",
+        "light": "{surface}"
+      },
+      "group": "component.navbar",
+      "label": "Background",
+      "since": 1,
+      "component": "navbar",
+      "tone": "navbar-tone",
+      "note": "Resolved from the navbar tone unless set."
+    },
+    {
+      "name": "navbar-fg",
+      "layer": "component",
+      "type": "color",
+      "default": {
+        "dark": "{on-primary}",
+        "light": "{text}"
+      },
+      "group": "component.navbar",
+      "label": "Text",
+      "since": 1,
+      "component": "navbar",
+      "tone": "navbar-tone",
+      "note": "Resolved from the navbar tone unless set."
+    },
+    {
+      "name": "navbar-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border-strong}",
+      "group": "component.navbar",
+      "label": "Border color",
+      "since": 1,
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.navbar",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "none",
+      "group": "component.navbar",
+      "label": "Shadow",
+      "since": 1,
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-lg}",
+      "group": "component.navbar",
+      "label": "Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 64,
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-brand-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-base}",
+      "group": "component.navbar",
+      "label": "Brand Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-brand-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-semibold}",
+      "group": "component.navbar",
+      "label": "Brand Font weight",
+      "since": 1,
+      "component": "navbar"
+    },
+    {
+      "name": "navbar-brand-font",
+      "layer": "component",
+      "type": "enum",
+      "default": "sans",
+      "group": "component.navbar",
+      "label": "Brand Font family",
+      "since": 1,
+      "options": [
+        "sans",
+        "display"
+      ],
+      "component": "navbar"
+    },
+    {
+      "name": "workspace-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.workspace",
+      "label": "Background",
+      "since": 1,
+      "component": "workspace"
+    },
+    {
+      "name": "workspace-panel-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.workspace",
+      "label": "Panel Background",
+      "since": 1,
+      "component": "workspace"
+    },
+    {
+      "name": "workspace-panel-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.workspace",
+      "label": "Panel Border color",
+      "since": 1,
+      "component": "workspace"
+    },
+    {
+      "name": "workspace-panel-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*2",
+      "group": "component.workspace",
+      "label": "Panel Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "workspace"
+    },
+    {
+      "name": "workspace-panel-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "{shadow-card}",
+      "group": "component.workspace",
+      "label": "Panel Shadow",
+      "since": 1,
+      "component": "workspace"
+    },
+    {
+      "name": "conversation-list-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.conversation-list",
+      "label": "Background",
+      "since": 1,
+      "component": "conversation-list"
+    },
+    {
+      "name": "conversation-list-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.conversation-list",
+      "label": "Border color",
+      "since": 1,
+      "component": "conversation-list"
+    },
+    {
+      "name": "conversation-list-item-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-700}",
+      "group": "component.conversation-list",
+      "label": "Item Text",
+      "since": 1,
+      "component": "conversation-list"
+    },
+    {
+      "name": "conversation-list-item-hover-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.conversation-list",
+      "label": "Item Hover background",
+      "since": 1,
+      "component": "conversation-list"
+    },
+    {
+      "name": "conversation-list-item-active-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-sunken}",
+      "group": "component.conversation-list",
+      "label": "Item Active background",
+      "since": 1,
+      "component": "conversation-list"
+    },
+    {
+      "name": "conversation-list-item-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-md}",
+      "group": "component.conversation-list",
+      "label": "Item Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "conversation-list"
+    },
+    {
+      "name": "chat-message-user-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-900}",
+      "group": "component.chat-message",
+      "label": "User Background",
+      "since": 1,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-user-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{on-primary}",
+      "group": "component.chat-message",
+      "label": "User Text",
+      "since": 1,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-user-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*2",
+      "group": "component.chat-message",
+      "label": "User Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-user-pad-x",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-lg}",
+      "group": "component.chat-message",
+      "label": "User Horizontal padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-user-pad-y",
+      "layer": "component",
+      "type": "length",
+      "default": "10px",
+      "group": "component.chat-message",
+      "label": "User Vertical padding",
+      "since": 1,
+      "min": 0,
+      "max": 32,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-user-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-base}+0.5px",
+      "group": "component.chat-message",
+      "label": "User Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-assistant-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text}",
+      "group": "component.chat-message",
+      "label": "Assistant Text",
+      "since": 1,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-rule-color",
+      "layer": "component",
+      "type": "color",
+      "default": "{border-strong}",
+      "group": "component.chat-message",
+      "label": "Rule color",
+      "since": 1,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-leading",
+      "layer": "component",
+      "type": "number",
+      "default": "1.6",
+      "group": "component.chat-message",
+      "label": "Line height",
+      "since": 1,
+      "min": 1,
+      "max": 2.2,
+      "component": "chat-message"
+    },
+    {
+      "name": "chat-message-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "bubble",
+      "group": "component.chat-message",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "bubble",
+        "ruled"
+      ],
+      "component": "chat-message"
+    },
+    {
+      "name": "composer-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.composer",
+      "label": "Background",
+      "since": 1,
+      "component": "composer"
+    },
+    {
+      "name": "composer-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border-input}",
+      "group": "component.composer",
+      "label": "Border color",
+      "since": 1,
+      "component": "composer"
+    },
+    {
+      "name": "composer-border-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.composer",
+      "label": "Border width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "composer"
+    },
+    {
+      "name": "composer-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*1.5",
+      "group": "component.composer",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "composer"
+    },
+    {
+      "name": "composer-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "{shadow-card}",
+      "group": "component.composer",
+      "label": "Shadow",
+      "since": 1,
+      "component": "composer"
+    },
+    {
+      "name": "composer-pad",
+      "layer": "component",
+      "type": "length",
+      "default": "{space-md}",
+      "group": "component.composer",
+      "label": "Padding",
+      "since": 1,
+      "min": 0,
+      "max": 48,
+      "component": "composer"
+    },
+    {
+      "name": "composer-variant",
+      "layer": "component",
+      "type": "enum",
+      "default": "panel",
+      "group": "component.composer",
+      "label": "Style",
+      "since": 1,
+      "options": [
+        "panel",
+        "plain"
+      ],
+      "component": "composer"
+    },
+    {
+      "name": "prose-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-lg}",
+      "group": "component.prose",
+      "label": "Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "prose"
+    },
+    {
+      "name": "prose-leading",
+      "layer": "component",
+      "type": "number",
+      "default": "{leading-relaxed}",
+      "group": "component.prose",
+      "label": "Line height",
+      "since": 1,
+      "min": 1,
+      "max": 2.2,
+      "component": "prose"
+    },
+    {
+      "name": "prose-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-800}",
+      "group": "component.prose",
+      "label": "Text",
+      "since": 1,
+      "component": "prose"
+    },
+    {
+      "name": "prose-link-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-link}",
+      "group": "component.prose",
+      "label": "Link",
+      "since": 1,
+      "component": "prose"
+    },
+    {
+      "name": "prose-code-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-sunken}",
+      "group": "component.prose",
+      "label": "Code background",
+      "since": 1,
+      "component": "prose"
+    },
+    {
+      "name": "prose-code-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text}",
+      "group": "component.prose",
+      "label": "Code text",
+      "since": 1,
+      "component": "prose"
+    },
+    {
+      "name": "prose-heading-weight",
+      "layer": "component",
+      "type": "weight",
+      "default": "{weight-semibold}",
+      "group": "component.prose",
+      "label": "heading-weight",
+      "since": 1,
+      "component": "prose"
+    },
+    {
+      "name": "prose-table-head-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-sunken}",
+      "group": "component.prose",
+      "label": "Table header background",
+      "since": 1,
+      "component": "prose"
+    },
+    {
+      "name": "link-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{text-link}",
+      "group": "component.link",
+      "label": "Text",
+      "since": 1,
+      "component": "link"
+    },
+    {
+      "name": "link-hover-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary-hover}",
+      "group": "component.link",
+      "label": "Hover text",
+      "since": 1,
+      "component": "link"
+    },
+    {
+      "name": "link-underline",
+      "layer": "component",
+      "type": "enum",
+      "default": "hover",
+      "group": "component.link",
+      "label": "underline",
+      "since": 1,
+      "options": [
+        "none",
+        "hover",
+        "always"
+      ],
+      "component": "link"
+    },
+    {
+      "name": "divider-color",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.divider",
+      "label": "Color",
+      "since": 1,
+      "component": "divider"
+    },
+    {
+      "name": "divider-width",
+      "layer": "component",
+      "type": "length",
+      "default": "{border-width}",
+      "group": "component.divider",
+      "label": "Width",
+      "since": 1,
+      "min": 0,
+      "max": 8,
+      "component": "divider"
+    },
+    {
+      "name": "progress-track",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-sunken}",
+      "group": "component.progress",
+      "label": "Track",
+      "since": 1,
+      "component": "progress"
+    },
+    {
+      "name": "progress-bar",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary}",
+      "group": "component.progress",
+      "label": "Bar",
+      "since": 1,
+      "component": "progress"
+    },
+    {
+      "name": "citation-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{primary-soft}",
+      "group": "component.citation",
+      "label": "Background",
+      "since": 1,
+      "component": "citation"
+    },
+    {
+      "name": "citation-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{accent-700}",
+      "group": "component.citation",
+      "label": "Text",
+      "since": 1,
+      "component": "citation"
+    },
+    {
+      "name": "citation-active-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{accent-100}",
+      "group": "component.citation",
+      "label": "Active background",
+      "since": 1,
+      "component": "citation"
+    },
+    {
+      "name": "citation-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius-md}",
+      "group": "component.citation",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "citation"
+    },
+    {
+      "name": "splitter-handle",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.splitter",
+      "label": "Handle",
+      "since": 1,
+      "component": "splitter"
+    },
+    {
+      "name": "splitter-hover",
+      "layer": "component",
+      "type": "color",
+      "default": "{accent-400}",
+      "group": "component.splitter",
+      "label": "Handle hover",
+      "since": 1,
+      "component": "splitter"
+    },
+    {
+      "name": "gate-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.gate",
+      "label": "Background",
+      "since": 1,
+      "component": "gate"
+    },
+    {
+      "name": "gate-border",
+      "layer": "component",
+      "type": "color",
+      "default": "{border}",
+      "group": "component.gate",
+      "label": "Border color",
+      "since": 1,
+      "component": "gate"
+    },
+    {
+      "name": "gate-radius",
+      "layer": "component",
+      "type": "length",
+      "default": "{radius}*2",
+      "group": "component.gate",
+      "label": "Corner radius",
+      "since": 1,
+      "min": 0,
+      "max": 9999,
+      "component": "gate"
+    },
+    {
+      "name": "gate-max-width",
+      "layer": "component",
+      "type": "length",
+      "default": "416px",
+      "group": "component.gate",
+      "label": "max-width",
+      "since": 1,
+      "min": 320,
+      "max": 640,
+      "component": "gate"
+    },
+    {
+      "name": "gate-title-size",
+      "layer": "component",
+      "type": "font-size",
+      "default": "{size-2xl}",
+      "group": "component.gate",
+      "label": "Title Text size",
+      "since": 1,
+      "min": 8,
+      "max": 64,
+      "component": "gate"
+    },
+    {
+      "name": "gate-page-bg",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface-page}",
+      "group": "component.gate",
+      "label": "Page Background",
+      "since": 1,
+      "component": "gate"
+    },
+    {
+      "name": "scrollbar-thumb",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-200}",
+      "group": "component.scrollbar",
+      "label": "Thumb",
+      "since": 1,
+      "component": "scrollbar"
+    },
+    {
+      "name": "scrollbar-track",
+      "layer": "component",
+      "type": "color",
+      "default": "{surface}",
+      "group": "component.scrollbar",
+      "label": "Track",
+      "since": 1,
+      "component": "scrollbar"
+    },
+    {
+      "name": "scrollbar-width",
+      "layer": "component",
+      "type": "length",
+      "default": "8px",
+      "group": "component.scrollbar",
+      "label": "Width",
+      "since": 1,
+      "min": 4,
+      "max": 16,
+      "component": "scrollbar"
+    },
+    {
+      "name": "skeleton-base",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-100}",
+      "group": "component.skeleton",
+      "label": "Base",
+      "since": 1,
+      "component": "skeleton"
+    },
+    {
+      "name": "skeleton-highlight",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-50}",
+      "group": "component.skeleton",
+      "label": "Highlight",
+      "since": 1,
+      "component": "skeleton"
+    }
+  ],
+  "layout": {
+    "density": {
+      "type": "enum",
+      "options": [
+        "comfortable",
+        "compact"
+      ],
+      "default": "comfortable"
+    },
+    "scroll": {
+      "type": "enum",
+      "options": [
+        "panel",
+        "page"
+      ],
+      "default": "panel"
+    },
+    "sidebar": {
+      "side": {
+        "type": "enum",
+        "options": [
+          "left",
+          "right",
+          "hidden"
+        ],
+        "default": "left"
+      },
+      "style": {
+        "type": "enum",
+        "options": [
+          "rail",
+          "panel"
+        ],
+        "default": "rail"
+      },
+      "surface": {
+        "type": "enum",
+        "options": [
+          "floating",
+          "flush"
+        ],
+        "default": "floating"
+      },
+      "width": {
+        "type": "int",
+        "min": 56,
+        "max": 320,
+        "default": 56,
+        "note": "56 for rail, 224 for panel. Warns when a rail is wider than 120 or a panel narrower than 160."
+      },
+      "behavior": {
+        "type": "enum",
+        "options": [
+          "fixed",
+          "sticky",
+          "static"
+        ],
+        "default": "fixed"
+      },
+      "collapse_below": {
+        "type": "int",
+        "min": 480,
+        "max": 1280,
+        "default": 760
+      }
+    },
+    "navbar": {
+      "position": {
+        "type": "enum",
+        "options": [
+          "hidden",
+          "top",
+          "bottom"
+        ],
+        "default": "hidden"
+      },
+      "behavior": {
+        "type": "enum",
+        "options": [
+          "fixed",
+          "sticky",
+          "static"
+        ],
+        "default": "fixed"
+      },
+      "height": {
+        "type": "int",
+        "min": 40,
+        "max": 96,
+        "default": 56
+      },
+      "align": {
+        "type": "enum",
+        "options": [
+          "start",
+          "center",
+          "between"
+        ],
+        "default": "between"
+      },
+      "show_brand": {
+        "type": "bool",
+        "default": true
+      }
+    },
+    "content": {
+      "max_width": {
+        "type": "int",
+        "min": 640,
+        "max": 1920,
+        "zero": true,
+        "default": 0,
+        "note": "0 means no limit. Applies to page-scroll routes only."
+      },
+      "align": {
+        "type": "enum",
+        "options": [
+          "start",
+          "center"
+        ],
+        "default": "start"
+      },
+      "padding": {
+        "type": "step",
+        "options": [
+          "none",
+          "xs",
+          "sm",
+          "md",
+          "lg",
+          "xl"
+        ],
+        "default": "md"
+      },
+      "gap": {
+        "type": "step",
+        "options": [
+          "none",
+          "xs",
+          "sm",
+          "md",
+          "lg",
+          "xl"
+        ],
+        "default": "md"
+      }
+    }
+  },
+  "layout_defaults": {
+    "density": "comfortable",
+    "scroll": "panel",
+    "sidebar": {
+      "side": "left",
+      "style": "rail",
+      "surface": "floating",
+      "width": 56,
+      "behavior": "fixed",
+      "collapse_below": 760
+    },
+    "navbar": {
+      "position": "hidden",
+      "behavior": "fixed",
+      "height": 56,
+      "align": "between",
+      "show_brand": true
+    },
+    "content": {
+      "max_width": 0,
+      "align": "start",
+      "padding": "md",
+      "gap": "md"
+    }
+  },
+  "panel_sidebar_width": 224,
+  "contrast_pairs": [
+    {
+      "id": "legacy-ink-900-on-surface",
+      "fg": "ink-900",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "legacy-on-primary-on-accent-600",
+      "fg": "on-primary",
+      "bg": "accent-600",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-on-surface",
+      "fg": "text",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-on-surface-page",
+      "fg": "text",
+      "bg": "surface-page",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-on-surface-sunken",
+      "fg": "text",
+      "bg": "surface-sunken",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-muted-on-surface",
+      "fg": "text-muted",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-muted-on-surface-page",
+      "fg": "text-muted",
+      "bg": "surface-page",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-inverse-on-surface-inverse",
+      "fg": "text-inverse",
+      "bg": "surface-inverse",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "text-link-on-surface",
+      "fg": "text-link",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "on-primary-on-primary",
+      "fg": "on-primary",
+      "bg": "primary",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "success-text-on-soft",
+      "fg": "success-text",
+      "bg": "success-soft",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "warning-text-on-soft",
+      "fg": "warning-text",
+      "bg": "warning-soft",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "danger-text-on-soft",
+      "fg": "danger-text",
+      "bg": "danger-soft",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "info-text-on-soft",
+      "fg": "info-text",
+      "bg": "info-soft",
+      "min": 4.5,
+      "level": "error"
+    },
+    {
+      "id": "focus-ring-on-surface",
+      "fg": "focus-ring",
+      "bg": "surface",
+      "min": 3.0,
+      "level": "error"
+    },
+    {
+      "id": "border-input-on-surface",
+      "fg": "border-input",
+      "bg": "surface",
+      "min": 3.0,
+      "level": "warning"
+    }
+  ],
+  "component_contrast_pairs": [
+    {
+      "id": "button-primary",
+      "fg": "button-primary-fg",
+      "bg": "button-primary-bg"
+    },
+    {
+      "id": "button-secondary",
+      "fg": "button-secondary-fg",
+      "bg": "button-secondary-bg"
+    },
+    {
+      "id": "button-danger",
+      "fg": "button-danger-fg",
+      "bg": "button-danger-bg"
+    },
+    {
+      "id": "input",
+      "fg": "input-fg",
+      "bg": "input-bg"
+    },
+    {
+      "id": "input-placeholder",
+      "fg": "input-placeholder",
+      "bg": "input-bg"
+    },
+    {
+      "id": "input-disabled",
+      "fg": "input-disabled-fg",
+      "bg": "input-disabled-bg"
+    },
+    {
+      "id": "table-head",
+      "fg": "table-head-fg",
+      "bg": "table-head-bg"
+    },
+    {
+      "id": "tabs-active",
+      "fg": "tabs-active-fg",
+      "bg": "surface"
+    },
+    {
+      "id": "badge-text",
+      "fg": "text",
+      "bg": "surface"
+    },
+    {
+      "id": "toast-done",
+      "fg": "toast-done-fg",
+      "bg": "toast-done-bg"
+    },
+    {
+      "id": "toast-error",
+      "fg": "toast-error-fg",
+      "bg": "toast-error-bg"
+    },
+    {
+      "id": "toast-notice",
+      "fg": "toast-notice-fg",
+      "bg": "toast-notice-bg"
+    },
+    {
+      "id": "toast-working",
+      "fg": "toast-working-fg",
+      "bg": "toast-working-bg"
+    },
+    {
+      "id": "notice-bad",
+      "fg": "notice-bad-fg",
+      "bg": "notice-bad-bg"
+    },
+    {
+      "id": "notice-good",
+      "fg": "notice-good-fg",
+      "bg": "notice-good-bg"
+    },
+    {
+      "id": "notice-info",
+      "fg": "notice-info-fg",
+      "bg": "notice-info-bg"
+    },
+    {
+      "id": "nav-item-active",
+      "fg": "nav-item-active-fg",
+      "bg": "nav-item-active-bg"
+    },
+    {
+      "id": "chat-message-user",
+      "fg": "chat-message-user-fg",
+      "bg": "chat-message-user-bg"
+    }
+  ],
+  "nav_bars": [
+    {
+      "bar": "sidebar",
+      "tone": "sidebar-tone",
+      "bg": "sidebar-bg"
+    },
+    {
+      "bar": "navbar",
+      "tone": "navbar-tone",
+      "bg": "navbar-bg"
+    }
+  ],
+  "reference_depth": 3,
+  "top_level_keys": [
+    "api_version",
+    "registry_revision",
+    "id",
+    "version",
+    "label",
+    "color_scheme",
+    "tokens",
+    "layout"
+  ],
+  "webfonts": [
+    {
+      "family": "Inter",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "Roboto",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    },
+    {
+      "family": "Open Sans",
+      "category": "sans",
+      "weights": [
+        400,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "Lato",
+      "category": "sans",
+      "weights": [
+        400,
+        700
+      ]
+    },
+    {
+      "family": "Source Sans 3",
+      "category": "sans",
+      "weights": [
+        400,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "IBM Plex Sans",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "DM Sans",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    },
+    {
+      "family": "Merriweather",
+      "category": "serif",
+      "weights": [
+        400,
+        700
+      ]
+    },
+    {
+      "family": "Source Serif 4",
+      "category": "serif",
+      "weights": [
+        400,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "JetBrains Mono",
+      "category": "mono",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    },
+    {
+      "family": "Fira Code",
+      "category": "mono",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    }
+  ]
+}

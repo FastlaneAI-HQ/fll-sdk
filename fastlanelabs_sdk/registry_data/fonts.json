@@ -1,0 +1,106 @@
+{
+  "api_version": 1,
+  "note": "Reviewed webfont allow-list. A theme only names a family in its font stack; the host builds one stylesheet link from this table, never from tenant text.",
+  "source": "https://fonts.googleapis.com/css2",
+  "fonts": [
+    {
+      "family": "Inter",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "Roboto",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    },
+    {
+      "family": "Open Sans",
+      "category": "sans",
+      "weights": [
+        400,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "Lato",
+      "category": "sans",
+      "weights": [
+        400,
+        700
+      ]
+    },
+    {
+      "family": "Source Sans 3",
+      "category": "sans",
+      "weights": [
+        400,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "IBM Plex Sans",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "DM Sans",
+      "category": "sans",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    },
+    {
+      "family": "Merriweather",
+      "category": "serif",
+      "weights": [
+        400,
+        700
+      ]
+    },
+    {
+      "family": "Source Serif 4",
+      "category": "serif",
+      "weights": [
+        400,
+        600,
+        700
+      ]
+    },
+    {
+      "family": "JetBrains Mono",
+      "category": "mono",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    },
+    {
+      "family": "Fira Code",
+      "category": "mono",
+      "weights": [
+        400,
+        500,
+        700
+      ]
+    }
+  ]
+}
