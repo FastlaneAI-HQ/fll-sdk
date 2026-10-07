@@ -488,3 +488,32 @@ def test_a_v2_pin_survives_json_round_trips():
     value = theme()
     value['tokens']['components']['button-radius'] = '{radius-pill}'
     assert validate_theme(json.loads(json.dumps(value))) == value
+
+
+# ---------------------------------------------------------------- hostile input --
+
+def test_a_long_run_of_commas_is_refused_at_once_not_after_twelve_seconds():
+    import time
+    for token, text in (("shadow-sm", "," * 60_000), ("shadow-md", "0 1px 2px 0 rgba(0,0,0,0.1)," * 3000),
+                        ("ease-standard", "cubic-bezier(" + "1," * 20_000)):
+        started = time.monotonic()
+        errors = check_theme(mutate(prim(**{token: text})))["errors"]
+        assert errors, token
+        assert time.monotonic() - started < 1.0, token
+
+
+@pytest.mark.parametrize("token, text", [
+    ("shadow-sm", "0 1px 2px 0 rgba(0,\n0,0,0.05)"),       # newline inside rgba(
+    ("shadow-sm", "0 1px 2px 0 rgba(0,0,0,0.05)"),   # no-break space
+    ("shadow-sm", "0 1px 2px 0 rgba(0,0,0,0.05) "),  # line separator
+    ("ease-standard", "cubic-bezier(\n0,0,1,1)"),
+    ("ease-standard", "cubic-bezier(0, 0,1,1)"),
+])
+def test_only_literal_spaces_separate_the_parts_of_a_shadow_or_easing(token, text):
+    assert paths(mutate(prim(**{token: text})))
+
+
+def test_ordinary_shadows_and_easings_still_pass():
+    value = mutate(prim(shadow_sm="0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #112233",
+                        ease_standard="cubic-bezier(0.2, 0, 0, 1)"))
+    assert not paths(value)

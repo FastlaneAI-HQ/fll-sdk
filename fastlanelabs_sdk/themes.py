@@ -95,12 +95,37 @@ _TRACKING = re.compile(r"(?:0|-?[0-9]{1,2}(?:\.[0-9]{1,3})?em)\Z")
 _DURATION = re.compile(r"[0-9]{1,4}(?:\.[0-9]{1,2})?ms\Z")
 _V1_RADIUS = re.compile(r"(?:0|[0-9]|1[0-6])px\Z")
 _EASE = re.compile(r"(?:linear|ease|ease-in|ease-out|ease-in-out)\Z")
-_BEZIER = re.compile(r"cubic-bezier\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*\)\Z")
+# Spaces are literal ` ` in both grammars below, never `\s`: that matches a
+# newline, a no-break space and U+2028, which are harmless when a value is set
+# with `style.setProperty` and an injection the day one is written into a
+# stylesheet.
+_BEZIER = re.compile(r"cubic-bezier\( *([0-9.]+) *, *([0-9.]+) *, *([0-9.]+) *, *([0-9.]+) *\)\Z")
 _OFFSET = r"(-?(?:0|[0-9]+(?:\.[0-9]+)?)(?:px)?)"
 _SHADOW_LAYER = re.compile(
     rf"{_OFFSET} {_OFFSET} {_OFFSET}(?: {_OFFSET})? "
-    r"(#[0-9a-fA-F]{6}|rgba\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]*\.?[0-9]+)\s*\))\Z")
-_SHADOW_SPLIT = re.compile(r",\s*(?![^()]*\))")
+    r"(#[0-9a-fA-F]{6}|rgba\( *([0-9]{1,3}) *, *([0-9]{1,3}) *, *([0-9]{1,3}) *, *([0-9]*\.?[0-9]+) *\))\Z")
+# No shadow or easing needs more than this. Checked before any pattern runs:
+# the old comma-splitting lookahead was quadratic, so 60 000 commas (a 2.5 KB
+# pack) kept the validator busy for twelve seconds.
+_MAX_EXPRESSION = 200
+
+
+def _split_layers(text: str) -> List[str]:
+    """Shadow layers: the commas that are not inside parentheses. One pass."""
+    layers: List[str] = []
+    depth = start = 0
+    for i, ch in enumerate(text):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif ch == "," and depth == 0:
+            layers.append(text[start:i])
+            start = i + 1
+            if len(layers) > 3:
+                break
+    layers.append(text[start:])
+    return layers
 _TOP_SCALARS = ("api_version", "registry_revision", "id", "version", "label", "color_scheme")
 
 
@@ -117,11 +142,13 @@ def _length_px(text: str) -> float:
 def _shadow_error(text: str) -> Optional[str]:
     if text == "none":
         return None
-    layers = _SHADOW_SPLIT.split(text)
+    if len(text) > _MAX_EXPRESSION:
+        return "must be at most {0} characters".format(_MAX_EXPRESSION)
+    layers = _split_layers(text)
     if not 1 <= len(layers) <= 3:
         return "must be none or 1-3 shadow layers"
     for layer in layers:
-        match = _SHADOW_LAYER.fullmatch(layer.strip())
+        match = _SHADOW_LAYER.fullmatch(layer.strip(" "))
         if not match:
             return "must be none or layers of `x y blur [spread] color`, e.g. 0 1px 3px rgba(0,0,0,0.1)"
         x, y, blur, spread = match.group(1), match.group(2), match.group(3), match.group(4)
@@ -138,6 +165,8 @@ def _shadow_error(text: str) -> Optional[str]:
 def _ease_error(text: str) -> Optional[str]:
     if _EASE.fullmatch(text):
         return None
+    if len(text) > _MAX_EXPRESSION:
+        return "must be at most {0} characters".format(_MAX_EXPRESSION)
     match = _BEZIER.fullmatch(text)
     try:
         if match and all(0 <= float(part) <= 1 for part in match.groups()):
