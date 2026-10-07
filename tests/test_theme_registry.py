@@ -2,13 +2,11 @@
 import importlib.util
 import json
 import re
-import shutil
 import subprocess
 from collections import Counter
 from importlib.resources import files
 from pathlib import Path
 
-import pytest
 from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 
@@ -127,10 +125,9 @@ def test_layout_defaults_validate_and_cover_every_field():
     assert themes.check_theme(dict(theme, layout=registry.default_layout('panel')))['errors'] == []
 
 
-def test_status_ramps_are_tailwind_3_colors():
+def test_status_ramps_are_tailwind_3_colors(require_node):
+    require_node('tailwindcss')
     colors = ROOT / 'node_modules/tailwindcss/colors.js'
-    if not colors.exists() or not shutil.which('node'):
-        pytest.skip('tailwindcss is not installed')
     script = "const c=require(process.argv[1]);console.log(JSON.stringify({success:c.emerald,warning:c.amber,danger:c.red,info:c.sky}))"
     palettes = json.loads(subprocess.run(['node', '-e', script, str(colors)], capture_output=True, text=True, check=True).stdout)
     for status, ramp in palettes.items():

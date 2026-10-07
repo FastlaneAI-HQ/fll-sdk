@@ -1,11 +1,9 @@
 """Golden fixtures keep the Python and TypeScript resolvers in step (see scripts/gen_theme_golden.py)."""
 import importlib.util
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / 'tests/golden/theme-resolve'
@@ -35,9 +33,8 @@ def close(expected, actual):
     return expected == actual
 
 
-def typescript(set_name):
-    if not shutil.which('node') or not (ROOT / 'node_modules/esbuild').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+def typescript(set_name, require_node):
+    require_node('esbuild')  # fails in CI, skips locally -- see conftest
     run = subprocess.run(['node', str(ROOT / 'tests/golden/run_resolve.mjs'), set_name], capture_output=True, text=True, timeout=120)
     assert run.returncode == 0, run.stderr
     return json.loads(run.stdout)
@@ -46,8 +43,8 @@ def typescript(set_name):
 KEYS = ('upgrade', 'resolve_v1', 'project', 'resolve', 'contrast', 'resolve_dark', 'derive')
 
 
-def test_typescript_resolver_agrees_with_python():
-    produced = typescript('theme-resolve')
+def test_typescript_resolver_agrees_with_python(require_node):
+    produced = typescript('theme-resolve', require_node)
     for path in sorted(GOLDEN.glob('*.json')):
         golden = json.loads(path.read_text())
         for key in KEYS:
@@ -55,8 +52,8 @@ def test_typescript_resolver_agrees_with_python():
                 assert close(golden[key], produced[path.name][key]), f'{path.name}: {key} differs between Python and TypeScript'
 
 
-def test_typescript_resolver_still_produces_every_frozen_revision_1_result():
-    produced = typescript('frozen-r1')
+def test_typescript_resolver_still_produces_every_frozen_revision_1_result(require_node):
+    produced = typescript('frozen-r1', require_node)
     assert len(produced) == 7
     for path in sorted(FROZEN.glob('*.json')):
         golden = json.loads(path.read_text())

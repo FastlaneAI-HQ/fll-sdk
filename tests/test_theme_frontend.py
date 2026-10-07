@@ -1,12 +1,10 @@
 """The frontend contract files, the shared Tailwind preset and the published-release corpus."""
 import json
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from fastlanelabs_sdk.theme_packs import STYLE_OPTIONS
 from fastlanelabs_sdk.themes import check_theme, project_v1, validate_theme
 
@@ -138,16 +136,14 @@ def compare(classes):
     return rules(result['old']), rules(result['new'])
 
 
-def test_the_shared_preset_leaves_existing_classes_untouched():
-    if not shutil.which('node') or not (ROOT / 'node_modules/tailwindcss').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+def test_the_shared_preset_leaves_existing_classes_untouched(require_node):
+    require_node('tailwindcss')
     old, new = compare(UNCHANGED)
     assert old == new and len(old) >= len(UNCHANGED) - 2
 
 
-def test_classes_that_now_follow_the_theme_keep_their_default_rendering():
-    if not shutil.which('node') or not (ROOT / 'node_modules/tailwindcss').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+def test_classes_that_now_follow_the_theme_keep_their_default_rendering(require_node):
+    require_node('tailwindcss')
     old, new = compare(FOLLOW_THE_THEME)
     assert set(old) == set(new) and len(old) >= len(FOLLOW_THE_THEME) - 1
     for selector in old:
@@ -159,10 +155,9 @@ def test_classes_that_now_follow_the_theme_keep_their_default_rendering():
     assert bare == []
 
 
-def test_newly_mapped_classes_render_as_tailwind_does_at_defaults():
+def test_newly_mapped_classes_render_as_tailwind_does_at_defaults(require_node):
     """White also paints borders, rings and glyphs now; the remaining hues and black text follow the colour mode."""
-    if not shutil.which('node') or not (ROOT / 'node_modules/tailwindcss').exists():
-        pytest.skip('node and the SDK dev dependencies (npm install) are required')
+    require_node('tailwindcss')
     old, new = compare(NEWLY_MAPPED)
     assert set(old) == set(new) and len(old) >= len(NEWLY_MAPPED) - 3
     for selector in old:
@@ -182,11 +177,10 @@ def test_every_hue_var_the_preset_reads_is_declared_for_both_modes():
     assert 'color-scheme: dark' in dark and "[data-fl-theme-root]:not([data-fl-mode='dark']) { color-scheme: light; }" in light
 
 
-def test_platform_hues_are_tailwind_3_colors_and_reverse_in_dark():
+def test_platform_hues_are_tailwind_3_colors_and_reverse_in_dark(require_node):
     from fastlanelabs_sdk import theme_registry as registry
+    require_node('tailwindcss')
     colors = ROOT / 'node_modules/tailwindcss/colors.js'
-    if not colors.exists() or not shutil.which('node'):
-        pytest.skip('tailwindcss is not installed')
     script = "const c=require(process.argv[1]);console.log(JSON.stringify(Object.fromEntries(process.argv.slice(2).map(h=>[h,c[h]]))))"
     hues = list(registry.HUE_RAMPS)
     palettes = json.loads(subprocess.run(['node', '-e', script, str(colors), *hues], capture_output=True, text=True, check=True).stdout)
