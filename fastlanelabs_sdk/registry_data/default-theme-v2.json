@@ -23,9 +23,9 @@
       "behavior": "fixed",
       "collapse_below": 760,
       "side": "left",
-      "style": "rail",
-      "surface": "floating",
-      "width": 56
+      "style": "panel",
+      "surface": "flush",
+      "width": 224
     }
   },
   "registry_revision": 3,

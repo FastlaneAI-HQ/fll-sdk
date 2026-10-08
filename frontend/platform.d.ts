@@ -12,6 +12,7 @@ declare module 'fastlanelabs/ui' {
   export const Input: import('./contracts').PlatformUI['Input']
   export const Card: import('./contracts').PlatformUI['Card']
   export const PageHeader: import('./contracts').PlatformUI['PageHeader']
+  export const PageFrame: import('./contracts').PlatformUI['PageFrame']
   export const inputClass: string
   /** Present only on hosts that support theme API v2. */
   export const Badge: import('./contracts').PlatformUI['Badge']

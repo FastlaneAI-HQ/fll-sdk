@@ -258,7 +258,10 @@ def layout_values(field):
 
 def default_release():
     """The platform default theme: fastlane 2.0.0, the registry's revision 3 palette as a v2 manifest."""
-    return json.dumps(themes.default_theme_v2("fastlane", "2.0.0", "Fastlane"), indent=2, sort_keys=True) + "\n"
+    theme = themes.default_theme_v2("fastlane", "2.0.0", "Fastlane")
+    # The shell the platform ships: a labelled sidebar on the page, no floating islands, no bar.
+    theme["layout"]["sidebar"].update({"style": "panel", "surface": "flush", "width": registry.PANEL_SIDEBAR_WIDTH})
+    return json.dumps(theme, indent=2, sort_keys=True) + "\n"
 
 
 def outputs():

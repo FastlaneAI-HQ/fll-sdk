@@ -644,5 +644,13 @@ A theme is judged only against the pairs of the registry revision it targets. `u
 | `warning-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
 | `danger-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
 | `info-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
+| `success-700` on `success-100` | 4.5:1 | warning | 3 | ui |  |
+| `success-700` on `success-50` | 4.5:1 | warning | 3 | ui |  |
+| `warning-700` on `warning-100` | 4.5:1 | warning | 3 | ui |  |
+| `warning-700` on `warning-50` | 4.5:1 | warning | 3 | ui |  |
+| `danger-700` on `danger-100` | 4.5:1 | warning | 3 | ui |  |
+| `danger-700` on `danger-50` | 4.5:1 | warning | 3 | ui |  |
+| `info-700` on `info-100` | 4.5:1 | warning | 3 | ui |  |
+| `info-700` on `info-50` | 4.5:1 | warning | 3 | ui |  |
 | `nav-item-fg` on `sidebar-bg` (by `sidebar-tone`) | 4.5:1 | error |
 | `nav-item-fg` on `navbar-bg` (by `navbar-tone`) | 4.5:1 | error |

@@ -74,7 +74,10 @@ def test_the_css_fallbacks_do_not_move_so_published_themes_render_as_before():
 def test_the_platform_default_release_is_fastlane_2_0_0_and_current():
     data = json.loads(files('fastlanelabs_sdk.registry_data').joinpath('default-theme-v2.json').read_text())
     assert (data['id'], data['version'], data['api_version'], data['registry_revision']) == ('fastlane', '2.0.0', 2, 3)
-    assert data == default_theme_v2('fastlane', '2.0.0', 'Fastlane') == validate_theme(data)
+    # The registry defaults, plus the shell the platform ships: a labelled sidebar on the page.
+    expected = default_theme_v2('fastlane', '2.0.0', 'Fastlane')
+    expected['layout']['sidebar'].update({'style': 'panel', 'surface': 'flush', 'width': 224})
+    assert data == expected == validate_theme(data)
     # A client that asks for contract 1 gets the 27 tokens, with the accessible ramp.
     v1 = themes.project_v1(data)
     assert v1['tokens']['ink-400'] == '#6b6e7d' and len(v1['tokens']) == 27
@@ -139,7 +142,7 @@ def test_legacy_pairs_are_judged_while_the_role_that_replaces_them_is_unset():
 
 def test_ui_pairs_are_new_in_revision_3_warnings_except_the_inverse_pair():
     ui = [p for p in registry.CONTRAST_PAIRS if p.group == 'ui']
-    assert len(ui) == 25 and all(p.since == 3 for p in ui)
+    assert len(ui) == 33 and all(p.since == 3 for p in ui)
     assert [p.id for p in ui if p.level == 'error'] == ['on-inverse-on-inverse']
     assert not [p for p in registry.CONTRAST_PAIRS if p.since < 3 and p.group]
     expected = {'ink-400-on-surface', 'ink-400-on-surface-page', 'ink-500-on-surface', 'ink-500-on-surface-page',
@@ -148,6 +151,10 @@ def test_ui_pairs_are_new_in_revision_3_warnings_except_the_inverse_pair():
                 'on-primary-on-ink-900', 'on-primary-on-ink-800', 'on-primary-on-danger-600', 'on-primary-on-success-600',
                 'success-600-on-surface', 'warning-600-on-surface', 'danger-600-on-surface', 'info-600-on-surface'}
     assert expected <= set(UI_IDS)
+    # Status text on the status tints: the 700 step on the 100 tint and on the 50 tint, for every status.
+    tints = {f'{status}-700-on-{status}-{tint}' for status in registry.STATUSES for tint in (100, 50)}
+    assert len(tints) == 8 and tints <= set(UI_IDS)
+    assert all(p.min == 4.5 and p.level == 'warning' for p in ui if p.id in tints)
 
 
 def test_a_failing_ui_pair_is_a_warning_not_an_error():
@@ -218,6 +225,26 @@ BRIGHT_TINTS = sorted((Path(__file__).parent / 'fixtures/themes-r3').glob('*-aut
 
 def brights():
     return [json.loads(p.read_text()) for p in BRIGHT_TINTS]
+
+
+def test_the_default_palette_reads_status_text_on_the_status_tints():
+    # text-amber-700 on bg-amber-100 (a chip, an avatar's initials) is what the interface paints; warning was 4.19:1 in generated themes.
+    for scheme in ('light', 'auto'):
+        result = check_theme(default_theme_v2(scheme=scheme) if scheme != 'light' else default_theme_v2())
+        judged = [r for r in result['contrast'] if r['id'].count('-700-on-')]
+        assert {r['id'] for r in judged} == {f'{s}-700-on-{s}-{t}' for s in registry.STATUSES for t in (100, 50)}
+        assert all(r['pass'] for r in judged), [r['id'] for r in judged if not r['pass']]
+    values = resolved(default_theme_v2())
+    assert contrast_ratio(values['warning-700'], values['warning-100']) >= 4.5
+
+
+def test_a_theme_whose_status_text_is_too_light_for_its_tint_is_warned():
+    theme = default_theme_v2()
+    theme['tokens']['primitives']['warning-700'] = '#d97706'
+    theme['tokens']['semantic']['warning-text'] = '{warning-800}'  # the role pair keeps passing: only the raw step is judged
+    failing = {r['id'] for r in check_theme(theme)['contrast'] if not r['pass']}
+    assert {'warning-700-on-warning-100', 'warning-700-on-warning-50'} <= failing
+    assert check_theme(theme)['errors'] == []
 
 
 def test_the_default_palette_reads_on_the_light_tints_too():

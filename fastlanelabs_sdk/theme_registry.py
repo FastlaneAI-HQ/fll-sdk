@@ -713,6 +713,10 @@ CONTRAST_PAIRS: Tuple[Pair, ...] = (
     Pair("warning-600-on-surface", "warning-600", "surface", 4.5, "warning", **_UI),
     Pair("danger-600-on-surface", "danger-600", "surface", 4.5, "warning", **_UI),
     Pair("info-600-on-surface", "info-600", "surface", 4.5, "warning", **_UI),
+    # Status text on the status tints (bg-amber-100 text-amber-700: a chip, an avatar's initials, a notice): the 700 step on
+    # the 100 tint and on the 50 tint.
+    *(Pair(f"{status}-700-on-{status}-{tint}", f"{status}-700", f"{status}-{tint}", 4.5, "warning", **_UI)
+      for status in STATUSES for tint in (100, 50)),
 )
 # Component pairs checked as warnings: (id, fg token, bg token).
 COMPONENT_CONTRAST_PAIRS: Tuple[Tuple[str, str, str], ...] = (

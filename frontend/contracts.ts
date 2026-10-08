@@ -52,12 +52,18 @@ export interface PlatformUI {
   Input: ComponentType<import('./theme-contract').ThemeProps['control.input']>
   Card: ComponentType<import('./theme-contract').ThemeProps['surface.card']>
   PageHeader: ComponentType<import('./theme-contract').ThemeProps['page.header']>
+  /** The panel every workspace page sits in: a themed header (title, description, actions), optional tabs on the
+   *  same edge, and a body with a named width. `fill` hands the body to a page that scrolls for itself. */
+  PageFrame: ComponentType<{
+    title: string; description?: ReactNode; actions?: ReactNode; tabs?: ReactNode
+    width?: 'reading' | 'standard' | 'full'; fill?: boolean; className?: string; children: ReactNode
+  }>
   Field: ComponentType<{ label: string; hint?: ReactNode; children: ReactNode }>
   Button: ComponentType<{ children: ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; loading?: boolean; tone?: 'primary' | 'quiet' | 'danger' }>
   Notice: ComponentType<{ tone?: 'bad' | 'good' | 'info'; children: ReactNode }>
   inputClass: string
-  /** The three below exist only on hosts that support theme API v2; apps feature-detect them. */
+  /** Badge and Modal exist only on hosts that support theme API v2; apps feature-detect them. */
   Badge?: ComponentType<{ children: ReactNode; tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info' }>
   Modal?: ComponentType<{ open: boolean; title?: string; onClose: () => void; children: ReactNode; footer?: ReactNode }>
-  Tabs?: ComponentType<{ tabs: { id: string; label: string }[]; value: string; onChange: (id: string) => void; children?: ReactNode }>
+  Tabs: ComponentType<{ tabs: { id: string; label: string; badge?: ReactNode }[]; value: string; onChange: (id: string) => void; children?: ReactNode; idPrefix?: string; label?: string; className?: string }>
 }

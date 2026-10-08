@@ -5054,6 +5054,78 @@
       "level": "warning",
       "since": 3,
       "group": "ui"
+    },
+    {
+      "id": "success-700-on-success-100",
+      "fg": "success-700",
+      "bg": "success-100",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "success-700-on-success-50",
+      "fg": "success-700",
+      "bg": "success-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "warning-700-on-warning-100",
+      "fg": "warning-700",
+      "bg": "warning-100",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "warning-700-on-warning-50",
+      "fg": "warning-700",
+      "bg": "warning-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "danger-700-on-danger-100",
+      "fg": "danger-700",
+      "bg": "danger-100",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "danger-700-on-danger-50",
+      "fg": "danger-700",
+      "bg": "danger-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "info-700-on-info-100",
+      "fg": "info-700",
+      "bg": "info-100",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "info-700-on-info-50",
+      "fg": "info-700",
+      "bg": "info-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
     }
   ],
   "component_contrast_pairs": [

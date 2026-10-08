@@ -51,6 +51,7 @@ of a theme with a dark palette.
 | `accent-600`, `accent-700` on `surface`, on `accent-50` | 4.5 | `accent-text` |
 | `on-primary` on `ink-900`, `ink-800`, `danger-600`, `success-600` | 4.5 | `on-inverse` |
 | `success-600`, `warning-600`, `danger-600`, `info-600` on `surface` | 4.5 | |
+| `success-700`, `warning-700`, `danger-700`, `info-700` on the same status's `100` tint and `50` tint (a status chip, an avatar's initials) | 4.5 | |
 | `accent-text` on `surface`, on `accent-50` | 4.5 | |
 | `accent-ui` on `surface` | 3 | |
 | `on-inverse` on `inverse` (error), `danger-600`, `success-600` | 4.5 | |
