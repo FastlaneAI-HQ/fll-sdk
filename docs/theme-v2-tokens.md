@@ -11,7 +11,7 @@ Registry revision 3. `{name}` is a reference; a component token that a theme lea
 | `ink-100` | color | `#ececee` |  |  |
 | `ink-200` | color | `#d9dade` |  |  |
 | `ink-300` | color | `#b8bac2` | `#898c98` |  |
-| `ink-400` | color | `#8f929e` | `#6d707e` |  |
+| `ink-400` | color | `#8f929e` | `#6b6e7d` |  |
 | `ink-500` | color | `#6c6f7d` | `#5f626e` |  |
 | `ink-600` | color | `#555764` |  |  |
 | `ink-700` | color | `#454652` |  |  |
@@ -623,6 +623,9 @@ A theme is judged only against the pairs of the registry revision it targets. `u
 | `ink-400` on `surface-page` | 4.5:1 | warning | 3 | ui |  |
 | `ink-500` on `surface` | 4.5:1 | warning | 3 | ui |  |
 | `ink-500` on `surface-page` | 4.5:1 | warning | 3 | ui |  |
+| `ink-400` on `accent-50` | 4.5:1 | warning | 3 | ui |  |
+| `ink-500` on `accent-50` | 4.5:1 | warning | 3 | ui |  |
+| `ink-500` on `accent-100` | 4.5:1 | warning | 3 | ui |  |
 | `accent-600` on `surface` | 4.5:1 | warning | 3 | ui | `accent-text` set |
 | `accent-600` on `accent-50` | 4.5:1 | warning | 3 | ui | `accent-text` set |
 | `accent-700` on `surface` | 4.5:1 | warning | 3 | ui | `accent-text` set |

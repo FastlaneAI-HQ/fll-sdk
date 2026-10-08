@@ -4511,7 +4511,7 @@
   "revision_defaults": {
     "3": {
       "ink-300": "#898c98",
-      "ink-400": "#6d707e",
+      "ink-400": "#6b6e7d",
       "ink-500": "#5f626e",
       "success-600": "#04855f",
       "warning-600": "#bb5908",
@@ -4853,6 +4853,33 @@
       "id": "ink-500-on-surface-page",
       "fg": "ink-500",
       "bg": "surface-page",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "ink-400-on-accent-50",
+      "fg": "ink-400",
+      "bg": "accent-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "ink-500-on-accent-50",
+      "fg": "ink-500",
+      "bg": "accent-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "ink-500-on-accent-100",
+      "fg": "ink-500",
+      "bg": "accent-100",
       "min": 4.5,
       "level": "warning",
       "since": 3,

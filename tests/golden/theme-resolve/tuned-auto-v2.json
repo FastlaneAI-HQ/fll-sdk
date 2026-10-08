@@ -197,27 +197,27 @@
         "bg": "surface",
         "bg_value": "#ffffff",
         "fg": "ink-400",
-        "fg_value": "#6d707e",
+        "fg_value": "#6b6e7d",
         "group": "ui",
         "id": "ink-400-on-surface",
         "level": "warning",
         "min": 4.5,
         "mode": "light",
         "pass": true,
-        "ratio": 4.92
+        "ratio": 5.06
       },
       {
         "bg": "surface-page",
         "bg_value": "#f7f7f8",
         "fg": "ink-400",
-        "fg_value": "#6d707e",
+        "fg_value": "#6b6e7d",
         "group": "ui",
         "id": "ink-400-on-surface-page",
         "level": "warning",
         "min": 4.5,
         "mode": "light",
         "pass": true,
-        "ratio": 4.59
+        "ratio": 4.72
       },
       {
         "bg": "surface",
@@ -244,6 +244,45 @@
         "mode": "light",
         "pass": true,
         "ratio": 5.67
+      },
+      {
+        "bg": "accent-50",
+        "bg_value": "#eef4ff",
+        "fg": "ink-400",
+        "fg_value": "#6b6e7d",
+        "group": "ui",
+        "id": "ink-400-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "light",
+        "pass": true,
+        "ratio": 4.58
+      },
+      {
+        "bg": "accent-50",
+        "bg_value": "#eef4ff",
+        "fg": "ink-500",
+        "fg_value": "#5f626e",
+        "group": "ui",
+        "id": "ink-500-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "light",
+        "pass": true,
+        "ratio": 5.5
+      },
+      {
+        "bg": "accent-100",
+        "bg_value": "#d9e6ff",
+        "fg": "ink-500",
+        "fg_value": "#5f626e",
+        "group": "ui",
+        "id": "ink-500-on-accent-100",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "light",
+        "pass": true,
+        "ratio": 4.83
       },
       {
         "bg": "surface",
@@ -439,13 +478,13 @@
         "bg": "input-bg",
         "bg_value": "#ffffff",
         "fg": "input-placeholder",
-        "fg_value": "#6d707e",
+        "fg_value": "#6b6e7d",
         "id": "input-placeholder",
         "level": "warning",
         "min": 4.5,
         "mode": "light",
         "pass": true,
-        "ratio": 4.92
+        "ratio": 5.06
       },
       {
         "bg": "input-disabled-bg",
@@ -667,25 +706,25 @@
         "bg": "surface",
         "bg_value": "#14161d",
         "fg": "text-muted",
-        "fg_value": "#a2a3ac",
+        "fg_value": "#a2a4ad",
         "id": "text-muted-on-surface",
         "level": "error",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 7.2
+        "ratio": 7.27
       },
       {
         "bg": "surface-page",
         "bg_value": "#0b0c10",
         "fg": "text-muted",
-        "fg_value": "#a2a3ac",
+        "fg_value": "#a2a4ad",
         "id": "text-muted-on-surface-page",
         "level": "error",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 7.79
+        "ratio": 7.87
       },
       {
         "bg": "surface-inverse",
@@ -799,27 +838,27 @@
         "bg": "surface",
         "bg_value": "#14161d",
         "fg": "ink-400",
-        "fg_value": "#85868f",
+        "fg_value": "#888a93",
         "group": "ui",
         "id": "ink-400-on-surface",
         "level": "warning",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 4.99
+        "ratio": 5.25
       },
       {
         "bg": "surface-page",
         "bg_value": "#0b0c10",
         "fg": "ink-400",
-        "fg_value": "#85868f",
+        "fg_value": "#888a93",
         "group": "ui",
         "id": "ink-400-on-surface-page",
         "level": "warning",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 5.4
+        "ratio": 5.68
       },
       {
         "bg": "surface",
@@ -848,6 +887,45 @@
         "ratio": 6.62
       },
       {
+        "bg": "accent-50",
+        "bg_value": "#132149",
+        "fg": "ink-400",
+        "fg_value": "#888a93",
+        "group": "ui",
+        "id": "ink-400-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "dark",
+        "pass": true,
+        "ratio": 4.55
+      },
+      {
+        "bg": "accent-50",
+        "bg_value": "#132149",
+        "fg": "ink-500",
+        "fg_value": "#94969e",
+        "group": "ui",
+        "id": "ink-500-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "dark",
+        "pass": true,
+        "ratio": 5.3
+      },
+      {
+        "bg": "accent-100",
+        "bg_value": "#1a2b63",
+        "fg": "ink-500",
+        "fg_value": "#94969e",
+        "group": "ui",
+        "id": "ink-500-on-accent-100",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "dark",
+        "pass": true,
+        "ratio": 4.53
+      },
+      {
         "bg": "surface",
         "bg_value": "#14161d",
         "fg": "accent-text",
@@ -862,7 +940,7 @@
       },
       {
         "bg": "accent-50",
-        "bg_value": "#152450",
+        "bg_value": "#132149",
         "fg": "accent-text",
         "fg_value": "#2b57db",
         "group": "ui",
@@ -871,7 +949,7 @@
         "min": 4.5,
         "mode": "dark",
         "pass": false,
-        "ratio": 2.49
+        "ratio": 2.6
       },
       {
         "bg": "surface",
@@ -1065,13 +1143,13 @@
         "bg": "table-head-bg",
         "bg_value": "#1a1b21",
         "fg": "table-head-fg",
-        "fg_value": "#a2a3ac",
+        "fg_value": "#a2a4ad",
         "id": "table-head",
         "level": "warning",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 6.85
+        "ratio": 6.91
       },
       {
         "bg": "surface",
@@ -1123,7 +1201,7 @@
       },
       {
         "bg": "toast-notice-bg",
-        "bg_value": "#152450",
+        "bg_value": "#132149",
         "fg": "toast-notice-fg",
         "fg_value": "#d9e6ff",
         "id": "toast-notice",
@@ -1131,7 +1209,7 @@
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 11.94
+        "ratio": 12.46
       },
       {
         "bg": "toast-working-bg",
@@ -1213,7 +1291,7 @@
         "path": "modes.dark.semantic.accent-text"
       },
       {
-        "message": "In dark mode, accent-text on accent-50 must meet 4.5:1 contrast (got 2.49:1)",
+        "message": "In dark mode, accent-text on accent-50 must meet 4.5:1 contrast (got 2.60:1)",
         "path": "modes.dark.semantic.accent-text"
       },
       {
@@ -1419,27 +1497,27 @@
       "bg": "surface",
       "bg_value": "#ffffff",
       "fg": "ink-400",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "group": "ui",
       "id": "ink-400-on-surface",
       "level": "warning",
       "min": 4.5,
       "mode": "light",
       "pass": true,
-      "ratio": 4.92
+      "ratio": 5.06
     },
     {
       "bg": "surface-page",
       "bg_value": "#f7f7f8",
       "fg": "ink-400",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "group": "ui",
       "id": "ink-400-on-surface-page",
       "level": "warning",
       "min": 4.5,
       "mode": "light",
       "pass": true,
-      "ratio": 4.59
+      "ratio": 4.72
     },
     {
       "bg": "surface",
@@ -1466,6 +1544,45 @@
       "mode": "light",
       "pass": true,
       "ratio": 5.67
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eef4ff",
+      "fg": "ink-400",
+      "fg_value": "#6b6e7d",
+      "group": "ui",
+      "id": "ink-400-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "light",
+      "pass": true,
+      "ratio": 4.58
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eef4ff",
+      "fg": "ink-500",
+      "fg_value": "#5f626e",
+      "group": "ui",
+      "id": "ink-500-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "light",
+      "pass": true,
+      "ratio": 5.5
+    },
+    {
+      "bg": "accent-100",
+      "bg_value": "#d9e6ff",
+      "fg": "ink-500",
+      "fg_value": "#5f626e",
+      "group": "ui",
+      "id": "ink-500-on-accent-100",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "light",
+      "pass": true,
+      "ratio": 4.83
     },
     {
       "bg": "surface",
@@ -1661,13 +1778,13 @@
       "bg": "input-bg",
       "bg_value": "#ffffff",
       "fg": "input-placeholder",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "id": "input-placeholder",
       "level": "warning",
       "min": 4.5,
       "mode": "light",
       "pass": true,
-      "ratio": 4.92
+      "ratio": 5.06
     },
     {
       "bg": "input-disabled-bg",
@@ -1889,25 +2006,25 @@
       "bg": "surface",
       "bg_value": "#14161d",
       "fg": "text-muted",
-      "fg_value": "#a2a3ac",
+      "fg_value": "#a2a4ad",
       "id": "text-muted-on-surface",
       "level": "error",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 7.2
+      "ratio": 7.27
     },
     {
       "bg": "surface-page",
       "bg_value": "#0b0c10",
       "fg": "text-muted",
-      "fg_value": "#a2a3ac",
+      "fg_value": "#a2a4ad",
       "id": "text-muted-on-surface-page",
       "level": "error",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 7.79
+      "ratio": 7.87
     },
     {
       "bg": "surface-inverse",
@@ -2021,27 +2138,27 @@
       "bg": "surface",
       "bg_value": "#14161d",
       "fg": "ink-400",
-      "fg_value": "#85868f",
+      "fg_value": "#888a93",
       "group": "ui",
       "id": "ink-400-on-surface",
       "level": "warning",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 4.99
+      "ratio": 5.25
     },
     {
       "bg": "surface-page",
       "bg_value": "#0b0c10",
       "fg": "ink-400",
-      "fg_value": "#85868f",
+      "fg_value": "#888a93",
       "group": "ui",
       "id": "ink-400-on-surface-page",
       "level": "warning",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 5.4
+      "ratio": 5.68
     },
     {
       "bg": "surface",
@@ -2070,6 +2187,45 @@
       "ratio": 6.62
     },
     {
+      "bg": "accent-50",
+      "bg_value": "#132149",
+      "fg": "ink-400",
+      "fg_value": "#888a93",
+      "group": "ui",
+      "id": "ink-400-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "dark",
+      "pass": true,
+      "ratio": 4.55
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#132149",
+      "fg": "ink-500",
+      "fg_value": "#94969e",
+      "group": "ui",
+      "id": "ink-500-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "dark",
+      "pass": true,
+      "ratio": 5.3
+    },
+    {
+      "bg": "accent-100",
+      "bg_value": "#1a2b63",
+      "fg": "ink-500",
+      "fg_value": "#94969e",
+      "group": "ui",
+      "id": "ink-500-on-accent-100",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "dark",
+      "pass": true,
+      "ratio": 4.53
+    },
+    {
       "bg": "surface",
       "bg_value": "#14161d",
       "fg": "accent-text",
@@ -2084,7 +2240,7 @@
     },
     {
       "bg": "accent-50",
-      "bg_value": "#152450",
+      "bg_value": "#132149",
       "fg": "accent-text",
       "fg_value": "#2b57db",
       "group": "ui",
@@ -2093,7 +2249,7 @@
       "min": 4.5,
       "mode": "dark",
       "pass": false,
-      "ratio": 2.49
+      "ratio": 2.6
     },
     {
       "bg": "surface",
@@ -2287,13 +2443,13 @@
       "bg": "table-head-bg",
       "bg_value": "#1a1b21",
       "fg": "table-head-fg",
-      "fg_value": "#a2a3ac",
+      "fg_value": "#a2a4ad",
       "id": "table-head",
       "level": "warning",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 6.85
+      "ratio": 6.91
     },
     {
       "bg": "surface",
@@ -2345,7 +2501,7 @@
     },
     {
       "bg": "toast-notice-bg",
-      "bg_value": "#152450",
+      "bg_value": "#132149",
       "fg": "toast-notice-fg",
       "fg_value": "#d9e6ff",
       "id": "toast-notice",
@@ -2353,7 +2509,7 @@
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 11.94
+      "ratio": 12.46
     },
     {
       "bg": "toast-working-bg",
@@ -2441,11 +2597,11 @@
       "sidebar-tone": "light"
     },
     "primitives": {
-      "accent-100": "#1c2f6c",
+      "accent-100": "#1a2b63",
       "accent-200": "#1c3389",
       "accent-300": "#1c39ae",
       "accent-400": "#2148d8",
-      "accent-50": "#152450",
+      "accent-50": "#132149",
       "accent-500": "#3366f2",
       "accent-600": "#598dff",
       "accent-700": "#8eb5ff",
@@ -2477,10 +2633,10 @@
       "ink-100": "#1a1b21",
       "ink-200": "#2b2c34",
       "ink-300": "#6a6b75",
-      "ink-400": "#85868f",
+      "ink-400": "#888a93",
       "ink-50": "#101117",
       "ink-500": "#94969e",
-      "ink-600": "#a2a3ac",
+      "ink-600": "#a2a4ad",
       "ink-700": "#b9bbc2",
       "ink-800": "#d9dade",
       "ink-900": "#ececee",
@@ -2566,11 +2722,11 @@
           "sidebar-tone": "light"
         },
         "primitives": {
-          "accent-100": "#1c2f6c",
+          "accent-100": "#1a2b63",
           "accent-200": "#1c3389",
           "accent-300": "#1c39ae",
           "accent-400": "#2148d8",
-          "accent-50": "#152450",
+          "accent-50": "#132149",
           "accent-500": "#4b74ee",
           "accent-600": "#2b57db",
           "accent-700": "#8eb5ff",
@@ -2602,10 +2758,10 @@
           "ink-100": "#1a1b21",
           "ink-200": "#2b2c34",
           "ink-300": "#6a6b75",
-          "ink-400": "#85868f",
+          "ink-400": "#888a93",
           "ink-50": "#0b0c10",
           "ink-500": "#94969e",
-          "ink-600": "#a2a3ac",
+          "ink-600": "#a2a4ad",
           "ink-700": "#b9bbc2",
           "ink-800": "#d9dade",
           "ink-900": "#ececee",
@@ -2697,7 +2853,7 @@
         "ink-100": "#ececee",
         "ink-200": "#d9dade",
         "ink-300": "#898c98",
-        "ink-400": "#6d707e",
+        "ink-400": "#6b6e7d",
         "ink-50": "#f7f7f8",
         "ink-500": "#5f626e",
         "ink-600": "#555764",
@@ -2975,7 +3131,7 @@
       "--fl-ink-100": "236 236 238",
       "--fl-ink-200": "217 218 222",
       "--fl-ink-300": "137 140 152",
-      "--fl-ink-400": "109 112 126",
+      "--fl-ink-400": "107 110 125",
       "--fl-ink-50": "247 247 248",
       "--fl-ink-500": "95 98 110",
       "--fl-ink-600": "85 87 100",
@@ -3170,11 +3326,11 @@
       }
     },
     "vars": {
-      "--fl-accent-100": "28 47 108",
+      "--fl-accent-100": "26 43 99",
       "--fl-accent-200": "28 51 137",
       "--fl-accent-300": "28 57 174",
       "--fl-accent-400": "33 72 216",
-      "--fl-accent-50": "21 36 80",
+      "--fl-accent-50": "19 33 73",
       "--fl-accent-500": "75 116 238",
       "--fl-accent-600": "43 87 219",
       "--fl-accent-700": "142 181 255",
@@ -3236,10 +3392,10 @@
       "--fl-ink-100": "26 27 33",
       "--fl-ink-200": "43 44 52",
       "--fl-ink-300": "106 107 117",
-      "--fl-ink-400": "133 134 143",
+      "--fl-ink-400": "136 138 147",
       "--fl-ink-50": "11 12 16",
       "--fl-ink-500": "148 150 158",
-      "--fl-ink-600": "162 163 172",
+      "--fl-ink-600": "162 164 173",
       "--fl-ink-700": "185 187 194",
       "--fl-ink-800": "217 218 222",
       "--fl-ink-900": "236 236 238",
@@ -3257,7 +3413,7 @@
       "--fl-on-primary": "255 255 255",
       "--fl-primary": "43 87 219",
       "--fl-primary-hover": "142 181 255",
-      "--fl-primary-soft": "21 36 80",
+      "--fl-primary-soft": "19 33 73",
       "--fl-radius": "8px",
       "--fl-radius-default": "4px",
       "--fl-radius-md": "6px",
@@ -3313,7 +3469,7 @@
       "--fl-text": "236 236 238",
       "--fl-text-inverse": "20 22 29",
       "--fl-text-link": "142 181 255",
-      "--fl-text-muted": "162 163 172",
+      "--fl-text-muted": "162 164 173",
       "--fl-text-subtle": "148 150 158",
       "--fl-tracking-normal": "0",
       "--fl-tracking-tight": "-0.01em",

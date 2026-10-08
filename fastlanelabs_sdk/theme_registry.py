@@ -572,13 +572,14 @@ assert len(INDEX) == len(TOKENS), "duplicate token names"
 # the theme builder begin with). `Token.default` is not touched: it is the generated CSS fallback, so every published
 # theme and every host without a theme renders as before. Only revision 3 differs from it:
 #   ink-300  3:1 on surface-page: a control boundary, an icon (it was 1.9:1)
-#   ink-400  4.5:1 on surface-page: the third text step (it was 3.1:1; 93 sub-12px labels use it)
+#   ink-400  4.5:1 on surface-page and on accent-50: the third text step (it was 3.1:1; 93 sub-12px labels use it, some on a
+#            selected row)
 #   ink-500  one step darker so the ramp keeps its three text steps (4.7 -> 5.7 on surface-page)
 #   *-600    status text and solid fills with white text reach 4.5:1 (success, warning and info were 3.2 to 4.1)
 #   border-input  the ink-300 step: 3:1 for a form control's boundary (it was ink-200, 1.4:1)
 REVISION_DEFAULTS: Dict[int, Dict[str, str]] = {
     3: {
-        "ink-300": "#898c98", "ink-400": "#6d707e", "ink-500": "#5f626e",
+        "ink-300": "#898c98", "ink-400": "#6b6e7d", "ink-500": "#5f626e",
         "success-600": "#04855f", "warning-600": "#bb5908", "info-600": "#027bbb",
         "border-input": "{ink-300}",
     },
@@ -690,6 +691,10 @@ CONTRAST_PAIRS: Tuple[Pair, ...] = (
     Pair("ink-400-on-surface-page", "ink-400", "surface-page", 4.5, "warning", **_UI),
     Pair("ink-500-on-surface", "ink-500", "surface", 4.5, "warning", **_UI),
     Pair("ink-500-on-surface-page", "ink-500", "surface-page", 4.5, "warning", **_UI),
+    # The same steps on the tints behind a selected row, a chip or a tile (a caption inside a selected card).
+    Pair("ink-400-on-accent-50", "ink-400", "accent-50", 4.5, "warning", **_UI),
+    Pair("ink-500-on-accent-50", "ink-500", "accent-50", 4.5, "warning", **_UI),
+    Pair("ink-500-on-accent-100", "ink-500", "accent-100", 4.5, "warning", **_UI),
     Pair("accent-600-on-surface", "accent-600", "surface", 4.5, "warning", unless="accent-text", **_UI),
     Pair("accent-600-on-accent-50", "accent-600", "accent-50", 4.5, "warning", unless="accent-text", **_UI),
     Pair("accent-700-on-surface", "accent-700", "surface", 4.5, "warning", unless="accent-text", **_UI),

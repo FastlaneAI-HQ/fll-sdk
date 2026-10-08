@@ -225,6 +225,42 @@
       "ratio": 4.66
     },
     {
+      "bg": "accent-50",
+      "bg_value": "#eff6ff",
+      "fg": "ink-400",
+      "fg_value": "#8f929e",
+      "group": "ui",
+      "id": "ink-400-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "pass": false,
+      "ratio": 2.85
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eff6ff",
+      "fg": "ink-500",
+      "fg_value": "#6c6f7d",
+      "group": "ui",
+      "id": "ink-500-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "pass": true,
+      "ratio": 4.59
+    },
+    {
+      "bg": "accent-100",
+      "bg_value": "#dbeafe",
+      "fg": "ink-500",
+      "fg_value": "#6c6f7d",
+      "group": "ui",
+      "id": "ink-500-on-accent-100",
+      "level": "warning",
+      "min": 4.5,
+      "pass": false,
+      "ratio": 4.09
+    },
+    {
       "bg": "surface",
       "bg_value": "#ffffff",
       "fg": "accent-text",

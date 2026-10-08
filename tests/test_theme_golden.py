@@ -21,7 +21,7 @@ def generator():
 def test_python_results_match_the_golden_files():
     stale = [path.name for path, content in generator().outputs().items() if not path.exists() or path.read_text() != content]
     assert stale == [], 'run scripts/gen_theme_golden.py'
-    assert len(list(GOLDEN.glob('*.json'))) == 14
+    assert len(list(GOLDEN.glob('*.json'))) == 16
 
 
 def close(expected, actual):

@@ -197,27 +197,27 @@
         "bg": "surface",
         "bg_value": "#fffdf9",
         "fg": "ink-400",
-        "fg_value": "#6d707e",
+        "fg_value": "#6b6e7d",
         "group": "ui",
         "id": "ink-400-on-surface",
         "level": "warning",
         "min": 4.5,
         "mode": "light",
         "pass": true,
-        "ratio": 4.84
+        "ratio": 4.98
       },
       {
         "bg": "surface-page",
         "bg_value": "#faf8f5",
         "fg": "ink-400",
-        "fg_value": "#6d707e",
+        "fg_value": "#6b6e7d",
         "group": "ui",
         "id": "ink-400-on-surface-page",
         "level": "warning",
         "min": 4.5,
         "mode": "light",
         "pass": true,
-        "ratio": 4.64
+        "ratio": 4.77
       },
       {
         "bg": "surface",
@@ -244,6 +244,45 @@
         "mode": "light",
         "pass": true,
         "ratio": 5.73
+      },
+      {
+        "bg": "accent-50",
+        "bg_value": "#eef4ff",
+        "fg": "ink-400",
+        "fg_value": "#6b6e7d",
+        "group": "ui",
+        "id": "ink-400-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "light",
+        "pass": true,
+        "ratio": 4.58
+      },
+      {
+        "bg": "accent-50",
+        "bg_value": "#eef4ff",
+        "fg": "ink-500",
+        "fg_value": "#5f626e",
+        "group": "ui",
+        "id": "ink-500-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "light",
+        "pass": true,
+        "ratio": 5.5
+      },
+      {
+        "bg": "accent-100",
+        "bg_value": "#d9e6ff",
+        "fg": "ink-500",
+        "fg_value": "#5f626e",
+        "group": "ui",
+        "id": "ink-500-on-accent-100",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "light",
+        "pass": true,
+        "ratio": 4.83
       },
       {
         "bg": "surface",
@@ -463,13 +502,13 @@
         "bg": "input-bg",
         "bg_value": "#fffdf9",
         "fg": "input-placeholder",
-        "fg_value": "#6d707e",
+        "fg_value": "#6b6e7d",
         "id": "input-placeholder",
         "level": "warning",
         "min": 4.5,
         "mode": "light",
         "pass": true,
-        "ratio": 4.84
+        "ratio": 4.98
       },
       {
         "bg": "input-disabled-bg",
@@ -691,25 +730,25 @@
         "bg": "surface",
         "bg_value": "#15161c",
         "fg": "text-muted",
-        "fg_value": "#a0a2ab",
+        "fg_value": "#a0a2ac",
         "id": "text-muted-on-surface",
         "level": "error",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 7.09
+        "ratio": 7.1
       },
       {
         "bg": "surface-page",
         "bg_value": "#101117",
         "fg": "text-muted",
-        "fg_value": "#a0a2ab",
+        "fg_value": "#a0a2ac",
         "id": "text-muted-on-surface-page",
         "level": "error",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 7.4
+        "ratio": 7.41
       },
       {
         "bg": "surface-inverse",
@@ -823,27 +862,27 @@
         "bg": "surface",
         "bg_value": "#15161c",
         "fg": "ink-400",
-        "fg_value": "#83848e",
+        "fg_value": "#898a92",
         "group": "ui",
         "id": "ink-400-on-surface",
         "level": "warning",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 4.86
+        "ratio": 5.26
       },
       {
         "bg": "surface-page",
         "bg_value": "#101117",
         "fg": "ink-400",
-        "fg_value": "#83848e",
+        "fg_value": "#898a92",
         "group": "ui",
         "id": "ink-400-on-surface-page",
         "level": "warning",
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 5.07
+        "ratio": 5.49
       },
       {
         "bg": "surface",
@@ -872,6 +911,45 @@
         "ratio": 6.38
       },
       {
+        "bg": "accent-50",
+        "bg_value": "#132149",
+        "fg": "ink-400",
+        "fg_value": "#898a92",
+        "group": "ui",
+        "id": "ink-400-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "dark",
+        "pass": true,
+        "ratio": 4.56
+      },
+      {
+        "bg": "accent-50",
+        "bg_value": "#132149",
+        "fg": "ink-500",
+        "fg_value": "#94969e",
+        "group": "ui",
+        "id": "ink-500-on-accent-50",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "dark",
+        "pass": true,
+        "ratio": 5.3
+      },
+      {
+        "bg": "accent-100",
+        "bg_value": "#1a2b63",
+        "fg": "ink-500",
+        "fg_value": "#94969e",
+        "group": "ui",
+        "id": "ink-500-on-accent-100",
+        "level": "warning",
+        "min": 4.5,
+        "mode": "dark",
+        "pass": true,
+        "ratio": 4.53
+      },
+      {
         "bg": "surface",
         "bg_value": "#15161c",
         "fg": "accent-text",
@@ -886,7 +964,7 @@
       },
       {
         "bg": "accent-50",
-        "bg_value": "#152450",
+        "bg_value": "#132149",
         "fg": "accent-text",
         "fg_value": "#598dff",
         "group": "ui",
@@ -895,7 +973,7 @@
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 4.77
+        "ratio": 4.98
       },
       {
         "bg": "surface",
@@ -1113,7 +1191,7 @@
         "bg": "table-head-bg",
         "bg_value": "#1a1b21",
         "fg": "table-head-fg",
-        "fg_value": "#a0a2ab",
+        "fg_value": "#a0a2ac",
         "id": "table-head",
         "level": "warning",
         "min": 4.5,
@@ -1171,7 +1249,7 @@
       },
       {
         "bg": "toast-notice-bg",
-        "bg_value": "#152450",
+        "bg_value": "#132149",
         "fg": "toast-notice-fg",
         "fg_value": "#d9e6ff",
         "id": "toast-notice",
@@ -1179,7 +1257,7 @@
         "min": 4.5,
         "mode": "dark",
         "pass": true,
-        "ratio": 11.94
+        "ratio": 12.46
       },
       {
         "bg": "toast-working-bg",
@@ -1454,27 +1532,27 @@
       "bg": "surface",
       "bg_value": "#fffdf9",
       "fg": "ink-400",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "group": "ui",
       "id": "ink-400-on-surface",
       "level": "warning",
       "min": 4.5,
       "mode": "light",
       "pass": true,
-      "ratio": 4.84
+      "ratio": 4.98
     },
     {
       "bg": "surface-page",
       "bg_value": "#faf8f5",
       "fg": "ink-400",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "group": "ui",
       "id": "ink-400-on-surface-page",
       "level": "warning",
       "min": 4.5,
       "mode": "light",
       "pass": true,
-      "ratio": 4.64
+      "ratio": 4.77
     },
     {
       "bg": "surface",
@@ -1501,6 +1579,45 @@
       "mode": "light",
       "pass": true,
       "ratio": 5.73
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eef4ff",
+      "fg": "ink-400",
+      "fg_value": "#6b6e7d",
+      "group": "ui",
+      "id": "ink-400-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "light",
+      "pass": true,
+      "ratio": 4.58
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eef4ff",
+      "fg": "ink-500",
+      "fg_value": "#5f626e",
+      "group": "ui",
+      "id": "ink-500-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "light",
+      "pass": true,
+      "ratio": 5.5
+    },
+    {
+      "bg": "accent-100",
+      "bg_value": "#d9e6ff",
+      "fg": "ink-500",
+      "fg_value": "#5f626e",
+      "group": "ui",
+      "id": "ink-500-on-accent-100",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "light",
+      "pass": true,
+      "ratio": 4.83
     },
     {
       "bg": "surface",
@@ -1720,13 +1837,13 @@
       "bg": "input-bg",
       "bg_value": "#fffdf9",
       "fg": "input-placeholder",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "id": "input-placeholder",
       "level": "warning",
       "min": 4.5,
       "mode": "light",
       "pass": true,
-      "ratio": 4.84
+      "ratio": 4.98
     },
     {
       "bg": "input-disabled-bg",
@@ -1948,25 +2065,25 @@
       "bg": "surface",
       "bg_value": "#15161c",
       "fg": "text-muted",
-      "fg_value": "#a0a2ab",
+      "fg_value": "#a0a2ac",
       "id": "text-muted-on-surface",
       "level": "error",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 7.09
+      "ratio": 7.1
     },
     {
       "bg": "surface-page",
       "bg_value": "#101117",
       "fg": "text-muted",
-      "fg_value": "#a0a2ab",
+      "fg_value": "#a0a2ac",
       "id": "text-muted-on-surface-page",
       "level": "error",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 7.4
+      "ratio": 7.41
     },
     {
       "bg": "surface-inverse",
@@ -2080,27 +2197,27 @@
       "bg": "surface",
       "bg_value": "#15161c",
       "fg": "ink-400",
-      "fg_value": "#83848e",
+      "fg_value": "#898a92",
       "group": "ui",
       "id": "ink-400-on-surface",
       "level": "warning",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 4.86
+      "ratio": 5.26
     },
     {
       "bg": "surface-page",
       "bg_value": "#101117",
       "fg": "ink-400",
-      "fg_value": "#83848e",
+      "fg_value": "#898a92",
       "group": "ui",
       "id": "ink-400-on-surface-page",
       "level": "warning",
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 5.07
+      "ratio": 5.49
     },
     {
       "bg": "surface",
@@ -2129,6 +2246,45 @@
       "ratio": 6.38
     },
     {
+      "bg": "accent-50",
+      "bg_value": "#132149",
+      "fg": "ink-400",
+      "fg_value": "#898a92",
+      "group": "ui",
+      "id": "ink-400-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "dark",
+      "pass": true,
+      "ratio": 4.56
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#132149",
+      "fg": "ink-500",
+      "fg_value": "#94969e",
+      "group": "ui",
+      "id": "ink-500-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "dark",
+      "pass": true,
+      "ratio": 5.3
+    },
+    {
+      "bg": "accent-100",
+      "bg_value": "#1a2b63",
+      "fg": "ink-500",
+      "fg_value": "#94969e",
+      "group": "ui",
+      "id": "ink-500-on-accent-100",
+      "level": "warning",
+      "min": 4.5,
+      "mode": "dark",
+      "pass": true,
+      "ratio": 4.53
+    },
+    {
       "bg": "surface",
       "bg_value": "#15161c",
       "fg": "accent-text",
@@ -2143,7 +2299,7 @@
     },
     {
       "bg": "accent-50",
-      "bg_value": "#152450",
+      "bg_value": "#132149",
       "fg": "accent-text",
       "fg_value": "#598dff",
       "group": "ui",
@@ -2152,7 +2308,7 @@
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 4.77
+      "ratio": 4.98
     },
     {
       "bg": "surface",
@@ -2370,7 +2526,7 @@
       "bg": "table-head-bg",
       "bg_value": "#1a1b21",
       "fg": "table-head-fg",
-      "fg_value": "#a0a2ab",
+      "fg_value": "#a0a2ac",
       "id": "table-head",
       "level": "warning",
       "min": 4.5,
@@ -2428,7 +2584,7 @@
     },
     {
       "bg": "toast-notice-bg",
-      "bg_value": "#152450",
+      "bg_value": "#132149",
       "fg": "toast-notice-fg",
       "fg_value": "#d9e6ff",
       "id": "toast-notice",
@@ -2436,7 +2592,7 @@
       "min": 4.5,
       "mode": "dark",
       "pass": true,
-      "ratio": 11.94
+      "ratio": 12.46
     },
     {
       "bg": "toast-working-bg",
@@ -2527,11 +2683,11 @@
       "sidebar-tone": "light"
     },
     "primitives": {
-      "accent-100": "#1c2f6c",
+      "accent-100": "#1a2b63",
       "accent-200": "#1c3389",
       "accent-300": "#115e59",
       "accent-400": "#0f766e",
-      "accent-50": "#152450",
+      "accent-50": "#132149",
       "accent-500": "#0d9488",
       "accent-600": "#598dff",
       "accent-700": "#8eb5ff",
@@ -2563,10 +2719,10 @@
       "ink-100": "#1a1b21",
       "ink-200": "#2b2c34",
       "ink-300": "#686973",
-      "ink-400": "#83848e",
+      "ink-400": "#898a92",
       "ink-50": "#101117",
       "ink-500": "#94969e",
-      "ink-600": "#a0a2ab",
+      "ink-600": "#a0a2ac",
       "ink-700": "#b7b9c0",
       "ink-800": "#d9dade",
       "ink-900": "#f1ede6",
@@ -2654,11 +2810,11 @@
           "sidebar-tone": "light"
         },
         "primitives": {
-          "accent-100": "#1c2f6c",
+          "accent-100": "#1a2b63",
           "accent-200": "#1c3389",
           "accent-300": "#115e59",
           "accent-400": "#0f766e",
-          "accent-50": "#152450",
+          "accent-50": "#132149",
           "accent-500": "#0d9488",
           "accent-600": "#598dff",
           "accent-700": "#8eb5ff",
@@ -2690,10 +2846,10 @@
           "ink-100": "#1a1b21",
           "ink-200": "#2b2c34",
           "ink-300": "#686973",
-          "ink-400": "#83848e",
+          "ink-400": "#898a92",
           "ink-50": "#101117",
           "ink-500": "#94969e",
-          "ink-600": "#a0a2ab",
+          "ink-600": "#a0a2ac",
           "ink-700": "#b7b9c0",
           "ink-800": "#d9dade",
           "ink-900": "#f1ede6",
@@ -2796,7 +2952,7 @@
         "ink-100": "#f1ede6",
         "ink-200": "#d9dade",
         "ink-300": "#898c98",
-        "ink-400": "#6d707e",
+        "ink-400": "#6b6e7d",
         "ink-50": "#faf8f5",
         "ink-500": "#5f626e",
         "ink-600": "#555764",
@@ -3078,7 +3234,7 @@
       "--fl-ink-100": "241 237 230",
       "--fl-ink-200": "217 218 222",
       "--fl-ink-300": "137 140 152",
-      "--fl-ink-400": "109 112 126",
+      "--fl-ink-400": "107 110 125",
       "--fl-ink-50": "250 248 245",
       "--fl-ink-500": "95 98 110",
       "--fl-ink-600": "85 87 100",
@@ -3279,11 +3435,11 @@
       }
     },
     "vars": {
-      "--fl-accent-100": "28 47 108",
+      "--fl-accent-100": "26 43 99",
       "--fl-accent-200": "28 51 137",
       "--fl-accent-300": "17 94 89",
       "--fl-accent-400": "15 118 110",
-      "--fl-accent-50": "21 36 80",
+      "--fl-accent-50": "19 33 73",
       "--fl-accent-500": "13 148 136",
       "--fl-accent-600": "89 141 255",
       "--fl-accent-700": "142 181 255",
@@ -3346,10 +3502,10 @@
       "--fl-ink-100": "26 27 33",
       "--fl-ink-200": "43 44 52",
       "--fl-ink-300": "104 105 115",
-      "--fl-ink-400": "131 132 142",
+      "--fl-ink-400": "137 138 146",
       "--fl-ink-50": "16 17 23",
       "--fl-ink-500": "148 150 158",
-      "--fl-ink-600": "160 162 171",
+      "--fl-ink-600": "160 162 172",
       "--fl-ink-700": "183 185 192",
       "--fl-ink-800": "217 218 222",
       "--fl-ink-900": "241 237 230",
@@ -3370,7 +3526,7 @@
       "--fl-on-primary": "16 17 23",
       "--fl-primary": "142 181 255",
       "--fl-primary-hover": "142 181 255",
-      "--fl-primary-soft": "21 36 80",
+      "--fl-primary-soft": "19 33 73",
       "--fl-radius": "8px",
       "--fl-radius-default": "4px",
       "--fl-radius-md": "6px",
@@ -3425,7 +3581,7 @@
       "--fl-text": "241 237 230",
       "--fl-text-inverse": "21 22 28",
       "--fl-text-link": "252 211 77",
-      "--fl-text-muted": "160 162 171",
+      "--fl-text-muted": "160 162 172",
       "--fl-text-subtle": "148 150 158",
       "--fl-toast-position": "top-center",
       "--fl-tracking-normal": "0",

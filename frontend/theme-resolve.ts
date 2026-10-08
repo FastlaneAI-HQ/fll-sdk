@@ -435,11 +435,16 @@ function moveUntil(color: string, target: string, against: string, minimum: numb
 
 /** `color` moved toward white in whole percents until it reaches `minimum`:1 against every background. */
 function lightenUntil(color: string, backgrounds: string[], minimum: number): string {
-  if (backgrounds.every(background => contrastRatio(color, background) >= minimum)) return color
+  return lightenUntilAll(color, backgrounds.map(background => [background, minimum] as [string, number]))
+}
+
+/** `color` moved toward white in whole percents until it has each background's own minimum contrast. */
+function lightenUntilAll(color: string, needs: [string, number][]): string {
+  if (needs.every(([background, minimum]) => contrastRatio(color, background) >= minimum)) return color
   const from = channels(color)
   for (let percent = 1; percent <= 100; percent++) {
     const moved = toHex(...([0, 1, 2].map(i => Math.floor((from[i] * (100 - percent) + 255 * percent + 50) / 100)) as [number, number, number]))
-    if (backgrounds.every(background => contrastRatio(moved, background) >= minimum)) return moved
+    if (needs.every(([background, minimum]) => contrastRatio(moved, background) >= minimum)) return moved
   }
   return '#ffffff'
 }
@@ -447,11 +452,56 @@ function lightenUntil(color: string, backgrounds: string[], minimum: number): st
 /** The ink steps the interface paints text and icons with, and the least contrast each may have on a dark surface. */
 export const DARK_TEXT_STEPS: readonly [number, number][] = [[300, 3.0], [400, 4.5], [500, 4.5], [600, 4.5], [700, 4.5]]
 
-/** Re-solve the dark ramp's text steps against the dark surface and page, in place (registry revision 3 and later). */
+/** The dark accent tints the interface prints a text step on (a selected row, a chip, a tile). Revision 3 and later. */
+export const DARK_TEXT_TINTS: Record<number, readonly string[]> = {
+  400: ['accent-50'], 500: ['accent-50', 'accent-100'], 600: ['accent-50', 'accent-100'], 700: ['accent-50', 'accent-100'],
+}
+
+/** How far a dark tint may be darkened to carry its text steps: its contrast against the dark surface stays at least this. */
+export const DARK_TINT_FLOORS: Record<string, number> = { 'accent-50': 1.15, 'accent-100': 1.3 }
+
+/** `color` moved toward black by `percent`: hue and saturation kept, every channel scaled. */
+function darken(color: string, percent: number): string {
+  const from = channels(color)
+  return toHex(...([0, 1, 2].map(i => Math.floor((from[i] * (100 - percent) + 50) / 100)) as [number, number, number]))
+}
+
+/** Darken a dark accent tint, in place, until the text steps printed on it reach their minimum there, but no further than
+ *  DARK_TINT_FLOORS from the surface and, with `cap`, never as light as `cap`. */
+function settleTint(primitives: Record<string, string>, tint: string, surface: string, cap?: string): void {
+  const steps = Object.entries(DARK_TEXT_TINTS).filter(([, tints]) => tints.includes(tint)).map(([shade]) => Number(shade))
+  const start = primitives[tint]
+  let best = start
+  for (let percent = 0; percent <= 100; percent++) {
+    const moved = percent ? darken(start, percent) : start
+    if (percent && contrastRatio(moved, surface) < DARK_TINT_FLOORS[tint]) break
+    best = moved
+    if (steps.every(shade => contrastRatio(primitives[`ink-${shade}`], moved) >= 4.5)) break
+  }
+  if (cap !== undefined && luminance(best) >= luminance(cap) * 0.93) {
+    for (let percent = 0; percent <= 100; percent++) {
+      best = darken(start, percent)
+      if (luminance(best) < luminance(cap) * 0.93) break
+    }
+  }
+  primitives[tint] = best
+}
+
+/** Re-solve the dark ramp's text steps against the dark surface, the page and the dark accent tints, in place (registry
+ *  revision 3 and later): the surface and page first, then the tints are settled, then what is still short is lifted. */
 export function solveDarkText(primitives: Record<string, string>, lightRatios: Record<number, number>, surface: string, page: string): void {
+  const wanted: Record<number, number> = {}
+  for (const [shade, minimum] of DARK_TEXT_STEPS) wanted[shade] = Math.max(minimum, lightRatios[shade] ?? minimum)
+  for (const [shade] of DARK_TEXT_STEPS) {
+    const name = `ink-${shade}`
+    primitives[name] = lightenUntilAll(primitives[name], [[surface, wanted[shade]], [page, wanted[shade]]])
+  }
+  settleTint(primitives, 'accent-100', surface)
+  settleTint(primitives, 'accent-50', surface, primitives['accent-100'])
   for (const [shade, minimum] of DARK_TEXT_STEPS) {
     const name = `ink-${shade}`
-    primitives[name] = lightenUntil(primitives[name], [surface, page], Math.max(minimum, lightRatios[shade] ?? minimum))
+    const needs: [string, number][] = [[surface, wanted[shade]], [page, wanted[shade]], ...(DARK_TEXT_TINTS[shade] ?? []).map(tint => [primitives[tint], minimum] as [string, number])]
+    primitives[name] = lightenUntilAll(primitives[name], needs)
   }
 }
 

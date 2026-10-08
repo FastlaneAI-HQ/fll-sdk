@@ -25,7 +25,7 @@ tokens and takes the rest from the fallback), every published v2 release and a h
 | step | revision 1 and 2 | revision 3 | on white | on `surface-page` |
 | --- | --- | --- | --- | --- |
 | `ink-300` | `#b8bac2` | `#898c98` | 3.35 (was 1.94) | 3.13 |
-| `ink-400` | `#8f929e` | `#6d707e` | 4.92 (was 3.10) | 4.59 |
+| `ink-400` | `#8f929e` | `#6b6e7d` | 5.06 (was 3.10) | 4.72 |
 | `ink-500` | `#6c6f7d` | `#5f626e` | 6.07 (was 4.99) | 5.67 |
 | `ink-600` and up | unchanged | unchanged | 7.16 | 6.69 |
 | `border-input` | `{ink-200}` (1.4:1) | `{ink-300}` | 3.35 | 3.13 |
@@ -47,6 +47,7 @@ of a theme with a dark palette.
 | Pair | Minimum | Judged unless the theme sets |
 | --- | --- | --- |
 | `ink-400`, `ink-500` on `surface`, on `surface-page` | 4.5 | |
+| `ink-400`, `ink-500` on `accent-50`; `ink-500` on `accent-100` (a caption in a selected row, a chip, a tile) | 4.5 | |
 | `accent-600`, `accent-700` on `surface`, on `accent-50` | 4.5 | `accent-text` |
 | `on-primary` on `ink-900`, `ink-800`, `danger-600`, `success-600` | 4.5 | `on-inverse` |
 | `success-600`, `warning-600`, `danger-600`, `info-600` on `surface` | 4.5 | |
@@ -75,11 +76,17 @@ resolves as before; `tests/test_theme_frontend.py` compares them with the 1.2 pr
 
 ## Dark palette
 
-`derive_dark` for a revision 3 theme re-solves `ink-300` to `ink-700` against the dark surface and the dark page: each step gets at
-least the contrast the light palette gives it on its own surface (so the three-step hierarchy survives: 4.99, 6.12, ... on the default),
-and never less than its floor (3:1 for `ink-300`, 4.5:1 for the text steps); a step that already reads is untouched. The steps move toward
-white in whole percents (integer arithmetic, mirrored in `theme-resolve.ts`). `accent-text` and `accent-ui`, when they point at an
-accent step, are lifted until they read on the dark surface (and on the dark `accent-50` for the text). The derived default palette
+`derive_dark` for a revision 3 theme re-solves `ink-300` to `ink-700` against the dark surface, the dark page and the dark accent tints: each
+step gets at least the contrast the light palette gives it on its own surface (so the three-step hierarchy survives: 5.06, 6.12, ... on
+the default), and never less than its floor (3:1 for `ink-300`, 4.5:1 for the text steps); a step that already reads is untouched. The steps
+move toward white in whole percents (integer arithmetic, mirrored in `theme-resolve.ts`).
+
+The text steps are also judged on the tints a selected row, a chip or a tile is filled with (`ink-400` on the dark `accent-50`; `ink-500` to
+`ink-700` on `accent-50` and `accent-100`). A saturated brand (a green, a yellow) reverses into tints that are far brighter than the surface,
+and lifting the text until it reads on them would put `ink-400` to `ink-700` on one near-white. So the tints are settled first: each is darkened
+(channels scaled toward black, hue kept) until the steps that sit on it read, but never closer to the surface than 1.15:1 (`accent-50`) and 1.3:1
+(`accent-100`), and `accent-50` stays darker than `accent-100`; only what is still short is lifted. `accent-text` and `accent-ui`, when they
+point at an accent step, are lifted until they read on the dark surface (and on the dark `accent-50` for the text). The derived default palette
 now has no contrast warning (revision 2: five).
 
 ## Fonts

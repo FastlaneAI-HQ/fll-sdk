@@ -825,12 +825,17 @@ def _move_until(color: str, target: str, against: str, minimum: float) -> str:
 
 def _lighten_until(color: str, backgrounds: List[str], minimum: float) -> str:
     """`color` moved toward white in whole percents until it reaches `minimum`:1 against every background."""
-    if all(contrast_ratio(color, background) >= minimum for background in backgrounds):
+    return _lighten_until_all(color, [(background, minimum) for background in backgrounds])
+
+
+def _lighten_until_all(color: str, needs: List[Tuple[str, float]]) -> str:
+    """`color` moved toward white in whole percents until it has each background's own minimum contrast."""
+    if all(contrast_ratio(color, background) >= minimum for background, minimum in needs):
         return color
     start = _channels(color)
     for percent in range(1, 101):
         moved = _hex(*((a * (100 - percent) + 255 * percent + 50) // 100 for a in start))
-        if all(contrast_ratio(moved, background) >= minimum for background in backgrounds):
+        if all(contrast_ratio(moved, background) >= minimum for background, minimum in needs):
             return moved
     return "#ffffff"
 
@@ -838,18 +843,63 @@ def _lighten_until(color: str, backgrounds: List[str], minimum: float) -> str:
 # The ink steps the interface paints text and icons with (text-ink-400 ... 700) and borders (ink-300), and the
 # least contrast each may have. Reversing a ramp leaves them at 2.5 to 3.6:1 on a dark surface.
 DARK_TEXT_STEPS = ((300, 3.0), (400, 4.5), (500, 4.5), (600, 4.5), (700, 4.5))
+# The dark accent tints the interface prints a text step on (a selected row, a chip, a tile): ink-400 is a caption on the
+# faintest tint, and the steps from ink-500 up are printed on both. Revision 3 and later.
+DARK_TEXT_TINTS = {400: ("accent-50",), 500: ("accent-50", "accent-100"), 600: ("accent-50", "accent-100"), 700: ("accent-50", "accent-100")}
+# How far a dark tint may be darkened to carry its text steps: its contrast against the dark surface stays at least this
+# (a tint that is no longer a tint is a selected row nobody can see). The default palette's tints are 1.20 and 1.44.
+DARK_TINT_FLOORS = {"accent-50": 1.15, "accent-100": 1.3}
+
+
+def _darken(color: str, percent: int) -> str:
+    """`color` moved toward black by `percent`: hue and saturation kept, every channel scaled."""
+    return _hex(*((a * (100 - percent) + 50) // 100 for a in _channels(color)))
+
+
+def _settle_tint(primitives: Dict[str, str], tint: str, surface: str, cap: Optional[str] = None) -> None:
+    """Darken a dark accent tint, in place, until the text steps printed on it reach their minimum there, but no further
+    than DARK_TINT_FLOORS from the surface (the remainder is the text's to lift) and, when `cap` is given, never as light as `cap`.
+
+    The brand's bright tints (a saturated green or yellow reversed from its darkest ramp step is far from the surface) are the
+    case: the text steps would otherwise all be pushed toward white until ink-400 and ink-700 are one colour."""
+    steps = [shade for shade, tints in DARK_TEXT_TINTS.items() if tint in tints]
+    start = primitives[tint]
+    best = start
+    for percent in range(0, 101):
+        moved = _darken(start, percent) if percent else start
+        if percent and contrast_ratio(moved, surface) < DARK_TINT_FLOORS[tint]:
+            break
+        best = moved
+        if all(contrast_ratio(primitives[f"ink-{shade}"], moved) >= 4.5 for shade in steps):
+            break
+    if cap is not None and _luminance(best) >= _luminance(cap) * 0.93:
+        # The ramp must keep its order: the fainter tint stays darker than the stronger one.
+        for percent in range(0, 101):
+            best = _darken(start, percent)
+            if _luminance(best) < _luminance(cap) * 0.93:
+                break
+    primitives[tint] = best
 
 
 def solve_dark_text(primitives: Dict[str, str], light_ratios: Dict[int, float], surface: str, page: str) -> None:
-    """Re-solve the dark ramp's text steps against the dark surface and page, in place.
+    """Re-solve the dark ramp's text steps, in place, against the dark surface, the page and the dark accent tints.
 
     Each step in DARK_TEXT_STEPS gets at least the contrast the light palette gives it on its own surface (so the
-    three-step hierarchy survives) and never less than its minimum; a step that already reads is left alone.
-    Registry revision 3 and later; registry 1 and 2 derive by reversal alone.
+    three-step hierarchy survives) and never less than its minimum, on the surface and the page. The steps in
+    DARK_TEXT_TINTS also reach their minimum on the accent tints they sit on (accent-50 and accent-100 of the dark ramp):
+    a tint brighter than the text allows is first darkened (see _settle_tint), then whatever is still short is lifted.
+    A step that already reads is left alone. Registry revision 3 and later; registry 1 and 2 derive by reversal alone.
     """
+    wanted = {shade: max(minimum, light_ratios.get(shade, minimum)) for shade, minimum in DARK_TEXT_STEPS}
+    for shade, _ in DARK_TEXT_STEPS:
+        name = f"ink-{shade}"
+        primitives[name] = _lighten_until_all(primitives[name], [(surface, wanted[shade]), (page, wanted[shade])])
+    _settle_tint(primitives, "accent-100", surface)
+    _settle_tint(primitives, "accent-50", surface, cap=primitives["accent-100"])
     for shade, minimum in DARK_TEXT_STEPS:
         name = f"ink-{shade}"
-        primitives[name] = _lighten_until(primitives[name], [surface, page], max(minimum, light_ratios.get(shade, minimum)))
+        needs = [(surface, wanted[shade]), (page, wanted[shade])] + [(primitives[tint], minimum) for tint in DARK_TEXT_TINTS.get(shade, ())]
+        primitives[name] = _lighten_until_all(primitives[name], needs)
 
 
 def lift_accent_roles(primitives: Dict[str, str], semantic: Dict[str, str], surface: str) -> None:

@@ -26,11 +26,18 @@ from fastlanelabs_sdk import themes  # noqa: E402
 from fastlanelabs_sdk.theme_packs import validate_presentation  # noqa: E402
 
 FIXTURES = ROOT / "tests/fixtures/themes"
+# Revision 3 themes the theme builder produced for the two brands with the brightest dark accent tints (a neon green, a yellow):
+# the dark text steps are solved against those tints (see tests/test_themes_r3.py).
+R3_FIXTURES = ROOT / "tests/fixtures/themes-r3"
 GOLDEN = ROOT / "tests/golden/theme-resolve"
 
 
 def load(name):
     return json.loads((FIXTURES / name).read_text())
+
+
+def load_r3(name):
+    return json.loads((R3_FIXTURES / name).read_text())
 
 
 def inputs():
@@ -103,6 +110,8 @@ def inputs():
         ("tuned-auto-v2", tuned, None),
         ("roles-auto-v2", roles_auto, None),
         ("warm-dark-v2", dark_only, None),
+        ("green-auto-v2", load_r3("green-auto.json"), None),
+        ("yellow-dark-auto-v2", load_r3("yellow-dark-auto.json"), None),
     ]
 
 

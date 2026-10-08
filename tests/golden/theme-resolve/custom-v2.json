@@ -180,25 +180,25 @@
       "bg": "surface",
       "bg_value": "#ffffff",
       "fg": "ink-400",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "group": "ui",
       "id": "ink-400-on-surface",
       "level": "warning",
       "min": 4.5,
       "pass": true,
-      "ratio": 4.92
+      "ratio": 5.06
     },
     {
       "bg": "surface-page",
       "bg_value": "#ececee",
       "fg": "ink-400",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "group": "ui",
       "id": "ink-400-on-surface-page",
       "level": "warning",
       "min": 4.5,
       "pass": false,
-      "ratio": 4.17
+      "ratio": 4.29
     },
     {
       "bg": "surface",
@@ -223,6 +223,42 @@
       "min": 4.5,
       "pass": true,
       "ratio": 5.15
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eef4ff",
+      "fg": "ink-400",
+      "fg_value": "#6b6e7d",
+      "group": "ui",
+      "id": "ink-400-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "pass": true,
+      "ratio": 4.58
+    },
+    {
+      "bg": "accent-50",
+      "bg_value": "#eef4ff",
+      "fg": "ink-500",
+      "fg_value": "#5f626e",
+      "group": "ui",
+      "id": "ink-500-on-accent-50",
+      "level": "warning",
+      "min": 4.5,
+      "pass": true,
+      "ratio": 5.5
+    },
+    {
+      "bg": "accent-100",
+      "bg_value": "#d9e6ff",
+      "fg": "ink-500",
+      "fg_value": "#5f626e",
+      "group": "ui",
+      "id": "ink-500-on-accent-100",
+      "level": "warning",
+      "min": 4.5,
+      "pass": true,
+      "ratio": 4.83
     },
     {
       "bg": "surface",
@@ -425,12 +461,12 @@
       "bg": "input-bg",
       "bg_value": "#ffffff",
       "fg": "input-placeholder",
-      "fg_value": "#6d707e",
+      "fg_value": "#6b6e7d",
       "id": "input-placeholder",
       "level": "warning",
       "min": 4.5,
       "pass": true,
-      "ratio": 4.92
+      "ratio": 5.06
     },
     {
       "bg": "input-disabled-bg",
@@ -670,7 +706,7 @@
         "ink-100": "#ececee",
         "ink-200": "#d9dade",
         "ink-300": "#898c98",
-        "ink-400": "#6d707e",
+        "ink-400": "#6b6e7d",
         "ink-50": "#f7f7f8",
         "ink-500": "#5f626e",
         "ink-600": "#555764",
@@ -953,7 +989,7 @@
       "--fl-ink-100": "236 236 238",
       "--fl-ink-200": "217 218 222",
       "--fl-ink-300": "137 140 152",
-      "--fl-ink-400": "109 112 126",
+      "--fl-ink-400": "107 110 125",
       "--fl-ink-50": "247 247 248",
       "--fl-ink-500": "95 98 110",
       "--fl-ink-600": "85 87 100",
