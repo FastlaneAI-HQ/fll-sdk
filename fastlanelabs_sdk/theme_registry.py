@@ -15,6 +15,13 @@ Defaults:
   component  a fallback only: `{token}`, `{token}*1.5` or `{token}+0.5px`
              (or a literal). A theme supplies only the ones it changes; an
              unset component token follows its fallback live.
+
+Revision 3 (SDK 1.5) adds four optional roles (inverse, on-inverse, accent-text, accent-ui; a theme
+may leave them unset and their fallbacks reproduce the rendering of earlier revisions), twenty-two
+contrast checks of the colours the interface really paints with (all warnings except one, and none
+applied to an older revision), and a new palette for NEW themes (`REVISION_DEFAULTS`). A token's
+`default` stays what revisions 1 and 2 produced: it is the generated CSS fallback, so a published
+theme and a host without a theme render exactly as before.
 """
 from __future__ import annotations
 
@@ -23,7 +30,7 @@ import re
 from importlib.resources import files
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
-REGISTRY_REVISION = 2
+REGISTRY_REVISION = 3
 SHADES = (50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950)
 STATUSES = ("success", "warning", "danger", "info")
 SIZE_STEPS = ("2xs", "xs", "sm", "md", "base", "lg", "xl", "2xl", "3xl")
@@ -67,6 +74,7 @@ class Token(NamedTuple):
     tone: Optional[str] = None  # the enum token (e.g. sidebar-tone) selecting a default
     v1: bool = False  # one of the 27 v1 names: literal values in the v1 grammar only
     note: str = ""
+    optional: bool = False  # a semantic role a theme may leave unset; the default is its fallback
 
     def as_dict(self) -> dict:
         data = {"name": self.name, "layer": self.layer, "type": self.type, "default": self.default,
@@ -85,6 +93,8 @@ class Token(NamedTuple):
             data["v1"] = True
         if self.note:
             data["note"] = self.note
+        if self.optional:
+            data["optional"] = True
         return data
 
 
@@ -179,6 +189,16 @@ _add("focus-ring", "semantic", "color", "{accent-500}", "line", "Focus ring")
 _add("primary", "semantic", "color", "{accent-600}", "brand", "Primary")
 _add("primary-hover", "semantic", "color", "{accent-700}", "brand", "Primary hover")
 _add("primary-soft", "semantic", "color", "{accent-50}", "brand", "Primary tint")
+# Registry revision 3. Optional: a theme that does not set them gets the fallback, which is what the same
+# class painted before (bg-ink-900, white text, the accent-600 step), so nothing changes until a theme opts in.
+_add("inverse", "semantic", "color", "{ink-900}", "surface", "Inverse fill", since=3, optional=True,
+     note="A dark fill that carries on-inverse text: dark buttons, the user's message, solid status fills. Fallback: ink-900.")
+_add("on-inverse", "semantic", "color", "{surface}", "text", "Text on the inverse fill", since=3, optional=True,
+     note="Readable on inverse and on a solid status fill. Fallback: surface (text-white on bg-ink-900 is on-primary, which is dark for a light brand).")
+_add("accent-text", "semantic", "color", "{accent-600}", "brand", "Brand as text", since=3, optional=True,
+     note="The brand colour where it is text: at least 4.5:1 on surface and on accent-50. Fallback: accent-600.")
+_add("accent-ui", "semantic", "color", "{accent-600}", "brand", "Brand as indicator", since=3, optional=True,
+     note="The brand colour where it is a control or indicator (a selected border, a progress bar): at least 3:1 on surface. Fallback: accent-600.")
 for _status in STATUSES:
     for _role, _shade in (("solid", 600), ("soft", 50), ("border", 200), ("text", 700), ("strong", 900)):
         _add(f"{_status}-{_role}", "semantic", "color", f"{{{_status}-{_shade}}}", "status",
@@ -548,6 +568,33 @@ TOKENS: Tuple[Token, ...] = tuple(_TOKENS)
 INDEX: Dict[str, Token] = {token.name: token for token in TOKENS}
 assert len(INDEX) == len(TOKENS), "duplicate token names"
 
+# The palette a NEW theme starts from, by registry revision (what default_theme_v2 writes, what the Themes editor and
+# the theme builder begin with). `Token.default` is not touched: it is the generated CSS fallback, so every published
+# theme and every host without a theme renders as before. Only revision 3 differs from it:
+#   ink-300  3:1 on surface-page: a control boundary, an icon (it was 1.9:1)
+#   ink-400  4.5:1 on surface-page: the third text step (it was 3.1:1; 93 sub-12px labels use it)
+#   ink-500  one step darker so the ramp keeps its three text steps (4.7 -> 5.7 on surface-page)
+#   *-600    status text and solid fills with white text reach 4.5:1 (success, warning and info were 3.2 to 4.1)
+#   border-input  the ink-300 step: 3:1 for a form control's boundary (it was ink-200, 1.4:1)
+REVISION_DEFAULTS: Dict[int, Dict[str, str]] = {
+    3: {
+        "ink-300": "#898c98", "ink-400": "#6d707e", "ink-500": "#5f626e",
+        "success-600": "#04855f", "warning-600": "#bb5908", "info-600": "#027bbb",
+        "border-input": "{ink-300}",
+    },
+}
+
+
+def default_for(token: "Token", revision: Optional[int] = None) -> Any:
+    """The default of `token` for a new theme that targets `revision` (the current one when omitted)."""
+    revision = REGISTRY_REVISION if revision is None else revision
+    value = token.default
+    for step in sorted(REVISION_DEFAULTS):
+        if step <= revision and token.name in REVISION_DEFAULTS[step]:
+            value = REVISION_DEFAULTS[step][token.name]
+    return value
+
+
 PRIMITIVES = tuple(t for t in TOKENS if t.layer == "primitive")
 SEMANTIC = tuple(t for t in TOKENS if t.layer == "semantic")
 COMPONENT_TOKENS = tuple(t for t in TOKENS if t.layer == "component")
@@ -601,27 +648,66 @@ def default_layout(style: str = "rail") -> dict:
 
 # --- Contrast -------------------------------------------------------------
 
-# (id, foreground, background, minimum ratio, level). Hard errors apply to v2
-# manifests only; v1 manifests are never re-judged against them. The two
-# "legacy" pairs are the v1 validator's own, so project_v1() always passes it.
-CONTRAST_PAIRS: Tuple[Tuple[str, str, str, float, str], ...] = (
-    ("legacy-ink-900-on-surface", "ink-900", "surface", 4.5, "error"),
-    ("legacy-on-primary-on-accent-600", "on-primary", "accent-600", 4.5, "error"),
-    ("text-on-surface", "text", "surface", 4.5, "error"),
-    ("text-on-surface-page", "text", "surface-page", 4.5, "error"),
-    ("text-on-surface-sunken", "text", "surface-sunken", 4.5, "error"),
-    ("text-muted-on-surface", "text-muted", "surface", 4.5, "error"),
-    ("text-muted-on-surface-page", "text-muted", "surface-page", 4.5, "error"),
-    ("text-inverse-on-surface-inverse", "text-inverse", "surface-inverse", 4.5, "error"),
-    ("text-link-on-surface", "text-link", "surface", 4.5, "error"),
-    ("on-primary-on-primary", "on-primary", "primary", 4.5, "error"),
-    ("success-text-on-soft", "success-text", "success-soft", 4.5, "error"),
-    ("warning-text-on-soft", "warning-text", "warning-soft", 4.5, "error"),
-    ("danger-text-on-soft", "danger-text", "danger-soft", 4.5, "error"),
-    ("info-text-on-soft", "info-text", "info-soft", 4.5, "error"),
-    ("focus-ring-on-surface", "focus-ring", "surface", 3.0, "error"),
+class Pair(NamedTuple):
+    """One contrast check. `since` is the registry revision that introduced it: a theme that targets an older
+    revision is never judged against it. `group` is "ui" for a pair the interface really paints (a raw ramp step,
+    text-white on a dark fill), reported apart from the role pairs. `unless` names a role: a theme that sets it
+    has taken over from the raw step, so the legacy pair is not judged for it."""
+    id: str
+    fg: str
+    bg: str
+    min: float
+    level: str
+    since: int = 1
+    group: str = ""
+    unless: str = ""
+
+
+# Hard errors apply to v2 manifests only; v1 manifests are never re-judged against them. The two "legacy" pairs
+# are the v1 validator's own, so project_v1() always passes it. Revision 3 adds the UI pairs (the steps and
+# classes the apps use instead of the roles: text-ink-400, text-accent-600, text-white on bg-ink-900 ...).
+_UI = dict(since=3, group="ui")
+CONTRAST_PAIRS: Tuple[Pair, ...] = (
+    Pair("legacy-ink-900-on-surface", "ink-900", "surface", 4.5, "error"),
+    Pair("legacy-on-primary-on-accent-600", "on-primary", "accent-600", 4.5, "error"),
+    Pair("text-on-surface", "text", "surface", 4.5, "error"),
+    Pair("text-on-surface-page", "text", "surface-page", 4.5, "error"),
+    Pair("text-on-surface-sunken", "text", "surface-sunken", 4.5, "error"),
+    Pair("text-muted-on-surface", "text-muted", "surface", 4.5, "error"),
+    Pair("text-muted-on-surface-page", "text-muted", "surface-page", 4.5, "error"),
+    Pair("text-inverse-on-surface-inverse", "text-inverse", "surface-inverse", 4.5, "error"),
+    Pair("text-link-on-surface", "text-link", "surface", 4.5, "error"),
+    Pair("on-primary-on-primary", "on-primary", "primary", 4.5, "error"),
+    Pair("success-text-on-soft", "success-text", "success-soft", 4.5, "error"),
+    Pair("warning-text-on-soft", "warning-text", "warning-soft", 4.5, "error"),
+    Pair("danger-text-on-soft", "danger-text", "danger-soft", 4.5, "error"),
+    Pair("info-text-on-soft", "info-text", "info-soft", 4.5, "error"),
+    Pair("focus-ring-on-surface", "focus-ring", "surface", 3.0, "error"),
     # The default input border (ink-200) is about 1.4:1, so this can only warn.
-    ("border-input-on-surface", "border-input", "surface", 3.0, "warning"),
+    Pair("border-input-on-surface", "border-input", "surface", 3.0, "warning"),
+    # --- Registry revision 3: the pairs the interface really uses ---
+    Pair("ink-400-on-surface", "ink-400", "surface", 4.5, "warning", **_UI),
+    Pair("ink-400-on-surface-page", "ink-400", "surface-page", 4.5, "warning", **_UI),
+    Pair("ink-500-on-surface", "ink-500", "surface", 4.5, "warning", **_UI),
+    Pair("ink-500-on-surface-page", "ink-500", "surface-page", 4.5, "warning", **_UI),
+    Pair("accent-600-on-surface", "accent-600", "surface", 4.5, "warning", unless="accent-text", **_UI),
+    Pair("accent-600-on-accent-50", "accent-600", "accent-50", 4.5, "warning", unless="accent-text", **_UI),
+    Pair("accent-700-on-surface", "accent-700", "surface", 4.5, "warning", unless="accent-text", **_UI),
+    Pair("accent-700-on-accent-50", "accent-700", "accent-50", 4.5, "warning", unless="accent-text", **_UI),
+    Pair("accent-text-on-surface", "accent-text", "surface", 4.5, "warning", **_UI),
+    Pair("accent-text-on-accent-50", "accent-text", "accent-50", 4.5, "warning", **_UI),
+    Pair("accent-ui-on-surface", "accent-ui", "surface", 3.0, "warning", **_UI),
+    Pair("on-primary-on-ink-900", "on-primary", "ink-900", 4.5, "warning", unless="on-inverse", **_UI),
+    Pair("on-primary-on-ink-800", "on-primary", "ink-800", 4.5, "warning", unless="on-inverse", **_UI),
+    Pair("on-primary-on-danger-600", "on-primary", "danger-600", 4.5, "warning", unless="on-inverse", **_UI),
+    Pair("on-primary-on-success-600", "on-primary", "success-600", 4.5, "warning", unless="on-inverse", **_UI),
+    Pair("on-inverse-on-inverse", "on-inverse", "inverse", 4.5, "error", **_UI),
+    Pair("on-inverse-on-danger-600", "on-inverse", "danger-600", 4.5, "warning", **_UI),
+    Pair("on-inverse-on-success-600", "on-inverse", "success-600", 4.5, "warning", **_UI),
+    Pair("success-600-on-surface", "success-600", "surface", 4.5, "warning", **_UI),
+    Pair("warning-600-on-surface", "warning-600", "surface", 4.5, "warning", **_UI),
+    Pair("danger-600-on-surface", "danger-600", "surface", 4.5, "warning", **_UI),
+    Pair("info-600-on-surface", "info-600", "surface", 4.5, "warning", **_UI),
 )
 # Component pairs checked as warnings: (id, fg token, bg token).
 COMPONENT_CONTRAST_PAIRS: Tuple[Tuple[str, str, str], ...] = (
@@ -680,10 +766,13 @@ def registry_json() -> dict:
         "v1_tokens": sorted(V1_TOKEN_NAMES),
         "components": [{"id": key, "label": label} for key, label in COMPONENTS.items()],
         "tokens": [token.as_dict() for token in TOKENS],
+        "revision_defaults": {str(revision): values for revision, values in sorted(REVISION_DEFAULTS.items())},
         "layout": LAYOUT_SPEC,
         "layout_defaults": default_layout("rail"),
         "panel_sidebar_width": PANEL_SIDEBAR_WIDTH,
-        "contrast_pairs": [{"id": i, "fg": f, "bg": b, "min": m, "level": l} for i, f, b, m, l in CONTRAST_PAIRS],
+        "contrast_pairs": [dict({"id": p.id, "fg": p.fg, "bg": p.bg, "min": p.min, "level": p.level, "since": p.since},
+                                **({"group": p.group} if p.group else {}), **({"unless": p.unless} if p.unless else {}))
+                           for p in CONTRAST_PAIRS],
         "component_contrast_pairs": [{"id": i, "fg": f, "bg": b} for i, f, b in COMPONENT_CONTRAST_PAIRS],
         "nav_bars": [{"bar": a, "tone": b, "bg": c} for a, b, c in NAV_BARS],
         "reference_depth": SELF_REFERENCE_DEPTH,

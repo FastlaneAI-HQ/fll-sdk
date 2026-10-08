@@ -376,7 +376,7 @@ def _check_tokens(tokens: Any, revision: int, problems: _Problems) -> Tuple[Dict
         if not isinstance(values, dict):
             problems.error(path, f"{layer_key} must be an object")
             continue
-        expected = {n for n, t in known.items() if t.layer == layer}
+        expected = {n for n, t in known.items() if t.layer == layer and not t.optional}
         if layer != "component":
             for name in sorted(expected - set(values)):
                 problems.error(f"{path}.{name}", f"Missing {layer} token {name}")
@@ -417,6 +417,10 @@ def _check_tokens(tokens: Any, revision: int, problems: _Problems) -> Tuple[Dict
             problems.error(path, "Invalid value: " + message)
         else:
             literals[name] = content
+            if revision >= 3 and token.type == "font-stack":
+                for family in _unquoted_digit_families(content):
+                    problems.warn(path, f"Font family {family} must be quoted ('{family}'): CSS rejects an unquoted name with a "
+                                        "word that starts with a digit, and the browser then drops the whole font stack")
     # References are followed downward: depth is capped and cycles are rejected.
     resolved: Dict[str, str] = dict(literals)
     memo: Dict[str, Optional[Tuple[str, int]]] = {}
@@ -523,13 +527,15 @@ class _Effective:
 
 
 def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems,
-                    mode: Optional[str] = None, where: str = "tokens", prefix: str = "") -> None:
+                    mode: Optional[str] = None, where: str = "tokens", prefix: str = "", revision: int = 1) -> None:
     """Judge every contrast pair. `mode` labels the rows of a theme that has a dark palette;
     `where` is the path root errors point at and `prefix` starts their message. With no mode
-    (every light-only theme) the rows are exactly what registry revision 1 produced."""
+    (every light-only theme) the rows are exactly what registry revision 1 produced. A pair is judged
+    only for a theme that targets the revision that introduced it (`revision`)."""
     effective = _Effective(resolved)
 
-    def pair(key: str, fg_name: str, bg_name: str, minimum: Optional[float], level: str, tone: Optional[str] = None):
+    def pair(key: str, fg_name: str, bg_name: str, minimum: Optional[float], level: str, tone: Optional[str] = None,
+             group: str = ""):
         fg, bg = effective.get(fg_name, tone), effective.get(bg_name, tone)
         if not (fg and bg and _COLOR.fullmatch(fg) and _COLOR.fullmatch(bg)):
             return
@@ -537,6 +543,8 @@ def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems,
         row = {"id": key, "fg": fg_name, "bg": bg_name, "fg_value": fg, "bg_value": bg,
                "ratio": round(ratio, 2), "min": minimum, "level": level,
                "pass": minimum is None or ratio >= minimum}
+        if group:
+            row["group"] = group
         if mode:
             row["mode"] = mode
         problems.contrast.append(row)
@@ -550,8 +558,9 @@ def _check_contrast(resolved: Dict[str, str], layout: dict, problems: _Problems,
             else:
                 problems.warn(path, message)
 
-    for key, fg, bg, minimum, level in registry.CONTRAST_PAIRS:
-        pair(key, fg, bg, minimum, level)
+    for item in registry.CONTRAST_PAIRS:
+        if item.since <= revision and not (item.unless and item.unless in resolved):
+            pair(item.id, item.fg, item.bg, item.min, item.level, group=item.group)
     bars = {"sidebar": layout["sidebar"]["side"] != "hidden", "navbar": layout["navbar"]["position"] != "hidden"}
     for bar, tone_name, bg_name in registry.NAV_BARS:
         if bars[bar]:
@@ -593,14 +602,15 @@ def _check_v2(value: Any) -> dict:
         dark_resolved, dark_valid = _check_dark_tokens(value["tokens"], dark, revision, problems)
     if tokens_valid and not any(e["path"].startswith("layout") for e in problems.errors):
         if scheme == "light":
-            _check_contrast(resolved, value["layout"], problems)
+            _check_contrast(resolved, value["layout"], problems, revision=revision)
         elif scheme == "dark":
-            _check_contrast(resolved, value["layout"], problems, mode="dark")
+            _check_contrast(resolved, value["layout"], problems, mode="dark", revision=revision)
             _check_dark_character(resolved, problems, "tokens", "")
         else:
-            _check_contrast(resolved, value["layout"], problems, mode="light")
+            _check_contrast(resolved, value["layout"], problems, mode="light", revision=revision)
             if dark_valid:
-                _check_contrast(dark_resolved, value["layout"], problems, mode="dark", where="modes.dark", prefix="In dark mode, ")
+                _check_contrast(dark_resolved, value["layout"], problems, mode="dark", where="modes.dark",
+                                prefix="In dark mode, ", revision=revision)
                 _check_dark_character(dark_resolved, problems, "modes.dark", "In dark mode, ")
     return problems.as_dict()
 
@@ -655,15 +665,16 @@ def default_theme_v2(theme_id: str = "fastlane", version: str = "2.0.0", label: 
 
     `scheme` "auto" adds the derived default dark palette as `modes.dark`; "dark" makes the
     theme's own tokens that palette. Both need registry revision 2 (the default).
-    `registry_revision=1` reproduces what SDK 1.3 produced.
+    `registry_revision=1` reproduces what SDK 1.3 produced and `2` what SDK 1.4 produced; revision 3 (SDK 1.5)
+    starts from the accessible palette (registry.REVISION_DEFAULTS) and sets the four optional roles.
     """
     revision = REGISTRY_REVISION if registry_revision is None else registry_revision
     theme = {
         "api_version": THEME_API_VERSION_V2, "registry_revision": revision,
         "id": theme_id, "version": version, "label": label, "color_scheme": "light",
         "tokens": {
-            "primitives": {t.name: t.default for t in registry.PRIMITIVES},
-            "semantic": {t.name: t.default for t in registry.SEMANTIC},
+            "primitives": {t.name: registry.default_for(t, revision) for t in registry.PRIMITIVES if t.since <= revision},
+            "semantic": {t.name: registry.default_for(t, revision) for t in registry.SEMANTIC if t.since <= revision},
             "components": {},
         },
         "layout": registry.default_layout("rail"),
@@ -682,6 +693,16 @@ def default_theme_v2(theme_id: str = "fastlane", version: str = "2.0.0", label: 
 
 
 webfonts = registry.webfonts
+
+
+def _unquoted_digit_families(stack: str) -> List[str]:
+    """The families of a font stack that are not quoted but have a word starting with a digit (invalid CSS)."""
+    found = []
+    for part in stack.split(","):
+        family = part.strip()
+        if family and not family.startswith("'") and any(word[:1].isdigit() for word in family.split(" ")):
+            found.append(family)
+    return found
 
 
 def _first_family(stack: str) -> str:
@@ -802,13 +823,56 @@ def _move_until(color: str, target: str, against: str, minimum: float) -> str:
     return target
 
 
+def _lighten_until(color: str, backgrounds: List[str], minimum: float) -> str:
+    """`color` moved toward white in whole percents until it reaches `minimum`:1 against every background."""
+    if all(contrast_ratio(color, background) >= minimum for background in backgrounds):
+        return color
+    start = _channels(color)
+    for percent in range(1, 101):
+        moved = _hex(*((a * (100 - percent) + 255 * percent + 50) // 100 for a in start))
+        if all(contrast_ratio(moved, background) >= minimum for background in backgrounds):
+            return moved
+    return "#ffffff"
+
+
+# The ink steps the interface paints text and icons with (text-ink-400 ... 700) and borders (ink-300), and the
+# least contrast each may have. Reversing a ramp leaves them at 2.5 to 3.6:1 on a dark surface.
+DARK_TEXT_STEPS = ((300, 3.0), (400, 4.5), (500, 4.5), (600, 4.5), (700, 4.5))
+
+
+def solve_dark_text(primitives: Dict[str, str], light_ratios: Dict[int, float], surface: str, page: str) -> None:
+    """Re-solve the dark ramp's text steps against the dark surface and page, in place.
+
+    Each step in DARK_TEXT_STEPS gets at least the contrast the light palette gives it on its own surface (so the
+    three-step hierarchy survives) and never less than its minimum; a step that already reads is left alone.
+    Registry revision 3 and later; registry 1 and 2 derive by reversal alone.
+    """
+    for shade, minimum in DARK_TEXT_STEPS:
+        name = f"ink-{shade}"
+        primitives[name] = _lighten_until(primitives[name], [surface, page], max(minimum, light_ratios.get(shade, minimum)))
+
+
+def lift_accent_roles(primitives: Dict[str, str], semantic: Dict[str, str], surface: str) -> None:
+    """The brand as text and as an indicator, in a dark palette, in place: the accent step `accent-text` and `accent-ui`
+    point at moves toward white until it reads on the dark surface (3:1 for the indicator) and, for the text, on the
+    dark tint behind a chip. Registry revision 3 and later."""
+    for role, minimum in (("accent-text", 4.5), ("accent-ui", 3.0)):
+        match = registry.REF.fullmatch(semantic.get(role, ""))
+        if match and match.group(1).startswith("accent-") and match.group(1) in primitives:
+            backgrounds = [surface] + ([primitives["accent-50"]] if role == "accent-text" else [])
+            primitives[match.group(1)] = _lighten_until(primitives[match.group(1)], backgrounds, minimum)
+
+
 def derive_dark(theme: Any) -> dict:
     """The `modes.dark` block derived from a v2 theme's own (light) tokens.
 
     Complete in color (every ramp and the surface), sparse elsewhere. The theme must be a
     valid v2 manifest; its existing `modes` and `color_scheme` are ignored. Deterministic.
+    A theme that targets registry revision 3 or later also gets readable text steps (see
+    solve_dark_text) and dark accent-text and accent-ui steps; earlier revisions derive as SDK 1.4 did.
     """
     tokens = theme["tokens"]
+    revision = theme["registry_revision"] if _is_int(theme.get("registry_revision")) else 1
     primitives: Dict[str, str] = {}
     ramp_step: Dict[str, str] = {}  # a light ramp color -> the name of the step it occupies
     dark_of: Dict[str, str] = {}  # that step's name -> the dark value at the same name
@@ -868,6 +932,12 @@ def derive_dark(theme: Any) -> dict:
     for role, minimum in (("text-link", 4.5), ("focus-ring", 3.0)):
         if role in steps:
             primitives[steps[role]] = _move_until(primitives[steps[role]], "#ffffff", surface, minimum)
+    if revision >= 3:
+        page = primitives["ink-50"]
+        light_surface = _flatten({name: content for layer in registry.LAYER_KEYS for name, content in tokens[layer].items()})["surface"]
+        solve_dark_text(primitives, {shade: contrast_ratio(tokens["primitives"][f"ink-{shade}"], light_surface)
+                                     for shade, _ in DARK_TEXT_STEPS}, surface, page)
+        lift_accent_roles(primitives, tokens["semantic"], surface)
     # Text on the primary color: the darker or the lighter end of the dark ramp, whichever reads better.
     merged = {name: content for layer in registry.LAYER_KEYS for name, content in tokens[layer].items()}
     merged.update(primitives)

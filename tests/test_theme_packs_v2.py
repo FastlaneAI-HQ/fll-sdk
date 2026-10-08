@@ -52,7 +52,7 @@ def test_v2_pack_round_trip_is_reproducible_and_has_three_files():
     assert result['format_version'] == 2 and result['presentation'] is None
     assert (result['theme'], result['sources']) == (theme, sources)
     assert result['sha256'] == hashlib.sha256(data).hexdigest()
-    assert result['warnings'] and all('border-input' in w or 'input-placeholder' in w for w in result['warnings'])
+    assert result['warnings'] == []  # the revision 3 default palette has accessible input borders and placeholders
     pack = json.loads(payload_of(data)['pack.json'])
     assert (pack['format_version'], pack['template_api_version'], sorted(pack['files'])) == (2, 2, ['sources.json', 'theme.json'])
 

@@ -45,16 +45,16 @@ def test_names_are_unique_kebab_case_and_layered():
     for token in registry.TOKENS:
         assert re.fullmatch(r'[a-z][a-z0-9]*(?:-[a-z0-9]+)*', token.name), token.name
         assert token.layer in registry.LAYERS and token.type in registry.TYPES
-        assert token.since == 1
+        assert token.since in (1, 3) and (token.since == 1 or token.optional)
         if token.layer == 'component':
             assert token.name.startswith(token.component + '-'), token.name
             assert token.component in registry.COMPONENTS
     assert {t.layer for t in registry.TOKENS} == set(registry.LAYERS)
-    assert registry.REGISTRY_REVISION == 2 == themes.REGISTRY_REVISION
+    assert registry.REGISTRY_REVISION == 3 == themes.REGISTRY_REVISION
 
 
 def test_token_counts_are_what_the_contract_documents():
-    assert (len(registry.PRIMITIVES), len(registry.SEMANTIC), len(registry.COMPONENT_TOKENS)) == (114, 39, 248)
+    assert (len(registry.PRIMITIVES), len(registry.SEMANTIC), len(registry.COMPONENT_TOKENS)) == (114, 43, 248)
 
 
 def defaults_of(token):
@@ -101,8 +101,9 @@ def test_ref_defaults_of_ranged_slots_resolve_in_range():
 
 
 def test_contrast_tables_name_real_tokens_and_the_default_theme_passes_them():
-    for _, fg, bg, _, _ in registry.CONTRAST_PAIRS:
-        assert fg in registry.INDEX and bg in registry.INDEX
+    for pair in registry.CONTRAST_PAIRS:
+        assert pair.fg in registry.INDEX and pair.bg in registry.INDEX
+        assert pair.unless == '' or registry.INDEX[pair.unless].optional
     for _, fg, bg in registry.COMPONENT_CONTRAST_PAIRS:
         assert fg in registry.INDEX and bg in registry.INDEX
     for _, tone, bg in registry.NAV_BARS:

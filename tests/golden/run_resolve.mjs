@@ -1,6 +1,6 @@
 /** Run frontend/theme-resolve.ts over golden fixtures and print the results as JSON.
- *  Usage: node tests/golden/run_resolve.mjs [theme-resolve|frozen-r1]  (needs the SDK's esbuild dev dependency)
- *  `frozen-r1` is what SDK 1.3 produced for registry revision 1: v1 upgrades are pinned to that revision. */
+ *  Usage: node tests/golden/run_resolve.mjs [theme-resolve|frozen-r1|frozen-r2]  (needs the SDK's esbuild dev dependency)
+ *  `frozen-r1` and `frozen-r2` are what SDK 1.3 and 1.4 produced for registry revisions 1 and 2: v1 upgrades are pinned to them. */
 import { build } from 'esbuild'
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -13,7 +13,7 @@ await build({ entryPoints: [resolve(here, '../../frontend/theme-resolve.ts')], o
 const lib = await import(pathToFileURL(out).href)
 const results = {}
 const set = process.argv[2] ?? 'theme-resolve'
-const revision = set === 'frozen-r1' ? 1 : undefined
+const revision = set === 'frozen-r1' ? 1 : set === 'frozen-r2' ? 2 : undefined
 const dir = join(here, set)
 for (const file of readdirSync(dir).filter(name => name.endsWith('.json')).sort()) {
   const golden = JSON.parse(readFileSync(join(dir, file), 'utf8'))

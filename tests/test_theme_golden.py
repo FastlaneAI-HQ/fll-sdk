@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / 'tests/golden/theme-resolve'
 FROZEN = ROOT / 'tests/golden/frozen-r1'
+FROZEN_R2 = ROOT / 'tests/golden/frozen-r2'
 
 
 def generator():
@@ -20,7 +21,7 @@ def generator():
 def test_python_results_match_the_golden_files():
     stale = [path.name for path, content in generator().outputs().items() if not path.exists() or path.read_text() != content]
     assert stale == [], 'run scripts/gen_theme_golden.py'
-    assert len(list(GOLDEN.glob('*.json'))) == 13
+    assert len(list(GOLDEN.glob('*.json'))) == 14
 
 
 def close(expected, actual):
@@ -61,3 +62,13 @@ def test_typescript_resolver_still_produces_every_frozen_revision_1_result(requi
             if key in golden:
                 assert close(golden[key], produced[path.name][key]), f'{path.name}: {key} changed'
         assert 'resolve_dark' not in produced[path.name]
+
+
+def test_typescript_resolver_still_produces_every_frozen_revision_2_result(require_node):
+    produced = typescript('frozen-r2', require_node)
+    assert len(produced) == 13
+    for path in sorted(FROZEN_R2.glob('*.json')):
+        golden = json.loads(path.read_text())
+        for key in ('upgrade', 'resolve_v1', 'project', 'resolve', 'contrast', 'resolve_dark', 'derive'):
+            if key in golden:
+                assert close(golden[key], produced[path.name][key]), f'{path.name}: {key} changed'

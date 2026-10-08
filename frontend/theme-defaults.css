@@ -135,6 +135,10 @@
   --fl-primary: var(--fl-accent-600);
   --fl-primary-hover: var(--fl-accent-700);
   --fl-primary-soft: var(--fl-accent-50);
+  --fl-inverse: var(--fl-ink-900);
+  --fl-on-inverse: var(--fl-surface);
+  --fl-accent-text: var(--fl-accent-600);
+  --fl-accent-ui: var(--fl-accent-600);
   --fl-success-solid: var(--fl-success-600);
   --fl-success-soft: var(--fl-success-50);
   --fl-success-border: var(--fl-success-200);

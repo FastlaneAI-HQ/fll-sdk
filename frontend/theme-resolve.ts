@@ -9,15 +9,18 @@ interface TokenSpec {
   name: string; layer: 'primitive' | 'semantic' | 'component'; type: string
   default: string | { dark: string; light: string }
   tone?: string; v1?: boolean; min?: number; max?: number; options?: string[]
+  since?: number; optional?: boolean
 }
 interface Registry {
   registry_revision: number
   tokens: TokenSpec[]
+  /** The palette a new theme starts from, by registry revision (a token's `default` is the CSS fallback and never changes). */
+  revision_defaults: Record<string, Record<string, string>>
   v1_tokens: string[]
   shades: number[]
   panel_sidebar_width: number
   layout_defaults: LayoutV2
-  contrast_pairs: { id: string; fg: string; bg: string; min: number; level: 'error' | 'warning' }[]
+  contrast_pairs: { id: string; fg: string; bg: string; min: number; level: 'error' | 'warning'; since: number; group?: string; unless?: string }[]
   component_contrast_pairs: { id: string; fg: string; bg: string }[]
   nav_bars: { bar: 'sidebar' | 'navbar'; tone: string; bg: string }[]
   webfonts: { family: string; weights: number[] }[]
@@ -139,8 +142,17 @@ export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: Colo
   return result
 }
 
+/** The default of a token for a new theme that targets `revision` (the current one when omitted). */
+export function defaultFor(spec: TokenSpec, revision = REGISTRY_REVISION): string | { dark: string; light: string } {
+  let value = spec.default
+  for (const step of Object.keys(registry.revision_defaults).map(Number).sort((a, b) => a - b)) {
+    if (step <= revision && spec.name in registry.revision_defaults[String(step)]) value = registry.revision_defaults[String(step)][spec.name]
+  }
+  return value
+}
+
 export function defaultThemeV2(id = 'fastlane', version = '2.0.0', label = 'Fastlane', scheme: ColorScheme = 'light', registryRevision = REGISTRY_REVISION): ThemeManifestV2 {
-  const layer = (name: string) => Object.fromEntries(registry.tokens.filter(t => t.layer === name).map(t => [t.name, t.default as string]))
+  const layer = (name: string) => Object.fromEntries(registry.tokens.filter(t => t.layer === name && (t.since ?? 1) <= registryRevision).map(t => [t.name, defaultFor(t, registryRevision) as string]))
   const theme: ThemeManifestV2 = {
     api_version: 2, registry_revision: registryRevision, id, version, label, color_scheme: 'light',
     tokens: { primitives: layer('primitive'), semantic: layer('semantic'), components: {} },
@@ -306,6 +318,8 @@ export function contrastRatio(first: string, second: string): number {
 export interface ContrastRow {
   id: string; fg: string; bg: string; fg_value: string; bg_value: string
   ratio: number; min: number | null; level: 'error' | 'warning'; pass: boolean
+  /** `ui` for a pair the interface really paints with (registry revision 3); absent for the role pairs. */
+  group?: string
   /** Present only for a theme with a dark palette. */
   mode?: ColorMode
 }
@@ -320,6 +334,7 @@ export function contrastReport(theme: ThemeManifestV2): ContrastRow[] {
 }
 
 function contrastRows(theme: ThemeManifestV2, mode: ColorMode, label: boolean): ContrastRow[] {
+  const revision = theme.registry_revision
   const resolved = flatten(theme, mode)
   const enumValue = (name: string) => resolved[name] ?? (index.get(name)!.default as string)
   const effective = (name: string, tone?: string, depth = 0): string | undefined => {
@@ -332,15 +347,19 @@ function contrastRows(theme: ThemeManifestV2, mode: ColorMode, label: boolean): 
     return match ? effective(match[1], tone, depth + 1) : fallback
   }
   const rows: ContrastRow[] = []
-  const pair = (id: string, fgName: string, bgName: string, min: number, level: 'error' | 'warning', tone?: string) => {
+  const pair = (id: string, fgName: string, bgName: string, min: number, level: 'error' | 'warning', tone?: string, group?: string) => {
     const fg = effective(fgName, tone), bg = effective(bgName, tone)
     if (!fg || !bg || !isColor(fg) || !isColor(bg)) return
     const ratio = contrastRatio(fg, bg)
     const row: ContrastRow = { id, fg: fgName, bg: bgName, fg_value: fg, bg_value: bg, ratio: Math.round(ratio * 100) / 100, min, level, pass: ratio >= min }
+    if (group) row.group = group
     if (label) row.mode = mode
     rows.push(row)
   }
-  for (const p of registry.contrast_pairs) pair(p.id, p.fg, p.bg, p.min, p.level)
+  // A pair is judged only for a theme that targets the revision that introduced it; `unless` names a role that replaces it.
+  for (const p of registry.contrast_pairs) {
+    if (p.since <= revision && !(p.unless && p.unless in resolved)) pair(p.id, p.fg, p.bg, p.min, p.level, undefined, p.group)
+  }
   const { sidebar, navbar } = theme.layout
   const visible = { sidebar: sidebar.side !== 'hidden', navbar: navbar.position !== 'hidden' }
   for (const bar of registry.nav_bars) if (visible[bar.bar]) pair(`nav-item-fg-on-${bar.bg}`, 'nav-item-fg', bar.bg, 4.5, 'error', enumValue(bar.tone))
@@ -414,11 +433,34 @@ function moveUntil(color: string, target: string, against: string, minimum: numb
   return target
 }
 
+/** `color` moved toward white in whole percents until it reaches `minimum`:1 against every background. */
+function lightenUntil(color: string, backgrounds: string[], minimum: number): string {
+  if (backgrounds.every(background => contrastRatio(color, background) >= minimum)) return color
+  const from = channels(color)
+  for (let percent = 1; percent <= 100; percent++) {
+    const moved = toHex(...([0, 1, 2].map(i => Math.floor((from[i] * (100 - percent) + 255 * percent + 50) / 100)) as [number, number, number]))
+    if (backgrounds.every(background => contrastRatio(moved, background) >= minimum)) return moved
+  }
+  return '#ffffff'
+}
+
+/** The ink steps the interface paints text and icons with, and the least contrast each may have on a dark surface. */
+export const DARK_TEXT_STEPS: readonly [number, number][] = [[300, 3.0], [400, 4.5], [500, 4.5], [600, 4.5], [700, 4.5]]
+
+/** Re-solve the dark ramp's text steps against the dark surface and page, in place (registry revision 3 and later). */
+export function solveDarkText(primitives: Record<string, string>, lightRatios: Record<number, number>, surface: string, page: string): void {
+  for (const [shade, minimum] of DARK_TEXT_STEPS) {
+    const name = `ink-${shade}`
+    primitives[name] = lightenUntil(primitives[name], [surface, page], Math.max(minimum, lightRatios[shade] ?? minimum))
+  }
+}
+
 /** The `modes.dark` block derived from a v2 theme's own (light) tokens: every ramp reversed, the
  *  surface between the page and ink-100, readable `on-primary`, a dark scrim, stronger shadows and the
  *  `light` bar tone (the dark-looking one on reversed ramps). Complete in color, sparse elsewhere. */
-export function deriveDark(theme: { tokens: TokenLayers }): TokenLayers {
+export function deriveDark(theme: { tokens: TokenLayers; registry_revision?: number }): TokenLayers {
   const tokens = theme.tokens
+  const revision = typeof theme.registry_revision === 'number' ? theme.registry_revision : 1
   const primitives: Record<string, string> = {}
   const rampStep = new Map<string, string>()
   for (const palette of registry.modes.ramps) {
@@ -459,6 +501,20 @@ export function deriveDark(theme: { tokens: TokenLayers }): TokenLayers {
   }
   for (const [role, minimum] of [['text-link', 4.5], ['focus-ring', 3.0]] as const) {
     if (role in steps) primitives[steps[role]] = moveUntil(primitives[steps[role]], '#ffffff', surface, minimum)
+  }
+  if (revision >= 3) {
+    const lightSurface = flattenRaw({ ...tokens.primitives, ...tokens.semantic, ...tokens.components })['surface']
+    const lightRatios: Record<number, number> = {}
+    for (const [shade] of DARK_TEXT_STEPS) lightRatios[shade] = contrastRatio(tokens.primitives[`ink-${shade}`], lightSurface)
+    solveDarkText(primitives, lightRatios, surface, primitives['ink-50'])
+    // The brand as text and as an indicator: the step the role points at moves toward white until it reads on the dark
+    // surface and on the (dark) tint behind a chip.
+    for (const [role, minimum] of [['accent-text', 4.5], ['accent-ui', 3.0]] as const) {
+      const match = REF.exec(tokens.semantic[role] ?? '')
+      if (match && match[1].startsWith('accent-') && match[1] in primitives) {
+        primitives[match[1]] = lightenUntil(primitives[match[1]], role === 'accent-text' ? [surface, primitives['accent-50']] : [surface], minimum)
+      }
+    }
   }
   // Text on the primary color: the darker or the lighter end of the dark ramp, whichever reads better.
   const primary = flattenRaw({ ...tokens.primitives, ...tokens.semantic, ...tokens.components, ...primitives, ...semantic, ...components })['primary']

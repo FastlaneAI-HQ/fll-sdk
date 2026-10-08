@@ -75,7 +75,9 @@ console.log(JSON.stringify({old: await run(old), new: await run({...old, theme:{
 """
 UNCHANGED = ['bg-ink-50', 'text-ink-900/60', 'border-ink-200', 'bg-accent-600', 'hover:bg-accent-700', 'bg-white', 'text-white',
              'rounded-lg', 'rounded-xl', 'rounded-2xl', 'font-sans', 'font-mono', 'leading-relaxed', 'tracking-tight', 'p-4', 'h-9',
-             'w-14', 'gap-3', 'text-[12px]', 'text-[13.5px]', 'rounded-full', 'font-normal', 'shadow']
+             'w-14', 'gap-3', 'text-[12px]', 'text-[13.5px]', 'rounded-full', 'font-normal', 'shadow',
+             # Revision 3 adds roles beside these; what they resolve to does not move.
+             'bg-ink-900', 'bg-ink-800', 'text-ink-400', 'text-ink-500', 'border-ink-300', 'text-accent-600', 'text-accent-700', 'bg-accent-50']
 FOLLOW_THE_THEME = ['border', 'rounded', 'rounded-md', 'rounded-sm', 'shadow-sm', 'shadow-lg', 'shadow-xl', 'transition', 'text-xs', 'text-sm',
                     'text-base', 'text-lg', 'text-xl', 'text-2xl', 'font-medium', 'font-semibold', 'font-bold', 'bg-red-50', 'text-emerald-700',
                     'border-amber-200', 'bg-sky-50', 'bg-sky-100', 'ring-red-500/20']
@@ -189,3 +191,21 @@ def test_platform_hues_are_tailwind_3_colors_and_reverse_in_dark(require_node):
     css = (ROOT / 'frontend/theme-defaults.css').read_text().split("[data-fl-mode='dark'] {")[1]
     rose = registry.HUE_RAMPS['rose']
     assert f"--fl-hue-rose-50: {' '.join(str(int(rose[10][i:i + 2], 16)) for i in (1, 3, 5))};" in css
+
+
+def test_revision_3_roles_get_tailwind_keys_with_the_fallback_that_reproduces_todays_rendering(require_node):
+    require_node('tailwindcss')
+    _, new = compare(['bg-inverse', 'text-on-inverse', 'text-accent-text', 'bg-accent-ui', 'border-accent-ui', 'ring-focus',
+                      'bg-surface-inverse', 'text-accent-text/50'])
+    text = ' '.join(new.values())
+    for variable, fallback in (('--fl-inverse', '26 27 33'), ('--fl-on-inverse', '255 255 255'), ('--fl-accent-text', '33 72 216'),
+                               ('--fl-accent-ui', '33 72 216'), ('--fl-focus-ring', '51 102 242'), ('--fl-surface-inverse', '16 17 23')):
+        assert f'var({variable}, {fallback})' in text, variable
+    # The fallbacks are the literals bg-ink-900 and text-accent-600 already render (ink-900 26 27 33, accent-600 33 72 216).
+
+
+def test_the_generated_css_declares_the_roles_with_the_same_fallbacks():
+    css = (ROOT / 'frontend/theme-defaults.css').read_text()
+    for line in ('--fl-inverse: var(--fl-ink-900);', '--fl-on-inverse: var(--fl-surface);',
+                 '--fl-accent-text: var(--fl-accent-600);', '--fl-accent-ui: var(--fl-accent-600);'):
+        assert line in css

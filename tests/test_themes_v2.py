@@ -81,7 +81,7 @@ def test_validate_theme_dispatches_on_api_version():
     (lambda t: t.update(registry_revision=0), 'registry_revision'),
     (lambda t: t.update(registry_revision=True), 'registry_revision'),
     (lambda t: t.update(registry_revision='1'), 'registry_revision'),
-    (lambda t: t.update(registry_revision=3), 'registry_revision'),
+    (lambda t: t.update(registry_revision=4), 'registry_revision'),
     (lambda t: t.update(id='../escape'), 'id'),
     (lambda t: t.update(id='Acme'), 'id'),
     (lambda t: t.update(version='1.0'), 'version'),
@@ -316,7 +316,7 @@ def test_component_contrast_only_warns_and_a_report_lists_every_pair():
 
 
 def test_a_theme_from_a_newer_registry_asks_for_a_workspace_update():
-    errors = check_theme(theme(registry_revision=3))['errors']
+    errors = check_theme(theme(registry_revision=4))['errors']
     assert 'Update the workspace' in errors[0]['message']
 
 
@@ -357,10 +357,14 @@ def test_v1_upgrades_to_v2_with_identical_tokens_and_layout(name):
 
 
 def test_the_fastlane_upgrade_is_exactly_the_registry_default():
-    upgraded = upgrade_v1(v1('fastlane-1.0.0'))
-    default = default_theme_v2('fastlane', '1.0.0', 'Fastlane')
+    upgraded = upgrade_v1(v1('fastlane-1.0.0'), registry_revision=2)
+    default = default_theme_v2('fastlane', '1.0.0', 'Fastlane', registry_revision=2)
     assert upgraded == default
     assert resolve_theme(upgraded)['vars'] == resolve_theme(default)['vars']
+    # Revision 3 starts a NEW theme from the accessible palette; an upgrade keeps fastlane 1.0.0's own ramp.
+    upgraded3 = upgrade_v1(v1('fastlane-1.0.0'))
+    assert upgraded3['registry_revision'] == registry.REGISTRY_REVISION
+    assert upgraded3['tokens']['primitives']['ink-400'] == '#8f929e' != default_theme_v2()['tokens']['primitives']['ink-400']
 
 
 def test_v1_resolution_matches_what_the_v1_applier_sets():

@@ -1,5 +1,5 @@
 {
-  "registry_revision": 2,
+  "registry_revision": 3,
   "layers": [
     "primitive",
     "semantic",
@@ -1503,6 +1503,50 @@
       "group": "brand",
       "label": "Primary tint",
       "since": 1
+    },
+    {
+      "name": "inverse",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{ink-900}",
+      "group": "surface",
+      "label": "Inverse fill",
+      "since": 3,
+      "note": "A dark fill that carries on-inverse text: dark buttons, the user's message, solid status fills. Fallback: ink-900.",
+      "optional": true
+    },
+    {
+      "name": "on-inverse",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{surface}",
+      "group": "text",
+      "label": "Text on the inverse fill",
+      "since": 3,
+      "note": "Readable on inverse and on a solid status fill. Fallback: surface (text-white on bg-ink-900 is on-primary, which is dark for a light brand).",
+      "optional": true
+    },
+    {
+      "name": "accent-text",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-600}",
+      "group": "brand",
+      "label": "Brand as text",
+      "since": 3,
+      "note": "The brand colour where it is text: at least 4.5:1 on surface and on accent-50. Fallback: accent-600.",
+      "optional": true
+    },
+    {
+      "name": "accent-ui",
+      "layer": "semantic",
+      "type": "color",
+      "default": "{accent-600}",
+      "group": "brand",
+      "label": "Brand as indicator",
+      "since": 3,
+      "note": "The brand colour where it is a control or indicator (a selected border, a progress bar): at least 3:1 on surface. Fallback: accent-600.",
+      "optional": true
     },
     {
       "name": "success-solid",
@@ -4464,6 +4508,17 @@
       "component": "skeleton"
     }
   ],
+  "revision_defaults": {
+    "3": {
+      "ink-300": "#898c98",
+      "ink-400": "#6d707e",
+      "ink-500": "#5f626e",
+      "success-600": "#04855f",
+      "warning-600": "#bb5908",
+      "info-600": "#027bbb",
+      "border-input": "{ink-300}"
+    }
+  },
   "layout": {
     "density": {
       "type": "enum",
@@ -4644,112 +4699,334 @@
       "fg": "ink-900",
       "bg": "surface",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "legacy-on-primary-on-accent-600",
       "fg": "on-primary",
       "bg": "accent-600",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-on-surface",
       "fg": "text",
       "bg": "surface",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-on-surface-page",
       "fg": "text",
       "bg": "surface-page",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-on-surface-sunken",
       "fg": "text",
       "bg": "surface-sunken",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-muted-on-surface",
       "fg": "text-muted",
       "bg": "surface",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-muted-on-surface-page",
       "fg": "text-muted",
       "bg": "surface-page",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-inverse-on-surface-inverse",
       "fg": "text-inverse",
       "bg": "surface-inverse",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "text-link-on-surface",
       "fg": "text-link",
       "bg": "surface",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "on-primary-on-primary",
       "fg": "on-primary",
       "bg": "primary",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "success-text-on-soft",
       "fg": "success-text",
       "bg": "success-soft",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "warning-text-on-soft",
       "fg": "warning-text",
       "bg": "warning-soft",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "danger-text-on-soft",
       "fg": "danger-text",
       "bg": "danger-soft",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "info-text-on-soft",
       "fg": "info-text",
       "bg": "info-soft",
       "min": 4.5,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "focus-ring-on-surface",
       "fg": "focus-ring",
       "bg": "surface",
       "min": 3.0,
-      "level": "error"
+      "level": "error",
+      "since": 1
     },
     {
       "id": "border-input-on-surface",
       "fg": "border-input",
       "bg": "surface",
       "min": 3.0,
-      "level": "warning"
+      "level": "warning",
+      "since": 1
+    },
+    {
+      "id": "ink-400-on-surface",
+      "fg": "ink-400",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "ink-400-on-surface-page",
+      "fg": "ink-400",
+      "bg": "surface-page",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "ink-500-on-surface",
+      "fg": "ink-500",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "ink-500-on-surface-page",
+      "fg": "ink-500",
+      "bg": "surface-page",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "accent-600-on-surface",
+      "fg": "accent-600",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "accent-text"
+    },
+    {
+      "id": "accent-600-on-accent-50",
+      "fg": "accent-600",
+      "bg": "accent-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "accent-text"
+    },
+    {
+      "id": "accent-700-on-surface",
+      "fg": "accent-700",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "accent-text"
+    },
+    {
+      "id": "accent-700-on-accent-50",
+      "fg": "accent-700",
+      "bg": "accent-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "accent-text"
+    },
+    {
+      "id": "accent-text-on-surface",
+      "fg": "accent-text",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "accent-text-on-accent-50",
+      "fg": "accent-text",
+      "bg": "accent-50",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "accent-ui-on-surface",
+      "fg": "accent-ui",
+      "bg": "surface",
+      "min": 3.0,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "on-primary-on-ink-900",
+      "fg": "on-primary",
+      "bg": "ink-900",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "on-inverse"
+    },
+    {
+      "id": "on-primary-on-ink-800",
+      "fg": "on-primary",
+      "bg": "ink-800",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "on-inverse"
+    },
+    {
+      "id": "on-primary-on-danger-600",
+      "fg": "on-primary",
+      "bg": "danger-600",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "on-inverse"
+    },
+    {
+      "id": "on-primary-on-success-600",
+      "fg": "on-primary",
+      "bg": "success-600",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui",
+      "unless": "on-inverse"
+    },
+    {
+      "id": "on-inverse-on-inverse",
+      "fg": "on-inverse",
+      "bg": "inverse",
+      "min": 4.5,
+      "level": "error",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "on-inverse-on-danger-600",
+      "fg": "on-inverse",
+      "bg": "danger-600",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "on-inverse-on-success-600",
+      "fg": "on-inverse",
+      "bg": "success-600",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "success-600-on-surface",
+      "fg": "success-600",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "warning-600-on-surface",
+      "fg": "warning-600",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "danger-600-on-surface",
+      "fg": "danger-600",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
+    },
+    {
+      "id": "info-600-on-surface",
+      "fg": "info-600",
+      "bg": "surface",
+      "min": 4.5,
+      "level": "warning",
+      "since": 3,
+      "group": "ui"
     }
   ],
   "component_contrast_pairs": [
@@ -4974,6 +5251,10 @@
       "primary",
       "primary-hover",
       "primary-soft",
+      "inverse",
+      "on-inverse",
+      "accent-text",
+      "accent-ui",
       "success-solid",
       "success-soft",
       "success-border",

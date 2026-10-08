@@ -1,7 +1,8 @@
 """Dark mode (registry revision 2): the data model, its validation, resolution and the derived palette.
 
 Revision 1 stays frozen (tests/test_theme_frozen_r1.py); everything here is new surface that only revision 2
-themes can use.
+themes can use. These tests describe revision 2, so every default theme in this file is pinned to it (revision 3
+changes what a new theme starts from and how its dark palette is derived: tests/test_themes_r3.py).
 """
 import colorsys
 import hashlib
@@ -14,9 +15,15 @@ from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 from fastlanelabs_sdk.theme_packs import create_theme_pack_v2, validate_theme_pack
 from fastlanelabs_sdk.themes import (
-    ThemeError, check_theme, contrast_report, default_theme_v2, derive_dark, effective_mode, offered_modes,
+    ThemeError, check_theme, contrast_report, derive_dark, effective_mode, offered_modes,
     project_v1, resolve_theme, validate_theme,
 )
+
+
+def default_theme_v2(*args, **kwargs):
+    kwargs.setdefault('registry_revision', 2)
+    return themes.default_theme_v2(*args, **kwargs)
+
 
 FIXTURES = Path(__file__).parent / 'fixtures/themes/v2'
 SOURCES = {'website': 'https://example.com', 'retrieved_at': '2026-10-05',
@@ -41,10 +48,11 @@ def luminance(color):
 
 # --- The data model ------------------------------------------------------------------------------
 
-def test_the_registry_is_revision_2_and_adds_no_token():
-    assert registry.REGISTRY_REVISION == 2 and registry.MODE_NAMES == ('dark',)
+def test_revision_2_added_no_token():
+    assert registry.REGISTRY_REVISION >= 2 and registry.MODE_NAMES == ('dark',)
     assert registry.color_schemes(1) == ('light',) and registry.color_schemes(2) == ('light', 'dark', 'auto')
-    assert all(token.since == 1 for token in registry.TOKENS)
+    assert registry.color_schemes(3) == registry.color_schemes(2)
+    assert not [token.name for token in registry.TOKENS if token.since == 2]
     assert set(registry.MODE_EXTRA_TOKENS) <= set(registry.INDEX)
     assert len(registry.DARK_REQUIRED) == 6 * 11 + 2 and {'surface', 'on-primary'} <= set(registry.DARK_REQUIRED)
 
@@ -510,7 +518,7 @@ def test_the_published_corpus_covers_every_scheme():
 
 def test_the_registry_json_carries_what_the_typescript_twin_needs():
     data = registry.registry_json()
-    assert data['registry_revision'] == 2 and data['color_schemes'] == {'1': ['light'], '2': ['light', 'dark', 'auto']}
+    assert data['registry_revision'] == registry.REGISTRY_REVISION and data['color_schemes'] == {'1': ['light'], '2': ['light', 'dark', 'auto']}
     assert data['modes']['required'] == list(registry.DARK_REQUIRED) and data['modes']['ramps'] == list(registry.COLOR_RAMPS)
     assert set(data['modes']['overridable']) == set(registry.MODE_TOKENS)
     assert 'rose' in data['hues'] and len(data['hues']['rose']) == 11 and data['black'] == {'light': '#000000', 'dark': '#f7f7f8'}
