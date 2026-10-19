@@ -22,6 +22,11 @@ contrast checks of the colours the interface really paints with (all warnings ex
 applied to an older revision), and a new palette for NEW themes (`REVISION_DEFAULTS`). A token's
 `default` stays what revisions 1 and 2 produced: it is the generated CSS fallback, so a published
 theme and a host without a theme render exactly as before.
+
+Revision 4 adds one optional key, `layout.shell`: a validated tree of containers and regions that a host
+renders in place of the fixed sidebar and navbar options (docs/layout-tree.md). Its limits, enums and defaults are
+data, not code: the layout vocabulary (registry_data/layout-vocabulary.json, owned by the Themes app). It adds no token,
+no contrast pair and no palette change, so a revision 4 theme without `shell` resolves exactly as a revision 3 one.
 """
 from __future__ import annotations
 
@@ -30,7 +35,11 @@ import re
 from importlib.resources import files
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
-REGISTRY_REVISION = 3
+REGISTRY_REVISION = 4
+REVISION = REGISTRY_REVISION  # the current revision, under the name the docs and the Themes app use
+# The revision that introduced `layout.shell`: a theme that targets an older one must not carry it.
+SHELL_SINCE = 4
+BRAND_SINCE = 4
 SHADES = (50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950)
 STATUSES = ("success", "warning", "danger", "info")
 SIZE_STEPS = ("2xs", "xs", "sm", "md", "base", "lg", "xl", "2xl", "3xl")
@@ -75,6 +84,7 @@ class Token(NamedTuple):
     v1: bool = False  # one of the 27 v1 names: literal values in the v1 grammar only
     note: str = ""
     optional: bool = False  # a semantic role a theme may leave unset; the default is its fallback
+    option_since: Tuple[Tuple[str, int], ...] = ()  # (option, revision) for an enum option added after the token: older revisions do not offer it
 
     def as_dict(self) -> dict:
         data = {"name": self.name, "layer": self.layer, "type": self.type, "default": self.default,
@@ -95,7 +105,14 @@ class Token(NamedTuple):
             data["note"] = self.note
         if self.optional:
             data["optional"] = True
+        if self.option_since:
+            data["option_since"] = dict(self.option_since)
         return data
+
+    def options_for(self, revision: int) -> Tuple[str, ...]:
+        """The enum options a theme that targets `revision` may use (an option added later is not offered to an older theme)."""
+        later = {name for name, since in self.option_since if since > revision}
+        return tuple(name for name in self.options if name not in later)
 
 
 _TOKENS: List[Token] = []
@@ -222,21 +239,22 @@ _TRANSFORMS = ("none", "uppercase", "capitalize")
 
 def _c(component: str, prop: str, type_: str, default: Any, part: str = "", label: str = "",
        options: Tuple[str, ...] = (), min_: Optional[float] = None, max_: Optional[float] = None,
-       tone: Optional[str] = None, note: str = "") -> None:
+       tone: Optional[str] = None, note: str = "", since: int = 1, option_since: Tuple[Tuple[str, int], ...] = ()) -> None:
     name = "-".join(x for x in (component, part, prop) if x)
     if type_ == "font-size" and min_ is None:
         min_, max_ = 8, 64
     text = label or (" ".join(x for x in (part.capitalize().replace("-", " "), _PROP_LABELS.get(prop, prop)) if x))
     _add(name, "component", type_, default, "component." + component, text, min=min_, max=max_,
-         options=options, component=component, tone=tone, note=note)
+         options=options, component=component, tone=tone, note=note, since=since, option_since=option_since)
 
 
 def _component(component: str, label: str) -> None:
     COMPONENTS[component] = label
 
 
-def _variant(component: str, options: Tuple[str, ...], default: str) -> None:
-    _c(component, "variant", "enum", default, options=options)
+def _variant(component: str, options: Tuple[str, ...], default: str, note: str = "",
+             option_since: Tuple[Tuple[str, int], ...] = ()) -> None:
+    _c(component, "variant", "enum", default, options=options, note=note, option_since=option_since)
 
 
 _component("button", "Button")
@@ -318,7 +336,9 @@ _c("page-header", "size", "font-size", "{size-base}", "sub")
 _c("page-header", "gap", "length", "{space-lg}", min_=0, max_=64)
 _c("page-header", "align", "enum", "start", options=("start", "center"))
 _c("page-header", "rule-color", "color", "{border-strong}", label="Rule color")
-_variant("page-header", ("plain", "ruled"), "plain")
+# `panel` (registry revision 4): the header sits in its own bordered card, like a highlights panel; core draws it.
+_variant("page-header", ("plain", "ruled", "panel"), "plain", option_since=(("panel", 4),),
+         note="panel (revision 4): the page header sits in its own bordered card; core draws it.")
 
 _component("table", "Table")
 _c("table", "bg", "color", "{surface-sunken}", "head")
@@ -434,7 +454,9 @@ _c("nav-item", "gap", "length", "{space-md}", min_=0, max_=48)
 _c("nav-item", "size", "font-size", "{size-base}")
 _c("nav-item", "weight", "weight", "{weight-medium}")
 _c("nav-item", "transform", "enum", "none", options=_TRANSFORMS)
-_variant("nav-item", ("square", "pill"), "square")
+# `tab` (registry revision 4): a horizontal navigation tab with no fill; the active item is marked by a thick bottom border in the active colour.
+_variant("nav-item", ("square", "pill", "tab"), "square", option_since=(("tab", 4),),
+         note="tab (revision 4): a horizontal navigation tab with no fill; the active item has a thick bottom border in the active colour.")
 
 _component("navbar", "Navbar")
 _c("navbar", "tone", "enum", "dark", options=("dark", "light"))
@@ -524,6 +546,12 @@ _c("gate", "radius", "length", "{radius}*2", min_=0, max_=9999)
 _c("gate", "max-width", "length", "416px", min_=320, max_=640)
 _c("gate", "size", "font-size", "{size-2xl}", "title")
 _c("gate", "bg", "color", "{surface-page}", "page")
+# Registry revision 4, for a branded sign-in page (the logo, the tagline and the theme's own colours): the card's shadow and
+# the heading and tagline colours. The fallbacks are what the sign-in page drew before they existed (text-ink-900 heading,
+# shadow-sm card, text-ink-600 lede/tagline). The page, card background, border and radius were already tokens above.
+_c("gate", "shadow", "shadow", "{shadow-sm}", since=4, label="Card shadow")
+_c("gate", "fg", "color", "{ink-900}", "title", since=4, label="Heading text")
+_c("gate", "fg", "color", "{ink-600}", "tagline", since=4, label="Tagline text")
 
 _component("scrollbar", "Scrollbar")
 _c("scrollbar", "thumb", "color", "{ink-200}", label="Thumb")
@@ -744,6 +772,8 @@ NAV_BARS = (("sidebar", "sidebar-tone", "sidebar-bg"), ("navbar", "navbar-tone",
 
 SELF_REFERENCE_DEPTH = 3
 TOP_LEVEL_KEYS = ("api_version", "registry_revision", "id", "version", "label", "color_scheme", "tokens", "layout")
+# Top-level keys a theme may add: `modes` (revision 2, dark palettes) and `brand` (revision 4, the logo).
+OPTIONAL_TOP_LEVEL_KEYS = ("modes", "brand")
 LAYER_KEYS = ("primitives", "semantic", "components")
 
 
@@ -757,9 +787,26 @@ def for_revision(revision: int) -> Dict[str, Token]:
     return {name: token for name, token in INDEX.items() if token.since <= revision}
 
 
+def _data(name: str) -> str:
+    return files("fastlanelabs_sdk.registry_data").joinpath(name).read_text()
+
+
 def webfonts() -> List[dict]:
     """The reviewed allow-list of webfont families the host may load (registry_data/fonts.json)."""
-    return json.loads(files("fastlanelabs_sdk.registry_data").joinpath("fonts.json").read_text())["fonts"]
+    return json.loads(_data("fonts.json"))["fonts"]
+
+
+_VOCABULARY: Optional[dict] = None
+
+
+def layout_vocabulary() -> dict:
+    """The built-in layout vocabulary (registry_data/layout-vocabulary.json): the limits, enums, defaults and presets a
+    `layout.shell` tree is validated against. Read only: it is a generated copy of the Themes app's file, shared by every
+    caller. A host that has a newer vocabulary from the Themes app passes it to `themes.validate_shell` instead."""
+    global _VOCABULARY
+    if _VOCABULARY is None:
+        _VOCABULARY = json.loads(_data("layout-vocabulary.json"))
+    return _VOCABULARY
 
 
 def registry_json() -> dict:
@@ -778,6 +825,8 @@ def registry_json() -> dict:
         "revision_defaults": {str(revision): values for revision, values in sorted(REVISION_DEFAULTS.items())},
         "layout": LAYOUT_SPEC,
         "layout_defaults": default_layout("rail"),
+        "shell": {"since": SHELL_SINCE, "vocabulary": "layout-vocabulary.json"},
+        "brand": {"since": BRAND_SINCE, "vocabulary": "layout-vocabulary.json"},
         "panel_sidebar_width": PANEL_SIDEBAR_WIDTH,
         "contrast_pairs": [dict({"id": p.id, "fg": p.fg, "bg": p.bg, "min": p.min, "level": p.level, "since": p.since},
                                 **({"group": p.group} if p.group else {}), **({"unless": p.unless} if p.unless else {}))
@@ -786,6 +835,7 @@ def registry_json() -> dict:
         "nav_bars": [{"bar": a, "tone": b, "bg": c} for a, b, c in NAV_BARS],
         "reference_depth": SELF_REFERENCE_DEPTH,
         "top_level_keys": list(TOP_LEVEL_KEYS),
+        "optional_top_level_keys": list(OPTIONAL_TOP_LEVEL_KEYS),
         "color_schemes": {"1": list(COLOR_SCHEMES_REV1), "2": list(COLOR_SCHEMES)},
         "modes": {"names": list(MODE_NAMES), "since": 2, "overridable": list(MODE_TOKENS), "required": list(DARK_REQUIRED),
                   "ramps": list(COLOR_RAMPS)},

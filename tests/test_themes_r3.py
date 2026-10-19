@@ -75,7 +75,8 @@ def test_the_platform_default_release_is_fastlane_2_0_0_and_current():
     data = json.loads(files('fastlanelabs_sdk.registry_data').joinpath('default-theme-v2.json').read_text())
     assert (data['id'], data['version'], data['api_version'], data['registry_revision']) == ('fastlane', '2.0.0', 2, 3)
     # The registry defaults, plus the shell the platform ships: a labelled sidebar on the page.
-    expected = default_theme_v2('fastlane', '2.0.0', 'Fastlane')
+    # The release stays at registry revision 3 (a published release is not re-versioned).
+    expected = default_theme_v2('fastlane', '2.0.0', 'Fastlane', registry_revision=3)
     expected['layout']['sidebar'].update({'style': 'panel', 'surface': 'flush', 'width': 224})
     assert data == expected == validate_theme(data)
     # A client that asks for contract 1 gets the 27 tokens, with the accessible ramp.

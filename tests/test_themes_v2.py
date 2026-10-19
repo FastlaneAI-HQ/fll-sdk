@@ -7,7 +7,7 @@ import pytest
 from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 from fastlanelabs_sdk.themes import (
-    ThemeError, check_theme, contrast_report, default_theme_v2, project_v1, resolve_theme,
+    ThemeError, check_theme, contrast_report, default_theme_v2, project_v1, resolve_theme, shell_from_layout,
     upgrade_v1, upgrade_v1_report, validate_theme,
 )
 
@@ -81,7 +81,7 @@ def test_validate_theme_dispatches_on_api_version():
     (lambda t: t.update(registry_revision=0), 'registry_revision'),
     (lambda t: t.update(registry_revision=True), 'registry_revision'),
     (lambda t: t.update(registry_revision='1'), 'registry_revision'),
-    (lambda t: t.update(registry_revision=4), 'registry_revision'),
+    (lambda t: t.update(registry_revision=5), 'registry_revision'),
     (lambda t: t.update(id='../escape'), 'id'),
     (lambda t: t.update(id='Acme'), 'id'),
     (lambda t: t.update(version='1.0'), 'version'),
@@ -316,7 +316,7 @@ def test_component_contrast_only_warns_and_a_report_lists_every_pair():
 
 
 def test_a_theme_from_a_newer_registry_asks_for_a_workspace_update():
-    errors = check_theme(theme(registry_revision=4))['errors']
+    errors = check_theme(theme(registry_revision=5))['errors']
     assert 'Update the workspace' in errors[0]['message']
 
 
@@ -374,7 +374,9 @@ def test_v1_resolution_matches_what_the_v1_applier_sets():
     assert resolved['vars']['--fl-radius'] == '2px' and resolved['vars']['--fl-font-sans'] == 'Arial, Helvetica, sans-serif'
     assert resolved['attrs'] == {'data-density': 'comfortable', 'data-theme': 'precision-hose'}
     assert 'data-fl-contract' not in resolved['attrs']
-    assert resolved['shell'] == {'attrs': {}, 'vars': {}}
+    assert (resolved['shell']['attrs'], resolved['shell']['vars']) == ({}, {})
+    # The tree a v1 theme's `navigation` choice describes (the registry's default layout of that style).
+    assert resolved['shell']['tree'] == shell_from_layout(registry.default_layout('panel' if v1('precision-hose-1.1.0')['layout']['navigation'] == 'sidebar' else 'rail'))
 
 
 def test_upgrade_notes_say_a_fork_is_an_approximation():

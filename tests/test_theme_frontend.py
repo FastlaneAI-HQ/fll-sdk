@@ -51,7 +51,7 @@ def test_sync_script_copies_the_v2_runtime_files(tmp_path):
     subprocess.run([sys.executable, str(ROOT / 'scripts/sync_theme_contract.py'), str(tmp_path)], check=True)
     generated = tmp_path / 'frontend/src/generated'
     assert sorted(path.name for path in generated.iterdir()) == [
-        'tailwind-preset.mjs', 'theme-contract.ts', 'theme-defaults.css', 'theme-pack-contract.ts',
+        'layout-vocabulary.json', 'tailwind-preset.mjs', 'theme-contract.ts', 'theme-defaults.css', 'theme-pack-contract.ts',
         'theme-registry.json', 'theme-resolve.ts']
     for path in generated.iterdir():
         assert path.read_bytes() == (ROOT / 'frontend' / path.name).read_bytes()

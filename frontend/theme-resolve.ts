@@ -1,8 +1,12 @@
 /** Pure theme v2 resolver: no DOM access. Mirrors fastlanelabs_sdk.themes (resolve_theme,
- *  upgrade_v1, project_v1, contrast_report); shared golden fixtures keep the two in step.
+ *  upgrade_v1, project_v1, contrast_report, validate_shell, normalise_shell, shell_from_layout); shared golden fixtures keep the two in step.
  *  Inputs are assumed valid: the server validates, and the editor validates before it applies. */
 import registryData from './theme-registry.json'
-import type { ColorMode, ColorScheme, LayoutV2, ResolvedTheme, ThemeManifestV2, TokenLayers } from './theme-contract'
+import vocabularyData from './layout-vocabulary.json'
+import type {
+  ColorMode, ColorScheme, LayoutV2, LayoutVocabulary, ResolvedShellContainer, ResolvedShellNode, ResolvedShellRegion, ResolvedShellTree,
+  BrandImage, BrandLogoLimits, ResolvedBrand, ResolvedTheme, ShellProblem, ShellSize, ShellTree, ThemeBrand, ThemeManifestV2, TokenLayers,
+} from './theme-contract'
 import type { LayoutNode, ThemeManifest, ThemePackPresentation } from './theme-pack-contract'
 
 interface TokenSpec {
@@ -10,6 +14,8 @@ interface TokenSpec {
   default: string | { dark: string; light: string }
   tone?: string; v1?: boolean; min?: number; max?: number; options?: string[]
   since?: number; optional?: boolean
+  /** Enum options added after the token: `{ tab: 4 }` means the option needs registry revision 4. */
+  option_since?: Record<string, number>
 }
 interface Registry {
   registry_revision: number
@@ -20,6 +26,11 @@ interface Registry {
   shades: number[]
   panel_sidebar_width: number
   layout_defaults: LayoutV2
+  layout: { content: { max_width: { max: number } } }
+  /** The registry revision that introduced `layout.shell`. */
+  shell: { since: number }
+  /** The registry revision that introduced `brand`. */
+  brand: { since: number }
   contrast_pairs: { id: string; fg: string; bg: string; min: number; level: 'error' | 'warning'; since: number; group?: string; unless?: string }[]
   component_contrast_pairs: { id: string; fg: string; bg: string }[]
   nav_bars: { bar: 'sidebar' | 'navbar'; tone: string; bg: string }[]
@@ -90,13 +101,15 @@ function cssValue(spec: TokenSpec, literal: string, raw: string): string {
   return literal
 }
 
-export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: ColorMode | null): ResolvedTheme {
+/** What the host applies for a theme. `shell.tree` is the normalised layout tree (see `shellTreeOf`); `shell.attrs` and `shell.vars`
+ *  are the classic data-* attributes and variables, unchanged for registry revisions 1 to 3. */
+export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: ColorMode | null, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedTheme {
   if (theme.api_version === 1) {
     return {
       api_version: 1,
       vars: Object.fromEntries(Object.entries(theme.tokens).map(([name, value]) => [`--fl-${name}`, isColor(value) ? triplet(value) : value])),
       attrs: { 'data-density': theme.layout.density, 'data-theme': theme.id },
-      layout: { ...theme.layout }, shell: { attrs: {}, vars: {} }, fonts: [], enums: {},
+      layout: { ...theme.layout }, shell: { attrs: {}, vars: {}, tree: shellTreeOf(theme, vocabulary) }, brand: null, fonts: [], enums: {},
     }
   }
   const scheme = theme.color_scheme ?? 'light'
@@ -131,7 +144,9 @@ export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: Colo
         '--fl-content-max-w': content.max_width === 0 ? 'none' : `${content.max_width}px`,
         '--fl-content-pad': step(content.padding), '--fl-content-gap': step(content.gap),
       },
+      tree: shellTreeOf(theme, vocabulary),
     },
+    brand: brandOf(theme, vocabulary),
     fonts,
     enums: Object.fromEntries(registry.tokens.filter(t => t.type === 'enum').map(t => [t.name, resolved[t.name] ?? (t.default as string)])),
   }
@@ -173,6 +188,596 @@ export function defaultLayout(style: 'rail' | 'panel' = 'rail'): LayoutV2 {
   layout.sidebar.style = style
   layout.sidebar.width = style === 'panel' ? registry.panel_sidebar_width : 56
   return layout
+}
+
+// --- Layout tree (registry revision 4): the same rules as themes.validate_shell, step for step. ---------------------------
+//
+// docs/layout-tree.md is the specification; every limit, enum, default and region option is read from the layout
+// vocabulary (layout-vocabulary.json), so a newer vocabulary changes what is accepted without a code change. Messages,
+// paths and their ORDER match the Python twin: tests/test_layout_tree_parity.py runs both over the same trees.
+
+/** The built-in layout vocabulary (a generated copy of the Themes app's file). A host with a newer one passes it instead. */
+export const layoutVocabulary = vocabularyData as unknown as LayoutVocabulary
+
+/** size.min and size.max may be this large on the content path: the range of layout.content.max_width (the vocabulary may
+ *  say otherwise with limits.content_path_px.max). */
+export const CONTENT_PATH_MAX_PX = registry.layout.content.max_width.max
+const SHELL_KINDS = ['container', 'region', 'spacer']
+
+type Obj = Record<string, unknown>
+const isObject = (value: unknown): value is Obj => typeof value === 'object' && value !== null && !Array.isArray(value)
+const has = (owner: object, key: string) => Object.prototype.hasOwnProperty.call(owner, key)
+const isInt = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value)
+const enumMessage = (options: string[]) => 'Must be one of ' + options.join(', ')
+const rangeMessage = (low: number, high: number) => `Must be a whole number ${low}-${high}`
+const contentPathMax = (vocabulary: LayoutVocabulary) => vocabulary.limits.content_path_px?.max ?? CONTENT_PATH_MAX_PX
+
+class ShellCheck {
+  nodes = 0
+  stopped = false
+  readonly limits: LayoutVocabulary['limits']
+  constructor(readonly vocab: LayoutVocabulary, readonly errors: ShellProblem[]) { this.limits = vocab.limits }
+
+  node(node: unknown, path: string, depth: number): void {
+    const limits = this.limits
+    if (this.stopped) return
+    if (depth > limits.max_depth) { this.errors.push({ path, message: `A shell is at most ${limits.max_depth} levels deep` }); return }
+    this.nodes += 1
+    if (this.nodes > limits.max_nodes) { this.errors.push({ path, message: `A shell has at most ${limits.max_nodes} nodes` }); this.stopped = true; return }
+    if (!isObject(node)) { this.errors.push({ path, message: 'A node must be an object' }); return }
+    const kind = node.type
+    if (depth === 1 && kind !== 'container') { this.errors.push({ path, message: 'The root of a shell must be a container' }); return }
+    if (typeof kind !== 'string' || !SHELL_KINDS.includes(kind)) {
+      this.errors.push({ path: `${path}.type`, message: 'type must be ' + SHELL_KINDS.slice(0, -1).join(', ') + ' or ' + SHELL_KINDS[SHELL_KINDS.length - 1] })
+      return
+    }
+    if (kind === 'container') this.container(node, path, depth)
+    else if (kind === 'region') this.region(node, path)
+    else this.unknown(node, path, ['type'])
+  }
+
+  unknown(node: Obj, path: string, allowed: string[]): void {
+    for (const key of Object.keys(node).filter(k => !allowed.includes(k)).sort()) this.errors.push({ path: `${path}.${key}`, message: `Unknown key ${key}` })
+  }
+
+  container(node: Obj, path: string, depth: number): void {
+    const spec = this.vocab.container
+    this.unknown(node, path, ['type', 'size', 'children', ...Object.keys(spec)])
+    for (const [name, field] of Object.entries(spec)) this.field(node, name, field, `${path}.${name}`)
+    if (has(node, 'size')) this.size(node.size, `${path}.size`)
+    const children = node.children
+    const high = this.limits.max_children
+    if (!Array.isArray(children) || children.length < 1 || children.length > high) {
+      this.errors.push({ path: `${path}.children`, message: `A container has 1 to ${high} children` })
+      return
+    }
+    children.forEach((child, index) => this.node(child, `${path}.children[${index}]`, depth + 1))
+  }
+
+  /** One container field, by the vocabulary's own description of it (enum, step or int). */
+  field(owner: Obj, name: string, field: LayoutVocabulary['container'][string], path: string): void {
+    if (!has(owner, name)) {
+      if (!has(field, 'default') && !field.optional) this.errors.push({ path, message: 'Required' })
+      return
+    }
+    const value = owner[name]
+    if (field.enum) {
+      if (typeof value !== 'string' || !field.enum.includes(value)) this.errors.push({ path, message: enumMessage(field.enum) })
+    } else if (field.step) {
+      if (typeof value !== 'string' || !this.vocab.steps.includes(value)) this.errors.push({ path, message: enumMessage(this.vocab.steps) })
+    } else if (field.int) {
+      const bounds = (this.limits as unknown as Record<string, { min: number; max: number }>)[name]
+      if (!isInt(value) || value < bounds.min || value > bounds.max) this.errors.push({ path, message: rangeMessage(bounds.min, bounds.max) })
+    }
+  }
+
+  size(size: unknown, path: string): void {
+    if (!isObject(size)) { this.errors.push({ path, message: 'size must be an object' }); return }
+    this.unknown(size, path, ['basis', 'min', 'max'])
+    const px = this.limits.size_px
+    const bases = this.vocab.size.bases
+    const named = bases.filter(base => base !== 'px')
+    if (!has(size, 'basis')) this.errors.push({ path: `${path}.basis`, message: 'Required' })
+    else {
+      const basis = size.basis
+      const valid = (typeof basis === 'string' && named.includes(basis)) || (bases.includes('px') && isInt(basis) && basis >= px.min && basis <= px.max)
+      if (!valid) this.errors.push({ path: `${path}.basis`, message: 'Must be ' + named.join(', ') + ` or a whole number of px ${px.min}-${px.max}` })
+    }
+    const high = contentPathMax(this.vocab)
+    const good: Record<string, number> = {}
+    for (const key of ['min', 'max']) {
+      if (!has(size, key)) continue
+      const value = size[key]
+      if (isInt(value) && value >= px.min && value <= high) good[key] = value
+      else this.errors.push({ path: `${path}.${key}`, message: rangeMessage(px.min, high) })
+    }
+    if ('min' in good && 'max' in good && good.min > good.max) this.errors.push({ path: `${path}.max`, message: 'max must be at least min' })
+  }
+
+  region(node: Obj, path: string): void {
+    this.unknown(node, path, ['type', 'region', 'size', 'options'])
+    const regions = this.vocab.regions
+    const name = node.region
+    const known = typeof name === 'string' && has(regions, name)
+    if (!has(node, 'region')) this.errors.push({ path: `${path}.region`, message: 'Required' })
+    else if (!known) {
+      const names = Object.keys(regions)
+      this.errors.push({ path: `${path}.region`, message: 'region must be ' + names.slice(0, -1).join(', ') + ' or ' + names[names.length - 1] })
+    }
+    if (has(node, 'size')) this.size(node.size, `${path}.size`)
+    if (!known) return
+    const spec = regions[name as string].options
+    const given = has(node, 'options') ? node.options : {}
+    if (has(node, 'options') && !isObject(given)) { this.errors.push({ path: `${path}.options`, message: 'options must be an object' }); return }
+    for (const key of Object.keys(given as Obj).filter(k => !has(spec, k)).sort()) this.errors.push({ path: `${path}.options.${key}`, message: `Unknown option ${key}` })
+    for (const [option, field] of Object.entries(spec)) this.option(given as Obj, option, field, `${path}.options.${option}`)
+  }
+
+  option(given: Obj, name: string, field: LayoutVocabulary['regions'][string]['options'][string], path: string): void {
+    if (!has(given, name)) {
+      if (!has(field, 'default') && !field.optional) this.errors.push({ path, message: 'Required' })
+      return
+    }
+    const value = given[name]
+    if (field.enum) {
+      if (typeof value !== 'string' || !field.enum.includes(value)) this.errors.push({ path, message: enumMessage(field.enum) })
+    } else if (field.pattern !== undefined) {
+      if (typeof value !== 'string' || !new RegExp(`^(?:${field.pattern})$`).test(value)) this.errors.push({ path, message: 'Must match ' + field.pattern })
+    } else if (field.json) {
+      if (!isObject(value)) { this.errors.push({ path, message: 'Must be a JSON object' }); return }
+      const high = this.limits.custom_props_bytes
+      let size: number
+      try { size = new TextEncoder().encode(JSON.stringify(value)).length } catch { this.errors.push({ path, message: 'Is nested too deeply' }); return }
+      if (size > high) this.errors.push({ path, message: `Must be at most ${high} bytes of JSON` })
+    }
+  }
+}
+
+function normaliseNode(node: Obj, vocabulary: LayoutVocabulary): ResolvedShellNode {
+  const kind = node.type
+  if (kind === 'spacer') return { type: 'spacer' }
+  const size = clone(has(node, 'size') ? node.size : vocabulary.size.default) as ShellSize
+  if (kind === 'container') {
+    const out: Obj = { type: 'container' }
+    for (const [name, field] of Object.entries(vocabulary.container)) {
+      if (has(node, name)) out[name] = node[name]
+      else if (has(field, 'default')) out[name] = field.default
+    }
+    out.size = size
+    out.children = (node.children as Obj[]).map(child => normaliseNode(child, vocabulary))
+    return out as unknown as ResolvedShellContainer
+  }
+  const given = (has(node, 'options') ? node.options : {}) as Obj
+  const options: Obj = {}
+  for (const [name, field] of Object.entries(vocabulary.regions[node.region as string].options)) {
+    if (has(given, name)) options[name] = clone(given[name])
+    else if (has(field, 'default')) options[name] = field.default
+  }
+  return { type: 'region', region: node.region, size, options } as unknown as ResolvedShellRegion
+}
+
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
+
+/** A valid shell with every default filled in (the tree a host renders). The input is not changed.
+ *  Every container carries direction, gap, padding, align, justify, chrome, surface, size, behavior and children (and
+ *  collapse_below when it set one); every region carries size and the full set of its options (a `custom` region keeps
+ *  `module`, and `props` only when it set it); a spacer is just its type. Behaviour for an invalid tree is undefined:
+ *  run validateShell first. */
+export function normaliseShell(shell: ShellTree, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedShellTree {
+  return { version: shell.version, root: normaliseNode(shell.root as unknown as Obj, vocabulary) as ResolvedShellContainer }
+}
+
+type Located = [ResolvedShellNode, string]
+
+function shellRules(tree: ResolvedShellTree, path: string, vocabulary: LayoutVocabulary, scroll: string | null | undefined,
+  installed: Set<string> | null, errors: ShellProblem[], warnings: ShellProblem[]): void {
+  const limits = vocabulary.limits, regions = vocabulary.regions
+  const pxMax = limits.size_px.max
+  const rootPath = `${path}.root`
+  const counts: Record<string, number> = {}
+  const chrome: Record<string, number> = {}
+
+  const walk = (node: ResolvedShellNode, nodePath: string): void => {
+    if (node.type === 'container') {
+      if (node.chrome !== 'none') {
+        chrome[node.chrome] = (chrome[node.chrome] ?? 0) + 1
+        if (chrome[node.chrome] > limits.max_chrome_per_family) {
+          errors.push({ path: `${nodePath}.chrome`, message: `At most ${limits.max_chrome_per_family} container${limits.max_chrome_per_family === 1 ? '' : 's'} may have chrome ${node.chrome}` })
+        }
+      }
+      if (node.behavior !== 'fixed' && scroll != null && scroll !== 'page') {
+        warnings.push({ path: `${nodePath}.behavior`, message: `behavior ${node.behavior} has no visible effect while scroll is ${scroll}; use scroll page or fixed` })
+      }
+      let fills = 0
+      node.children.forEach((child, index) => {
+        if (child.type !== 'spacer' && child.size.basis === 'fill') {
+          fills += 1
+          if (fills > 1) errors.push({ path: `${nodePath}.children[${index}].size`, message: 'At most one child of a container may fill (basis fill)' })
+        }
+      })
+      node.children.forEach((child, index) => walk(child, `${nodePath}.children[${index}]`))
+    } else if (node.type === 'region') {
+      const name = node.region
+      counts[name] = (counts[name] ?? 0) + 1
+      if (counts[name] > regions[name].max) {
+        errors.push({ path: nodePath, message: `At most ${regions[name].max} ${name} region${regions[name].max === 1 ? '' : 's'}` + (regions[name].required ? ' (a shell has exactly one)' : '') })
+      }
+      const module = (node.options as { module?: string }).module
+      if (name === 'custom' && installed !== null && module !== undefined) {
+        if (!installed.has(module)) {
+          warnings.push({ path: `${nodePath}.options.module`, message: `module not installed: ${module}; the region renders nothing until the pack that ships it is installed and approved` })
+        }
+      }
+    }
+  }
+  walk(tree.root, rootPath)
+  const needs: Record<string, string> = {
+    content: 'A shell needs a content region (the page itself)',
+    navigation: 'A shell needs a navigation region, so the user can always navigate',
+  }
+  for (const [name, spec] of Object.entries(regions)) {
+    if (spec.required && !counts[name]) errors.push({ path: rootPath, message: needs[name] ?? `A shell needs the ${name} region` })
+  }
+
+  // The content path: the first content region and every container above it.
+  const find = (node: ResolvedShellNode, nodePath: string): Located[] | null => {
+    if (node.type === 'region' && node.region === 'content') return [[node, nodePath]]
+    if (node.type === 'container') {
+      for (let index = 0; index < node.children.length; index++) {
+        const found = find(node.children[index], `${nodePath}.children[${index}]`)
+        if (found !== null) return [[node, nodePath] as Located, ...found]
+      }
+    }
+    return null
+  }
+  const trail = find(tree.root, rootPath)
+  const onPath = new Set<string>()
+  if (trail !== null) {
+    let parent: ResolvedShellContainer | null = null
+    for (const [node, nodePath] of trail) {
+      onPath.add(nodePath)
+      if (parent !== null && (node as ResolvedShellContainer | ResolvedShellRegion).size.basis !== 'fill' && parent.children.length !== 1) {
+        errors.push({ path: `${nodePath}.size`, message: 'The content region, and every container on the way to it, must fill (basis fill) or be the only child, so the page is never squeezed away' })
+      }
+      if (node.type === 'container' && node.collapse_below !== undefined) {
+        errors.push({ path: `${nodePath}.collapse_below`, message: 'The container that holds the content cannot collapse into a drawer' })
+      }
+      if (node.type === 'container') parent = node
+    }
+  }
+
+  const sizes = (node: ResolvedShellNode, nodePath: string, horizontal: number, vertical: number, parent: ResolvedShellContainer | null): void => {
+    if (node.type === 'spacer') return
+    if (parent !== null) {
+      const size = node.size
+      if (typeof size.basis === 'number') {
+        const row = parent.direction === 'row'
+        let over: boolean
+        if (row) { horizontal += size.basis; over = horizontal > limits.max_fixed_path_px && limits.max_fixed_path_px >= horizontal - size.basis }
+        else { vertical += size.basis; over = vertical > limits.max_fixed_path_px && limits.max_fixed_path_px >= vertical - size.basis }
+        if (over) errors.push({ path: `${nodePath}.size`, message: `Fixed sizes on one root-to-leaf path add up to at most ${limits.max_fixed_path_px}px along the ${row ? 'row' : 'column'} axis` })
+      }
+      if (!onPath.has(nodePath)) {
+        for (const key of ['min', 'max'] as const) {
+          const value = size[key]
+          if (value !== undefined && value > pxMax) errors.push({ path: `${nodePath}.size.${key}`, message: `Off the content path a size is at most ${pxMax}px` })
+        }
+      }
+    }
+    if (node.type === 'container') node.children.forEach((child, index) => sizes(child, `${nodePath}.children[${index}]`, horizontal, vertical, node))
+  }
+  sizes(tree.root, rootPath, 0, 0, null)
+}
+
+/** Check a `layout.shell` tree against the layout vocabulary: `{ errors, warnings }`, each `{ path, message }`.
+ *  `vocabulary` is the built-in one unless the host has a newer one from the Themes app. `path` is where the tree sits in
+ *  the theme; every problem names its node under it (`layout.shell.root.children[1].size`). `scroll` is layout.scroll: a
+ *  container whose behavior is not `fixed` only warns when it is known not to be `page`. `installedModules` is the set of
+ *  reviewed module ids the HOST has installed: when given, a `custom` region that names another one produces a "module not
+ *  installed" warning (a pack still imports); at the SDK level (null) every well-formed module id is valid. */
+export function validateShell(shell: unknown, vocabulary: LayoutVocabulary = layoutVocabulary, path = 'layout.shell',
+  scroll: string | null = null, installedModules: Iterable<string> | null = null): { errors: ShellProblem[]; warnings: ShellProblem[] } {
+  const errors: ShellProblem[] = [], warnings: ShellProblem[] = []
+  if (!isObject(shell)) return { errors: [{ path, message: 'Shell must be an object with version and root' }], warnings }
+  for (const key of Object.keys(shell).filter(k => k !== 'version' && k !== 'root').sort()) errors.push({ path: `${path}.${key}`, message: `Unknown key ${key}` })
+  if (!has(shell, 'version')) errors.push({ path: `${path}.version`, message: 'Required' })
+  else if (!isInt(shell.version) || shell.version !== vocabulary.shell_version) errors.push({ path: `${path}.version`, message: `version must be ${vocabulary.shell_version}` })
+  if (!has(shell, 'root')) errors.push({ path: `${path}.root`, message: 'Required' })
+  else new ShellCheck(vocabulary, errors).node(shell.root, `${path}.root`, 1)
+  if (errors.length === 0) {
+    shellRules(normaliseShell(shell as unknown as ShellTree, vocabulary), path, vocabulary, scroll,
+      installedModules === null ? null : new Set(installedModules), errors, warnings)
+  }
+  return { errors, warnings }
+}
+
+/** The tree a revision 1 to 3 layout describes (normalised); the same mapping as themes.shell_from_layout, see
+ *  docs/layout-tree.md ("From the options to a tree"). A sidebar carries the brand, the navigation and (with no navbar) the
+ *  actions; a navbar sits above or below the content and carries the brand and the navigation only when there is no sidebar. */
+export function shellFromLayout(layout: LayoutV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedShellTree {
+  const { sidebar, navbar, content } = layout
+  const sideOn = sidebar.side !== 'hidden', barOn = navbar.position !== 'hidden'
+  const region = (name: string, options?: Obj, size?: ShellSize): Obj => {
+    const node: Obj = { type: 'region', region: name }
+    if (size !== undefined) node.size = size
+    if (options !== undefined) node.options = options
+    return node
+  }
+  const page: Obj = content.max_width
+    ? { type: 'container', direction: 'row', justify: content.align === 'center' ? 'center' : 'start', size: { basis: 'fill' },
+        children: [region('content', undefined, { basis: 'fill', max: content.max_width })] }
+    : region('content', undefined, { basis: 'fill' })
+  const sidebarNode = (): Obj => {
+    const rail = sidebar.style === 'rail'
+    const children = [
+      region('brand', { name: rail ? 'hide' : 'auto' }),
+      region('navigation', { style: rail ? 'icons' : 'icons-labels', orientation: 'vertical' }, { basis: 'fill' }),
+    ]
+    if (!barOn) children.push(region('actions', { style: rail ? 'icons' : 'labels', orientation: 'vertical' }))
+    const node: Obj = {
+      type: 'container', direction: 'column', chrome: 'sidebar', surface: sidebar.surface, size: { basis: sidebar.width },
+      behavior: sidebar.behavior, collapse_below: sidebar.collapse_below, padding: 'sm', gap: 'xs', children,
+    }
+    if (rail) node.align = 'center'
+    return node
+  }
+  const navbarNode = (): Obj => {
+    const children: Obj[] = []
+    if (navbar.show_brand && !sideOn) children.push(region('brand', { name: 'show' }))
+    if (!sideOn) children.push(region('navigation', { style: 'icons-labels', orientation: 'horizontal', overflow: 'menu' }))
+    if (navbar.align === 'between') children.push({ type: 'spacer' })
+    children.push(region('actions', { style: 'labels', orientation: 'horizontal' }))
+    return {
+      type: 'container', direction: 'row', chrome: 'navbar', surface: 'flush', size: { basis: navbar.height }, behavior: navbar.behavior,
+      align: 'center', justify: navbar.align === 'center' ? 'center' : 'start', padding: 'md', gap: 'md', children,
+    }
+  }
+  const column = (firstBar: boolean, size?: ShellSize): Obj => {
+    const node: Obj = { type: 'container', direction: 'column', children: firstBar ? [navbarNode(), page] : [page, navbarNode()] }
+    if (size !== undefined) node.size = size
+    return node
+  }
+  let root: Obj
+  if (sideOn) {
+    const main = barOn ? column(navbar.position === 'top', { basis: 'fill' }) : page
+    root = { type: 'container', direction: 'row', children: sidebar.side === 'left' ? [sidebarNode(), main] : [main, sidebarNode()] }
+    if (sidebar.surface === 'floating') Object.assign(root, { padding: content.padding, gap: content.gap })
+  } else if (barOn) root = column(navbar.position === 'top')
+  else {
+    root = { type: 'container', direction: 'column', children: [region('navigation', { style: 'icons-labels', orientation: 'horizontal', overflow: 'menu' }), page] }
+  }
+  return normaliseShell({ version: vocabulary.shell_version as 1, root } as unknown as ShellTree, vocabulary)
+}
+
+/** The normalised tree a host renders for a valid theme: its own `layout.shell` at registry revision 4 and later, otherwise
+ *  the tree its layout options describe (`shellFromLayout`). A v1 theme is mapped from its `navigation` choice with the
+ *  registry's default layout (what `upgradeV1` starts from). Same as `resolveTheme(theme).shell.tree`. */
+export function shellTreeOf(theme: ThemeManifest | ThemeManifestV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedShellTree {
+  if (theme.api_version === 1) return shellFromLayout(defaultLayout(theme.layout.navigation === 'sidebar' ? 'panel' : 'rail'), vocabulary)
+  if (theme.registry_revision >= registry.shell.since && theme.layout.shell !== undefined) return normaliseShell(theme.layout.shell, vocabulary)
+  return shellFromLayout(theme.layout, vocabulary)
+}
+
+// --- Registry revision 4: the brand (logo). The same rules as themes.validate_brand, step for step. -----------------------
+//
+// docs/brand-logo.md is the specification; the limits come from the layout vocabulary's `brand.logo_limits`. Messages, paths and
+// their ORDER match the Python twin (tests/test_brand.py runs both over the same cases), so everything here avoids what differs
+// between the languages: ASCII-only case folding, explicit whitespace classes, code point counts.
+
+const BRAND_KEYS = ['logo', 'logo_dark', 'mark', 'tagline']
+const IMAGE_KEYS = ['src', 'alt']
+const B64 = /^[A-Za-z0-9+/]*={0,2}$/
+const ALT_CONTROL = /[\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]/
+const TRIM = /^[ \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+|[ \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+$/g
+const SVG_CONTROL = /[\x00-\x08\x0b\x0c\x0e-\x1f]/
+const svgTag = () => /<(?:[A-Za-z0-9_.-]+:)?(script|foreignobject|iframe|image|use)(?![A-Za-z0-9_:.-])/gi
+const svgHref = () => /(?:^|[^A-Za-z0-9_.:-])(?:[A-Za-z0-9_.-]+:)?href[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')/gi
+const svgAttr = () => /(?:^|[^A-Za-z0-9_.:-])((?:[A-Za-z0-9_.-]+:)?[A-Za-z_][A-Za-z0-9_.-]*)[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)(?=")|'([^']*)(?='))/g
+const SVG_DOCTYPE_SUBSET = /<!doctype[^>[]*\[/i
+const svgScheme = () => /(?:^|[^A-Za-z0-9+.-])(javascript|data|https?):/gi
+const svgUrlFunction = () => /url\([ \t\r\n]*["']?[ \t\r\n]*(javascript|data|https?)[ \t\r\n]*:/gi
+const SVG_NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
+const SVG_SIGNATURES: Record<string, [number[], string]> = { 'image/png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 'PNG'], 'image/jpeg': [[0xff, 0xd8, 0xff], 'JPEG'] }
+const SVG_FORBIDDEN_TAGS = ['script', 'foreignObject', 'iframe', 'image']
+
+const logoLimits = (vocabulary?: LayoutVocabulary | null): BrandLogoLimits => vocabulary?.brand?.logo_limits ?? layoutVocabulary.brand!.logo_limits
+const sizeText = (count: number) => (count % 1024 === 0 ? `${count / 1024} KiB` : `${count} bytes`)
+const asciiLower = (text: string) => text.replace(/[A-Z]/g, c => String.fromCharCode(c.charCodeAt(0) + 32))
+const trimText = (text: string) => text.replace(TRIM, '')
+const codePoints = (text: string) => Array.from(text).length
+const stripControl = (text: string) => text.replace(/[\x00-\x20]/g, '')
+const rstripSvg = (text: string) => text.replace(/[ \t\r\n]+$/, '')
+
+function decodeEntities(text: string): string {
+  return text.replace(/&(?:#[xX]([0-9a-fA-F]{1,8})|#([0-9]{1,8})|(amp|lt|gt|quot|apos));/g, (_m, hex: string | undefined, dec: string | undefined, name: string | undefined) => {
+    if (name) return SVG_NAMED[name]
+    const point = hex ? parseInt(hex, 16) : parseInt(dec as string, 10)
+    return point === 0 || point > 0x10ffff || (point >= 0xd800 && point <= 0xdfff) ? '\ufffd' : String.fromCodePoint(point)
+  })
+}
+
+/** Why a decoded SVG text is not acceptable (empty when it is). Order: structure, then each forbidden construct. */
+function svgProblems(source: string): string[] {
+  const problems: string[] = []
+  if (SVG_CONTROL.test(source)) problems.push('An SVG must be well-formed text, with no control characters')
+  let index = 0
+  const size = source.length
+  for (;;) {
+    while (index < size && ' \t\r\n'.includes(source[index])) index++
+    if (source.startsWith('<?', index)) { const end = source.indexOf('?>', index + 2); index = end < 0 ? size + 1 : end + 2 }
+    else if (source.startsWith('<!--', index)) { const end = source.indexOf('-->', index + 4); index = end < 0 ? size + 1 : end + 3 }
+    else if (asciiLower(source.slice(index, index + 9)) === '<!doctype') {
+      let end = source.indexOf('>', index)
+      const bracket = source.indexOf('[', index)
+      if ((bracket >= 0 && bracket < end) || (bracket >= 0 && end < 0)) {
+        const close = source.indexOf(']', bracket)
+        end = close < 0 ? -1 : source.indexOf('>', close)
+      }
+      index = end < 0 ? size + 1 : end + 1
+    }
+    else break
+  }
+  if (index > size || !(source.startsWith('<svg', index) && index + 4 < size && ' \t\r\n/>'.includes(source[index + 4]))) {
+    problems.push('An SVG must start at <svg (an XML prolog and comments may come before it)')
+  }
+  let tail = rstripSvg(source)
+  while (tail.endsWith('-->') && tail.lastIndexOf('<!--') >= 0) tail = rstripSvg(tail.slice(0, tail.lastIndexOf('<!--')))
+  if (!(tail.endsWith('</svg>') || (tail.endsWith('/>') && tail.indexOf('>', index) === tail.length - 1))) problems.push('An SVG must be well-formed: it must end with </svg>')
+  const text = decodeEntities(source)
+  const found = new Set<string>()
+  let externalUse = false
+  for (const match of text.matchAll(svgTag())) {
+    const name = match[1].toLowerCase()
+    found.add(name)
+    if (name === 'use') {
+      const end = text.indexOf('>', match.index! + match[0].length)
+      for (const href of text.slice(match.index! + match[0].length, end < 0 ? text.length : end).matchAll(svgHref())) {
+        externalUse = externalUse || !stripControl(href[1] !== undefined ? href[1] : href[2]).startsWith('#')
+      }
+    }
+  }
+  for (const name of SVG_FORBIDDEN_TAGS) if (found.has(name.toLowerCase())) problems.push(`An SVG must not contain <${name}>`)
+  if (externalUse) problems.push('An SVG <use> may only point at an element in the same file (an href starting with #)')
+  if (/<!entity/i.test(text)) problems.push('An SVG must not declare entities (<!ENTITY)')
+  if (SVG_DOCTYPE_SUBSET.test(text)) problems.push('An SVG must not have a DOCTYPE with an internal subset')
+  if (/@import/i.test(text)) problems.push('An SVG must not use @import')
+  let events = false, script = false, external = false
+  for (const match of text.matchAll(svgAttr())) {
+    const name = match[1]
+    if (name === 'xmlns' || name.startsWith('xmlns:')) continue
+    if (asciiLower(name.slice(name.lastIndexOf(':') + 1)).startsWith('on')) events = true
+    const value = stripControl(match[2] !== undefined ? match[2] : match[3])
+    for (const scheme of value.matchAll(svgScheme())) {
+      if (asciiLower(scheme[1]) === 'javascript') script = true
+      else external = true
+    }
+  }
+  for (const match of text.matchAll(svgUrlFunction())) {
+    if (asciiLower(match[1]) === 'javascript') script = true
+    else external = true
+  }
+  if (events) problems.push('An SVG must not have event attributes (on*=)')
+  if (script) problems.push('An SVG must not contain javascript: URLs')
+  if (external) problems.push('An SVG must not load external or data: URLs (http:, https: or data:)')
+  return problems
+}
+
+/** The problems of one image `src` (the first failing step, or the SVG's list) and its decoded size. */
+function imageSource(src: unknown, limits: BrandLogoLimits): { problems: string[]; size: number } {
+  const fail = (message: string, size = 0) => ({ problems: [message], size })
+  if (typeof src !== 'string') return fail('Must be a data: URI string')
+  if (!src.startsWith('data:')) return fail("Must be a data: URI (data:image/png;base64,...); a theme's images are never fetched")
+  const comma = src.indexOf(',')
+  if (comma < 0) return fail('Malformed data URI: expected data:<type>;base64,<payload>')
+  const header = src.slice(5, comma), payload = src.slice(comma + 1)
+  if (!header.endsWith(';base64')) return fail('The data URI must be base64: data:<type>;base64,<payload>')
+  const mime = header.slice(0, -7)
+  if (!limits.types.includes(mime)) return fail('Type must be one of ' + limits.types.join(', '))
+  if (payload.length % 4 !== 0 || !B64.test(payload)) return fail('The payload is not valid base64')
+  const size = payload.length / 4 * 3 - (payload.length - payload.replace(/=+$/, '').length)
+  if (size === 0) return fail('The image is empty')
+  if (size > limits.max_image_bytes) return fail(`The image is ${size} bytes; at most ${sizeText(limits.max_image_bytes)}`, size)
+  const binary = atob(payload)
+  const data = Uint8Array.from(binary, c => c.charCodeAt(0))
+  if (mime === 'image/svg+xml') {
+    let text: string
+    try { text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(data) } catch { return fail('An SVG must be UTF-8 text', size) }
+    return { problems: svgProblems(text), size }
+  }
+  let valid: boolean, label: string
+  if (mime === 'image/webp') {
+    valid = data.length >= 12 && binary.startsWith('RIFF') && binary.slice(8, 12) === 'WEBP'
+    label = 'WebP'
+  } else {
+    const [signature, name] = SVG_SIGNATURES[mime]
+    valid = signature.every((byte, i) => data[i] === byte)
+    label = name
+  }
+  return valid ? { problems: [], size } : fail(`The data is not a ${label} image (wrong file signature)`, size)
+}
+
+function textProblem(value: unknown, limit: number): string | null {
+  if (typeof value !== 'string') return 'Must be text'
+  if (ALT_CONTROL.test(value)) return 'Must not contain control characters'
+  const length = codePoints(trimText(value))
+  return length >= 1 && length <= limit ? null : `Must be 1 to ${limit} characters`
+}
+
+/** Check a theme's `brand` (registry revision 4): `{ errors, warnings }` with the path of every problem (`brand.logo.src`). Never throws.
+ *  `vocabulary` supplies `brand.logo_limits` (the built-in one when omitted). Problems come in a fixed order: unknown keys
+ *  (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`; inside an image its unknown keys, `src`, `alt`, `height`; last the
+ *  size of all the images together. `logo_dark` (the logo drawn on dark backgrounds) follows the rules of `logo` and needs a `logo`. */
+export function validateBrand(brand: unknown, vocabulary: LayoutVocabulary = layoutVocabulary, path = 'brand'): { errors: ShellProblem[]; warnings: ShellProblem[] } {
+  const errors: ShellProblem[] = [], warnings: ShellProblem[] = []
+  if (!isObject(brand)) return { errors: [{ path, message: 'Brand must be an object with logo, mark and tagline' }], warnings }
+  const limits = logoLimits(vocabulary), height = limits.height
+  const error = (where: string, message: string) => { errors.push({ path: where, message }) }
+  for (const key of Object.keys(brand).filter(k => !BRAND_KEYS.includes(k)).sort()) error(`${path}.${key}`, `Unknown key ${key}`)
+  if (Object.keys(brand).length === 0) error(path, 'Brand must set logo, mark or tagline')
+  let total = 0
+  for (const key of ['logo', 'logo_dark', 'mark']) {
+    if (!has(brand, key)) continue
+    const image = brand[key], where = `${path}.${key}`
+    if (key === 'logo_dark' && !has(brand, 'logo')) error(where, 'logo_dark needs a logo')
+    if (!isObject(image)) { error(where, 'Must be an object with src and alt'); continue }
+    const allowed = key !== 'mark' ? [...IMAGE_KEYS, 'height'] : IMAGE_KEYS
+    for (const name of Object.keys(image).filter(k => !allowed.includes(k)).sort()) error(`${where}.${name}`, `Unknown key ${name}`)
+    if (!has(image, 'src')) error(`${where}.src`, 'Required')
+    else {
+      const found = imageSource(image.src, limits)
+      for (const message of found.problems) error(`${where}.src`, message)
+      if (found.problems.length === 0) total += found.size
+    }
+    if (!has(image, 'alt')) error(`${where}.alt`, 'Required')
+    else {
+      const message = textProblem(image.alt, limits.alt_max)
+      if (message) error(`${where}.alt`, message)
+    }
+    if (key !== 'mark' && has(image, 'height') && (!isInt(image.height) || image.height < height.min || image.height > height.max)) {
+      error(`${where}.height`, rangeMessage(height.min, height.max))
+    }
+  }
+  if (has(brand, 'tagline')) {
+    const message = textProblem(brand.tagline, limits.tagline_max)
+    if (message) error(`${path}.tagline`, message)
+  }
+  if (total > limits.max_total_bytes) error(path, `The images of a brand add up to ${total} bytes; at most ${sizeText(limits.max_total_bytes)}`)
+  return { errors, warnings }
+}
+
+/** The brand a host draws: `{ logo, logo_dark, mark, tagline }` with the defaults filled (`logo.height`; `logo_dark.height` follows the
+ *  logo's height, else the vocabulary's default) and the text trimmed, an absent part null; null for a theme without a brand.
+ *  Assumes a valid brand (see `validateBrand`). */
+export function normaliseBrand(brand: ThemeBrand | null | undefined, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedBrand | null {
+  if (brand === null || brand === undefined) return null
+  const { logo, mark, tagline } = brand, dark = brand.logo_dark
+  const logoHeight = logo === undefined ? logoLimits(vocabulary).height.default : logo.height ?? logoLimits(vocabulary).height.default
+  return {
+    logo: logo === undefined ? null : { src: logo.src, alt: trimText(logo.alt), height: logoHeight },
+    logo_dark: dark === undefined ? null : { src: dark.src, alt: trimText(dark.alt), height: dark.height ?? logoHeight },
+    mark: mark === undefined ? null : { src: mark.src, alt: trimText(mark.alt) },
+    tagline: tagline === undefined ? null : trimText(tagline),
+  }
+}
+
+/** The logo to draw on a background: on a dark one (a dark header, a dark palette) `logo_dark` when the brand has one, else `logo`;
+ *  on a light one `logo`. `brand` is a normalised brand (`resolveTheme(...).brand`) or null; the result is null when there is
+ *  nothing to draw. Core calls it with the container's tone or the palette mode. */
+export function brandLogoFor(brand: ResolvedBrand | null, onDark: boolean): (BrandImage & { height: number }) | null {
+  if (brand === null) return null
+  return onDark && brand.logo_dark !== null ? brand.logo_dark : brand.logo
+}
+
+/** The normalised brand of a valid theme: its own `brand` at registry revision 4 and later, otherwise null (every v1 theme, and
+ *  v2 themes of revisions 1 to 3, have none). Same as `resolveTheme(theme).brand`. */
+export function brandOf(theme: ThemeManifest | ThemeManifestV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedBrand | null {
+  if (theme.api_version === 1 || theme.registry_revision < registry.brand.since) return null
+  return normaliseBrand(theme.brand, vocabulary)
+}
+
+/** The enum options of a token that a theme targeting `revision` may use: an option added later (`option_since`) is not offered to an older theme. */
+export function optionsFor(spec: TokenSpec, revision = REGISTRY_REVISION): string[] {
+  return (spec.options ?? []).filter(name => (spec.option_since?.[name] ?? 1) <= revision)
 }
 
 /** The 27 v1-named tokens in a v1 manifest, as the v2 layers they live in. */

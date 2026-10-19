@@ -7,7 +7,9 @@ manifest shape (token layers plus layout variants) driven by `theme_registry`.
 """
 from __future__ import annotations
 
+import base64
 import copy
+import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -176,7 +178,7 @@ def _ease_error(text: str) -> Optional[str]:
     return "must be linear, ease, ease-in, ease-out, ease-in-out or cubic-bezier(a,b,c,d) with a-d in 0-1"
 
 
-def _literal_error(token: "registry.Token", text: str) -> Optional[str]:
+def _literal_error(token: "registry.Token", text: str, revision: int = registry.REGISTRY_REVISION) -> Optional[str]:
     """Why `text` is not a valid literal for this token's type, or None."""
     kind = token.type
     if token.v1:
@@ -204,7 +206,8 @@ def _literal_error(token: "registry.Token", text: str) -> Optional[str]:
     if kind == "tracking":
         return None if _TRACKING.fullmatch(text) else "must be 0 or a number of em, e.g. -0.01em"
     if kind == "enum":
-        return None if text in token.options else "must be one of " + ", ".join(token.options)
+        options = token.options_for(revision)
+        return None if text in options else "must be one of " + ", ".join(options)
     return "unsupported token type"
 
 
@@ -270,7 +273,7 @@ def _is_v2(value: Any) -> bool:
 
 def _check_header(value: dict, problems: _Problems) -> Tuple[int, str]:
     """Top-level fields; returns the registry revision to check tokens against and the color scheme."""
-    keys = set(value) - {"modes"}
+    keys = set(value) - set(registry.OPTIONAL_TOP_LEVEL_KEYS)
     if keys != set(registry.TOP_LEVEL_KEYS):
         problems.error("", "Theme must contain only " + ", ".join(registry.TOP_LEVEL_KEYS))
     revision = value.get("registry_revision")
@@ -281,6 +284,8 @@ def _check_header(value: dict, problems: _Problems) -> Tuple[int, str]:
         problems.error("registry_revision",
                        f"Theme targets registry revision {revision}; this workspace supports {registry.REGISTRY_REVISION}. Update the workspace")
         revision = registry.REGISTRY_REVISION
+    if "brand" in value and revision < registry.BRAND_SINCE:
+        problems.error("brand", f"brand needs registry_revision {registry.BRAND_SINCE} or later")
     if "id" in value and (not isinstance(value["id"], str) or not _ID.fullmatch(value["id"])):
         problems.error("id", "Invalid theme id")
     if "version" in value and (not isinstance(value["version"], str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", value["version"])):
@@ -412,7 +417,7 @@ def _check_tokens(tokens: Any, revision: int, problems: _Problems) -> Tuple[Dict
                 else:
                     refs[name] = target.name
             continue
-        message = _literal_error(token, content)
+        message = _literal_error(token, content, revision)
         if message:
             problems.error(path, "Invalid value: " + message)
         else:
@@ -459,11 +464,760 @@ def _layer_key(layer: str) -> str:
     return {"primitive": "primitives", "semantic": "semantic", "component": "components"}[layer]
 
 
-def _check_layout(layout: Any, problems: _Problems) -> None:
+# --- Layout tree (registry revision 4) ---------------------------------------------------------------------------
+#
+# docs/layout-tree.md is the specification. Every limit, enum, default and region option is read from the layout
+# vocabulary (registry_data/layout-vocabulary.json, owned by the Themes app), so a newer vocabulary changes what is
+# accepted without a code change. frontend/theme-resolve.ts (validateShell, normaliseShell, shellFromLayout) is the twin,
+# step for step, including the order of the messages: tests/test_layout_tree_parity.py runs both over the same trees.
+#
+# Validation is two passes. The structure pass (keys, types, enums, ranges, limits) walks the tree depth first and visits
+# the children of a node in order. When it finds nothing, the rule pass runs on the normalised tree (fill path, counts,
+# fixed sizes, chrome, behavior, modules). A rule is never judged on a tree that is not well formed.
+
+# size.min and size.max may be this large on the content path (the range of layout.content.max_width), because
+# shell_from_layout turns content.max_width into the content region's size.max. A vocabulary may state its own bound
+# as limits.content_path_px.max.
+CONTENT_PATH_MAX_PX = registry.LAYOUT_SPEC["content"]["max_width"]["max"]
+_SHELL_KINDS = ("container", "region", "spacer")
+_SHELL_ROOT_KEYS = ("version", "root")
+_SHELL_SIZE_KEYS = ("basis", "min", "max")
+
+
+def _shell_vocab(vocabulary: Optional[dict]) -> dict:
+    return registry.layout_vocabulary() if vocabulary is None else vocabulary
+
+
+def _content_path_max(vocabulary: dict) -> int:
+    return (vocabulary["limits"].get("content_path_px") or {}).get("max", CONTENT_PATH_MAX_PX)
+
+
+def _js_json(value: Any) -> str:
+    """Compact JSON the way JSON.stringify writes it, so the TypeScript twin measures the same number of bytes."""
+    if value is None:
+        return "null"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        if value != value or value in (float("inf"), float("-inf")):
+            return "null"
+        return str(int(value)) if value == int(value) and abs(value) < 1e21 else repr(value)
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(_js_json(item) for item in value) + "]"
+    return "{" + ",".join(json.dumps(str(key), ensure_ascii=False) + ":" + _js_json(item) for key, item in value.items()) + "}"
+
+
+def _enum_message(options: List[str]) -> str:
+    return "Must be one of " + ", ".join(options)
+
+
+def _range_message(low: int, high: int) -> str:
+    return f"Must be a whole number {low}-{high}"
+
+
+class _ShellCheck:
+    """One run of the structure pass: the problems, the node budget and the vocabulary."""
+
+    def __init__(self, vocabulary: dict, problems: "_Problems"):
+        self.vocab = vocabulary
+        self.limits = vocabulary["limits"]
+        self.problems = problems
+        self.nodes = 0
+        self.stopped = False
+
+    def node(self, node: Any, path: str, depth: int) -> None:
+        limits = self.limits
+        if self.stopped:
+            return
+        if depth > limits["max_depth"]:
+            self.problems.error(path, f"A shell is at most {limits['max_depth']} levels deep")
+            return
+        self.nodes += 1
+        if self.nodes > limits["max_nodes"]:
+            self.problems.error(path, f"A shell has at most {limits['max_nodes']} nodes")
+            self.stopped = True
+            return
+        if not isinstance(node, dict):
+            self.problems.error(path, "A node must be an object")
+            return
+        kind = node.get("type")
+        if depth == 1 and kind != "container":
+            self.problems.error(path, "The root of a shell must be a container")
+            return
+        if not isinstance(kind, str) or kind not in _SHELL_KINDS:
+            self.problems.error(f"{path}.type", "type must be " + ", ".join(_SHELL_KINDS[:-1]) + " or " + _SHELL_KINDS[-1])
+            return
+        if kind == "container":
+            self.container(node, path, depth)
+        elif kind == "region":
+            self.region(node, path)
+        else:
+            self.unknown(node, path, ("type",))
+
+    def unknown(self, node: dict, path: str, allowed: Tuple[str, ...]) -> None:
+        for key in sorted(k for k in node if k not in allowed):
+            self.problems.error(f"{path}.{key}", f"Unknown key {key}")
+
+    def container(self, node: dict, path: str, depth: int) -> None:
+        spec = self.vocab["container"]
+        self.unknown(node, path, ("type", "size", "children") + tuple(spec))
+        for name, field in spec.items():
+            self.field(node, name, field, f"{path}.{name}")
+        if "size" in node:
+            self.size(node["size"], f"{path}.size")
+        children = node.get("children")
+        high = self.limits["max_children"]
+        if not isinstance(children, list) or not 1 <= len(children) <= high:
+            self.problems.error(f"{path}.children", f"A container has 1 to {high} children")
+            return
+        for index, child in enumerate(children):
+            self.node(child, f"{path}.children[{index}]", depth + 1)
+
+    def field(self, owner: dict, name: str, field: dict, path: str) -> None:
+        """One container field, by the vocabulary's own description of it (enum, step or int)."""
+        if name not in owner:
+            if "default" not in field and not field.get("optional"):
+                self.problems.error(path, "Required")
+            return
+        value = owner[name]
+        if "enum" in field:
+            if not isinstance(value, str) or value not in field["enum"]:
+                self.problems.error(path, _enum_message(field["enum"]))
+        elif field.get("step"):
+            if not isinstance(value, str) or value not in self.vocab["steps"]:
+                self.problems.error(path, _enum_message(self.vocab["steps"]))
+        elif field.get("int"):
+            bounds = self.limits[name]
+            if not _is_int(value) or not bounds["min"] <= value <= bounds["max"]:
+                self.problems.error(path, _range_message(bounds["min"], bounds["max"]))
+
+    def size(self, size: Any, path: str) -> None:
+        if not isinstance(size, dict):
+            self.problems.error(path, "size must be an object")
+            return
+        self.unknown(size, path, _SHELL_SIZE_KEYS)
+        px = self.limits["size_px"]
+        bases = self.vocab["size"]["bases"]
+        named = [base for base in bases if base != "px"]
+        if "basis" not in size:
+            self.problems.error(f"{path}.basis", "Required")
+        else:
+            basis = size["basis"]
+            valid = (isinstance(basis, str) and basis in named) or (
+                "px" in bases and _is_int(basis) and px["min"] <= basis <= px["max"])
+            if not valid:
+                self.problems.error(f"{path}.basis", "Must be " + ", ".join(named) + f" or a whole number of px {px['min']}-{px['max']}")
+        high = _content_path_max(self.vocab)
+        good = {}
+        for key in ("min", "max"):
+            if key in size:
+                if _is_int(size[key]) and px["min"] <= size[key] <= high:
+                    good[key] = size[key]
+                else:
+                    self.problems.error(f"{path}.{key}", _range_message(px["min"], high))
+        if len(good) == 2 and good["min"] > good["max"]:
+            self.problems.error(f"{path}.max", "max must be at least min")
+
+    def region(self, node: dict, path: str) -> None:
+        self.unknown(node, path, ("type", "region", "size", "options"))
+        regions = self.vocab["regions"]
+        name = node.get("region")
+        known = isinstance(name, str) and name in regions
+        if "region" not in node:
+            self.problems.error(f"{path}.region", "Required")
+        elif not known:
+            names = list(regions)
+            self.problems.error(f"{path}.region", "region must be " + ", ".join(names[:-1]) + " or " + names[-1])
+        if "size" in node:
+            self.size(node["size"], f"{path}.size")
+        if not known:
+            return
+        spec = regions[name]["options"]
+        given = node.get("options", {})
+        if "options" in node and not isinstance(given, dict):
+            self.problems.error(f"{path}.options", "options must be an object")
+            return
+        for key in sorted(k for k in given if k not in spec):
+            self.problems.error(f"{path}.options.{key}", f"Unknown option {key}")
+        for option, field in spec.items():
+            self.option(given, option, field, f"{path}.options.{option}")
+
+    def option(self, given: dict, name: str, field: dict, path: str) -> None:
+        if name not in given:
+            if "default" not in field and not field.get("optional"):
+                self.problems.error(path, "Required")
+            return
+        value = given[name]
+        if "enum" in field:
+            if not isinstance(value, str) or value not in field["enum"]:
+                self.problems.error(path, _enum_message(field["enum"]))
+        elif "pattern" in field:
+            if not isinstance(value, str) or not re.fullmatch(field["pattern"], value):
+                self.problems.error(path, "Must match " + field["pattern"])
+        elif field.get("json"):
+            if not isinstance(value, dict):
+                self.problems.error(path, "Must be a JSON object")
+                return
+            high = self.limits["custom_props_bytes"]
+            try:
+                size = len(_js_json(value).encode("utf-8", "surrogatepass"))
+            except RecursionError:
+                self.problems.error(path, "Is nested too deeply")
+                return
+            if size > high:
+                self.problems.error(path, f"Must be at most {high} bytes of JSON")
+
+
+def _normalise_node(node: dict, vocabulary: dict) -> dict:
+    kind = node["type"]
+    if kind == "spacer":
+        return {"type": "spacer"}
+    size = copy.deepcopy(node["size"] if "size" in node else vocabulary["size"]["default"])
+    if kind == "container":
+        out: Dict[str, Any] = {"type": "container"}
+        for name, field in vocabulary["container"].items():
+            if name in node:
+                out[name] = node[name]
+            elif "default" in field:
+                out[name] = field["default"]
+        out["size"] = size
+        out["children"] = [_normalise_node(child, vocabulary) for child in node["children"]]
+        return out
+    given = node.get("options", {})
+    options: Dict[str, Any] = {}
+    for name, field in vocabulary["regions"][node["region"]]["options"].items():
+        if name in given:
+            options[name] = copy.deepcopy(given[name])
+        elif "default" in field:
+            options[name] = field["default"]
+    return {"type": "region", "region": node["region"], "size": size, "options": options}
+
+
+def normalise_shell(shell: dict, vocabulary: Optional[dict] = None) -> dict:
+    """A valid shell with every default filled in (the tree a host renders). The input is not changed.
+
+    Every container carries direction, gap, padding, align, justify, chrome, surface, size, behavior and children
+    (and collapse_below when it set one); every region carries size and the full set of its options (a `custom` region
+    keeps `module`, and `props` only when it set it); a spacer is just its type. Behaviour for an invalid tree is undefined:
+    run validate_shell first."""
+    vocab = _shell_vocab(vocabulary)
+    return {"version": shell["version"], "root": _normalise_node(shell["root"], vocab)}
+
+
+def _shell_rules(tree: dict, path: str, vocabulary: dict, scroll: Optional[str], installed: Optional[Any],
+                 problems: "_Problems") -> None:
+    """The rule pass, on a normalised tree. `scroll` is layout.scroll when known; `installed` the module ids the host has
+    installed, or None at the SDK level (a custom region is then always valid)."""
+    limits, regions = vocabulary["limits"], vocabulary["regions"]
+    px_max = limits["size_px"]["max"]
+    root_path = f"{path}.root"
+    counts: Dict[str, int] = {}
+    chrome: Dict[str, int] = {}
+
+    def walk(node: dict, node_path: str) -> None:
+        if node["type"] == "container":
+            if node["chrome"] != "none":
+                chrome[node["chrome"]] = chrome.get(node["chrome"], 0) + 1
+                if chrome[node["chrome"]] > limits["max_chrome_per_family"]:
+                    problems.error(f"{node_path}.chrome",
+                                   f"At most {limits['max_chrome_per_family']} container{'' if limits['max_chrome_per_family'] == 1 else 's'} "
+                                   f"may have chrome {node['chrome']}")
+            if node["behavior"] != "fixed" and scroll is not None and scroll != "page":
+                problems.warn(f"{node_path}.behavior",
+                              f"behavior {node['behavior']} has no visible effect while scroll is {scroll}; use scroll page or fixed")
+            fills = 0
+            for index, child in enumerate(node["children"]):
+                if child["type"] != "spacer" and child["size"]["basis"] == "fill":
+                    fills += 1
+                    if fills > 1:
+                        problems.error(f"{node_path}.children[{index}].size", "At most one child of a container may fill (basis fill)")
+            for index, child in enumerate(node["children"]):
+                walk(child, f"{node_path}.children[{index}]")
+        elif node["type"] == "region":
+            name = node["region"]
+            counts[name] = counts.get(name, 0) + 1
+            if counts[name] > regions[name]["max"]:
+                problems.error(node_path, f"At most {regions[name]['max']} {name} region{'' if regions[name]['max'] == 1 else 's'}"
+                                          + (" (a shell has exactly one)" if regions[name].get("required") else ""))
+            module = node["options"].get("module")
+            if name == "custom" and installed is not None and module is not None and module not in installed:
+                problems.warn(f"{node_path}.options.module",
+                              f"module not installed: {module}; the region renders nothing until the pack "
+                              "that ships it is installed and approved")
+
+    walk(tree["root"], root_path)
+    needs = {"content": "A shell needs a content region (the page itself)",
+             "navigation": "A shell needs a navigation region, so the user can always navigate"}
+    for name, spec in regions.items():
+        if spec.get("required") and not counts.get(name):
+            problems.error(root_path, needs.get(name, f"A shell needs the {name} region"))
+
+    # The content path: the first content region and every container above it.
+    def find(node: dict, node_path: str) -> Optional[List[Tuple[dict, str]]]:
+        if node["type"] == "region" and node["region"] == "content":
+            return [(node, node_path)]
+        if node["type"] == "container":
+            for index, child in enumerate(node["children"]):
+                found = find(child, f"{node_path}.children[{index}]")
+                if found is not None:
+                    return [(node, node_path)] + found
+        return None
+
+    trail = find(tree["root"], root_path)
+    on_path = set()
+    if trail is not None:
+        parent = None
+        for node, node_path in trail:
+            on_path.add(node_path)
+            if parent is not None and node["size"]["basis"] != "fill" and len(parent["children"]) != 1:
+                problems.error(f"{node_path}.size", "The content region, and every container on the way to it, must fill "
+                                                    "(basis fill) or be the only child, so the page is never squeezed away")
+            if node["type"] == "container" and "collapse_below" in node:
+                problems.error(f"{node_path}.collapse_below", "The container that holds the content cannot collapse into a drawer")
+            parent = node
+
+    def sizes(node: dict, node_path: str, horizontal: int, vertical: int, parent: Optional[dict]) -> None:
+        if node["type"] == "spacer":
+            return
+        if parent is not None:
+            size = node["size"]
+            if isinstance(size["basis"], int):
+                if parent["direction"] == "row":
+                    horizontal += size["basis"]
+                    over = horizontal > limits["max_fixed_path_px"] >= horizontal - size["basis"]
+                else:
+                    vertical += size["basis"]
+                    over = vertical > limits["max_fixed_path_px"] >= vertical - size["basis"]
+                if over:
+                    problems.error(f"{node_path}.size", f"Fixed sizes on one root-to-leaf path add up to at most "
+                                                        f"{limits['max_fixed_path_px']}px along the {'row' if parent['direction'] == 'row' else 'column'} axis")
+            if node_path not in on_path:
+                for key in ("min", "max"):
+                    if key in size and size[key] > px_max:
+                        problems.error(f"{node_path}.size.{key}", f"Off the content path a size is at most {px_max}px")
+        if node["type"] == "container":
+            for index, child in enumerate(node["children"]):
+                sizes(child, f"{node_path}.children[{index}]", horizontal, vertical, node)
+
+    sizes(tree["root"], root_path, 0, 0, None)
+
+
+def validate_shell(shell: Any, vocabulary: Optional[dict] = None, path: str = "layout.shell", scroll: Optional[str] = None,
+                   installed_modules: Optional[Any] = None) -> dict:
+    """Check a `layout.shell` tree against the layout vocabulary: {"errors": [...], "warnings": [...]}, each {path, message}.
+
+    `vocabulary` is the built-in one (registry.layout_vocabulary()) unless the host has a newer one from the Themes app.
+    `path` is where the tree sits in the theme, and every problem names its node under it
+    (`layout.shell.root.children[1].size`). `scroll` is layout.scroll: a container whose behavior is not `fixed` only
+    warns when it is known not to be `page`. `installed_modules` is the set of reviewed module ids the HOST has installed;
+    when given, a `custom` region that names another one produces a "module not installed" warning (a pack still imports).
+    At the SDK level (None) every well-formed module id is valid. Every rule of docs/layout-tree.md is checked, in two
+    passes: a tree that is not well formed is not judged against the rules."""
+    vocab = _shell_vocab(vocabulary)
+    problems = _Problems()
+    if not isinstance(shell, dict):
+        problems.error(path, "Shell must be an object with version and root")
+        return {"errors": problems.errors, "warnings": problems.warnings}
+    for key in sorted(k for k in shell if k not in _SHELL_ROOT_KEYS):
+        problems.error(f"{path}.{key}", f"Unknown key {key}")
+    if "version" not in shell:
+        problems.error(f"{path}.version", "Required")
+    elif not _is_int(shell["version"]) or shell["version"] != vocab["shell_version"]:
+        problems.error(f"{path}.version", f"version must be {vocab['shell_version']}")
+    if "root" not in shell:
+        problems.error(f"{path}.root", "Required")
+    else:
+        _ShellCheck(vocab, problems).node(shell["root"], f"{path}.root", 1)
+    if not problems.errors:
+        _shell_rules(normalise_shell(shell, vocab), path, vocab, scroll, installed_modules, problems)
+    return {"errors": problems.errors, "warnings": problems.warnings}
+
+
+def shell_from_layout(layout: dict, vocabulary: Optional[dict] = None) -> dict:
+    """The tree a revision 1 to 3 layout describes (normalised). See docs/layout-tree.md, "From the options to a tree".
+
+    * Sidebar visible: a root row (gap and padding from content.gap and content.padding when the sidebar floats) holding the
+      sidebar container and the main column, in the order of sidebar.side. The sidebar (chrome sidebar; surface, width,
+      behavior and collapse_below from the layout; padding sm, gap xs) holds the brand, the navigation (icons for a rail,
+      icons-labels for a panel) and, when there is no navbar, the actions. A rail centres its items and hides the name.
+    * Navbar visible: a row container (chrome navbar, flush, height, behavior, padding md, gap md) above or below the
+      content. It holds the brand (when show_brand and there is no sidebar: the sidebar carries the brand), the
+      navigation (only when there is no sidebar), a spacer (navbar.align between) and the actions.
+    * Both hidden: the content under a horizontal navigation region (the host's existing fallback; the validator
+      rejects this layout, the mapping is still total).
+    * content.max_width != 0: the content region sits in a row that centres (content.align center) or starts it, with
+      size.max on the region. Without it the content region fills.
+    """
+    vocab = _shell_vocab(vocabulary)
+    sidebar, navbar, content = layout["sidebar"], layout["navbar"], layout["content"]
+    side_on, bar_on = sidebar["side"] != "hidden", navbar["position"] != "hidden"
+
+    def region(name: str, options: Optional[dict] = None, size: Optional[dict] = None) -> dict:
+        node: Dict[str, Any] = {"type": "region", "region": name}
+        if size is not None:
+            node["size"] = size
+        if options is not None:
+            node["options"] = options
+        return node
+
+    if content["max_width"]:
+        page: dict = {"type": "container", "direction": "row", "justify": "center" if content["align"] == "center" else "start",
+                      "size": {"basis": "fill"},
+                      "children": [region("content", None, {"basis": "fill", "max": content["max_width"]})]}
+    else:
+        page = region("content", None, {"basis": "fill"})
+
+    def sidebar_node() -> dict:
+        rail = sidebar["style"] == "rail"
+        children = [region("brand", {"name": "hide" if rail else "auto"}),
+                    region("navigation", {"style": "icons" if rail else "icons-labels", "orientation": "vertical"}, {"basis": "fill"})]
+        if not bar_on:
+            children.append(region("actions", {"style": "icons" if rail else "labels", "orientation": "vertical"}))
+        node: Dict[str, Any] = {
+            "type": "container", "direction": "column", "chrome": "sidebar", "surface": sidebar["surface"],
+            "size": {"basis": sidebar["width"]}, "behavior": sidebar["behavior"], "collapse_below": sidebar["collapse_below"],
+            "padding": "sm", "gap": "xs", "children": children}
+        if rail:
+            node["align"] = "center"
+        return node
+
+    def navbar_node() -> dict:
+        children = []
+        if navbar["show_brand"] and not side_on:
+            children.append(region("brand", {"name": "show"}))
+        if not side_on:
+            children.append(region("navigation", {"style": "icons-labels", "orientation": "horizontal", "overflow": "menu"}))
+        if navbar["align"] == "between":
+            children.append({"type": "spacer"})
+        children.append(region("actions", {"style": "labels", "orientation": "horizontal"}))
+        return {"type": "container", "direction": "row", "chrome": "navbar", "surface": "flush",
+                "size": {"basis": navbar["height"]}, "behavior": navbar["behavior"], "align": "center",
+                "justify": "center" if navbar["align"] == "center" else "start", "padding": "md", "gap": "md", "children": children}
+
+    def column(first_bar: bool, size: Optional[dict]) -> dict:
+        node: Dict[str, Any] = {"type": "container", "direction": "column",
+                                "children": [navbar_node(), page] if first_bar else [page, navbar_node()]}
+        if size is not None:
+            node["size"] = size
+        return node
+
+    if side_on:
+        main = column(navbar["position"] == "top", {"basis": "fill"}) if bar_on else page
+        root: Dict[str, Any] = {"type": "container", "direction": "row",
+                                "children": [sidebar_node(), main] if sidebar["side"] == "left" else [main, sidebar_node()]}
+        if sidebar["surface"] == "floating":
+            root.update({"padding": content["padding"], "gap": content["gap"]})
+    elif bar_on:
+        root = column(navbar["position"] == "top", None)
+    else:
+        root = {"type": "container", "direction": "column", "children": [
+            region("navigation", {"style": "icons-labels", "orientation": "horizontal", "overflow": "menu"}), page]}
+    return normalise_shell({"version": vocab["shell_version"], "root": root}, vocab)
+
+
+def shell_tree_of(theme: Any, vocabulary: Optional[dict] = None) -> dict:
+    """The normalised tree a host renders for a valid theme: its own `layout.shell` at registry revision 4 and later,
+    otherwise the tree its layout options describe (`shell_from_layout`). A v1 theme is mapped from its `navigation`
+    choice with the registry's default layout (what `upgrade_v1` starts from)."""
+    if theme["api_version"] == THEME_API_VERSION:
+        return shell_from_layout(registry.default_layout("panel" if theme["layout"]["navigation"] == "sidebar" else "rail"), vocabulary)
+    layout = theme["layout"]
+    if theme["registry_revision"] >= registry.SHELL_SINCE and "shell" in layout:
+        return normalise_shell(layout["shell"], vocabulary)
+    return shell_from_layout(layout, vocabulary)
+
+
+# --- Registry revision 4: the brand (logo) ----------------------------------------------------------------------------
+#
+# docs/brand-logo.md is the specification; the limits (types, sizes, alt, height, tagline) come from the layout vocabulary's
+# `brand.logo_limits`. The TypeScript twin (validateBrand, normaliseBrand in theme-resolve.ts) gives the same errors, with the same
+# paths, messages and order: tests/test_brand.py runs both over the same cases. Everything below is written to behave the same in
+# both languages: ASCII-only case folding, explicit whitespace classes, code point counts.
+
+_BRAND_KEYS = ("logo", "logo_dark", "mark", "tagline")
+_IMAGE_KEYS = ("src", "alt")
+_B64 = re.compile(r"[A-Za-z0-9+/]*={0,2}\Z")
+_ALT_CONTROL = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]")
+_TRIM = re.compile("^[ \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+|[ \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+\\Z")
+_SVG_WS = " \t\r\n"
+_SVG_CONTROL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f]")
+_SVG_TAG = re.compile(r"<(?:[A-Za-z0-9_.-]+:)?(script|foreignobject|iframe|image|use)(?![A-Za-z0-9_:.-])", re.I | re.A)
+_SVG_HREF = re.compile(r"(?:^|[^A-Za-z0-9_.:-])(?:[A-Za-z0-9_.-]+:)?href[ \t\r\n]*=[ \t\r\n]*(?:\"([^\"]*)\"|'([^']*)')", re.I | re.A)
+_SVG_ATTR = re.compile(r"(?:^|[^A-Za-z0-9_.:-])((?:[A-Za-z0-9_.-]+:)?[A-Za-z_][A-Za-z0-9_.-]*)[ \t\r\n]*=[ \t\r\n]*(?:\"([^\"]*)(?=\")|'([^']*)(?='))", re.A)
+_SVG_DOCTYPE_SUBSET = re.compile(r"<!doctype[^>\[]*\[", re.I | re.A)
+_SVG_SCHEME = re.compile(r"(?:^|[^A-Za-z0-9+.-])(javascript|data|https?):", re.I | re.A)
+_SVG_URL_FUNCTION = re.compile(r"url\([ \t\r\n]*[\"']?[ \t\r\n]*(javascript|data|https?)[ \t\r\n]*:", re.I | re.A)
+_SVG_ENTITY = re.compile(r"&(?:#[xX]([0-9a-fA-F]{1,8})|#([0-9]{1,8})|(amp|lt|gt|quot|apos));")
+_SVG_NAMED = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'"}
+_SVG_SIGNATURES = {"image/png": (b"\x89PNG\r\n\x1a\n", "PNG"), "image/jpeg": (b"\xff\xd8\xff", "JPEG")}
+_SVG_FORBIDDEN_TAGS = ("script", "foreignObject", "iframe", "image")
+
+
+def _logo_limits(vocabulary: Optional[dict]) -> dict:
+    """The vocabulary's `brand.logo_limits`; a vocabulary that predates the brand falls back to the built-in one."""
+    found = ((vocabulary or {}).get("brand") or {}).get("logo_limits")
+    return found if found else registry.layout_vocabulary()["brand"]["logo_limits"]
+
+
+def _size_text(count: int) -> str:
+    return f"{count // 1024} KiB" if count % 1024 == 0 else f"{count} bytes"
+
+
+def _decode_entities(text: str) -> str:
+    def one(match):
+        if match.group(3):
+            return _SVG_NAMED[match.group(3)]
+        point = int(match.group(1), 16) if match.group(1) else int(match.group(2))
+        return "\ufffd" if point == 0 or point > 0x10FFFF or 0xD800 <= point <= 0xDFFF else chr(point)
+    return _SVG_ENTITY.sub(one, text)
+
+
+def _ascii_lower(text: str) -> str:
+    return text.translate({code: code + 32 for code in range(65, 91)})
+
+
+def _trim_text(text: str) -> str:
+    return _TRIM.sub("", text)
+
+
+def _svg_problems(text: str) -> List[str]:
+    """Why this decoded SVG text is not acceptable (empty when it is). Order: structure, then each forbidden construct."""
+    problems: List[str] = []
+    if _SVG_CONTROL.search(text):
+        problems.append("An SVG must be well-formed text, with no control characters")
+    index, size = 0, len(text)
+    while True:
+        while index < size and text[index] in _SVG_WS:
+            index += 1
+        if text.startswith("<?", index):
+            end = text.find("?>", index + 2)
+            index = size + 1 if end < 0 else end + 2
+        elif text.startswith("<!--", index):
+            end = text.find("-->", index + 4)
+            index = size + 1 if end < 0 else end + 3
+        elif _ascii_lower(text[index:index + 9]) == "<!doctype":
+            end, bracket = text.find(">", index), text.find("[", index)
+            if 0 <= bracket < end or (bracket >= 0 and end < 0):
+                bracket = text.find("]", bracket)
+                end = -1 if bracket < 0 else text.find(">", bracket)
+            index = size + 1 if end < 0 else end + 1
+        else:
+            break
+    if index > size or not (text.startswith("<svg", index) and index + 4 < size and text[index + 4] in _SVG_WS + "/>"):
+        problems.append("An SVG must start at <svg (an XML prolog and comments may come before it)")
+    tail = text.rstrip(_SVG_WS)
+    while tail.endswith("-->") and tail.rfind("<!--") >= 0:
+        tail = tail[:tail.rfind("<!--")].rstrip(_SVG_WS)
+    if not (tail.endswith("</svg>") or (tail.endswith("/>") and tail.find(">", index) == len(tail) - 1)):
+        problems.append("An SVG must be well-formed: it must end with </svg>")
+    text = _decode_entities(text)
+    found = {match.group(1).lower() for match in _SVG_TAG.finditer(text)}
+    for name in _SVG_FORBIDDEN_TAGS:
+        if name.lower() in found:
+            problems.append(f"An SVG must not contain <{name}>")
+    external_use = False
+    for match in _SVG_TAG.finditer(text):
+        if match.group(1).lower() == "use":
+            end = text.find(">", match.end())
+            for href in _SVG_HREF.finditer(text[match.end():len(text) if end < 0 else end]):
+                target = re.sub("[\x00-\x20]", "", href.group(1) if href.group(1) is not None else href.group(2))
+                external_use = external_use or not target.startswith("#")
+    if external_use:
+        problems.append("An SVG <use> may only point at an element in the same file (an href starting with #)")
+    if re.search(r"<!entity", text, re.I | re.A):
+        problems.append("An SVG must not declare entities (<!ENTITY)")
+    if _SVG_DOCTYPE_SUBSET.search(text):
+        problems.append("An SVG must not have a DOCTYPE with an internal subset")
+    if re.search(r"@import", text, re.I | re.A):
+        problems.append("An SVG must not use @import")
+    events = script = external = False
+    for match in _SVG_ATTR.finditer(text):
+        name = match.group(1)
+        if name == "xmlns" or name.startswith("xmlns:"):
+            continue
+        if _ascii_lower(name.rsplit(":", 1)[-1]).startswith("on"):
+            events = True
+        value = re.sub("[\x00-\x20]", "", match.group(2) if match.group(2) is not None else match.group(3))
+        for scheme in _SVG_SCHEME.finditer(value):
+            if _ascii_lower(scheme.group(1)) == "javascript":
+                script = True
+            else:
+                external = True
+    for match in _SVG_URL_FUNCTION.finditer(text):
+        if _ascii_lower(match.group(1)) == "javascript":
+            script = True
+        else:
+            external = True
+    if events:
+        problems.append("An SVG must not have event attributes (on*=)")
+    if script:
+        problems.append("An SVG must not contain javascript: URLs")
+    if external:
+        problems.append("An SVG must not load external or data: URLs (http:, https: or data:)")
+    return problems
+
+
+def _image_source(src: Any, limits: dict) -> Tuple[List[str], int]:
+    """(problems, decoded size): the problems of one `src` (at most the first failing step, or the SVG's list) and its size."""
+    types = limits["types"]
+    if not isinstance(src, str):
+        return ["Must be a data: URI string"], 0
+    if not src.startswith("data:"):
+        return ["Must be a data: URI (data:image/png;base64,...); a theme's images are never fetched"], 0
+    comma = src.find(",")
+    if comma < 0:
+        return ["Malformed data URI: expected data:<type>;base64,<payload>"], 0
+    header, payload = src[5:comma], src[comma + 1:]
+    if not header.endswith(";base64"):
+        return ["The data URI must be base64: data:<type>;base64,<payload>"], 0
+    mime = header[:-7]
+    if mime not in types:
+        return ["Type must be one of " + ", ".join(types)], 0
+    if len(payload) % 4 != 0 or not _B64.match(payload):
+        return ["The payload is not valid base64"], 0
+    size = len(payload) // 4 * 3 - (len(payload) - len(payload.rstrip("=")))
+    if size == 0:
+        return ["The image is empty"], 0
+    if size > limits["max_image_bytes"]:
+        return [f"The image is {size} bytes; at most {_size_text(limits['max_image_bytes'])}"], size
+    data = base64.b64decode(payload, validate=True)
+    if mime == "image/svg+xml":
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            return ["An SVG must be UTF-8 text"], size
+        return _svg_problems(text), size
+    if mime == "image/webp":
+        valid, label = len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP", "WebP"
+    else:
+        signature, label = _SVG_SIGNATURES[mime]
+        valid = data.startswith(signature)
+    if not valid:
+        return [f"The data is not a {label} image (wrong file signature)"], size
+    return [], size
+
+
+def _text_problem(value: Any, limit: int) -> Optional[str]:
+    if not isinstance(value, str):
+        return "Must be text"
+    if _ALT_CONTROL.search(value):
+        return "Must not contain control characters"
+    if not 1 <= len(_trim_text(value)) <= limit:
+        return f"Must be 1 to {limit} characters"
+    return None
+
+
+def validate_brand(brand: Any, vocabulary: Optional[dict] = None, path: str = "brand") -> dict:
+    """Check a theme's `brand` (registry revision 4): {errors, warnings} with the path of every problem (`brand.logo.src`).
+
+    Never raises. `vocabulary` is the layout vocabulary whose `brand.logo_limits` apply (the built-in one when omitted).
+    Problems come in a fixed order: unknown keys (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`; inside an
+    image its unknown keys, `src`, `alt`, `height`; last the size of all the images together. `logo_dark` (the logo drawn on
+    dark backgrounds) follows the rules of `logo` and needs a `logo`."""
+    errors: List[dict] = []
+    warnings: List[dict] = []
+    if not isinstance(brand, dict):
+        return {"errors": [{"path": path, "message": "Brand must be an object with logo, mark and tagline"}], "warnings": warnings}
+    limits = _logo_limits(vocabulary)
+    height = limits["height"]
+
+    def error(where: str, message: str) -> None:
+        errors.append({"path": where, "message": message})
+
+    for key in sorted(set(brand) - set(_BRAND_KEYS)):
+        error(f"{path}.{key}", f"Unknown key {key}")
+    if not brand:
+        error(path, "Brand must set logo, mark or tagline")
+    total = 0
+    for key in ("logo", "logo_dark", "mark"):
+        if key not in brand:
+            continue
+        image, where = brand[key], f"{path}.{key}"
+        if key == "logo_dark" and "logo" not in brand:
+            error(where, "logo_dark needs a logo")
+        if not isinstance(image, dict):
+            error(where, "Must be an object with src and alt")
+            continue
+        allowed = _IMAGE_KEYS + (("height",) if key != "mark" else ())
+        for name in sorted(set(image) - set(allowed)):
+            error(f"{where}.{name}", f"Unknown key {name}")
+        if "src" not in image:
+            error(f"{where}.src", "Required")
+        else:
+            problems, size = _image_source(image["src"], limits)
+            for message in problems:
+                error(f"{where}.src", message)
+            total += size if not problems else 0
+        if "alt" not in image:
+            error(f"{where}.alt", "Required")
+        else:
+            message = _text_problem(image["alt"], limits["alt_max"])
+            if message:
+                error(f"{where}.alt", message)
+        if key != "mark" and "height" in image and (not _is_int(image["height"]) or not height["min"] <= image["height"] <= height["max"]):
+            error(f"{where}.height", _range_message(height["min"], height["max"]))
+    if "tagline" in brand:
+        message = _text_problem(brand["tagline"], limits["tagline_max"])
+        if message:
+            error(f"{path}.tagline", message)
+    if total > limits["max_total_bytes"]:
+        error(path, f"The images of a brand add up to {total} bytes; at most {_size_text(limits['max_total_bytes'])}")
+    return {"errors": errors, "warnings": warnings}
+
+
+def normalise_brand(brand: Any, vocabulary: Optional[dict] = None) -> Optional[dict]:
+    """The brand a host draws: `{logo, logo_dark, mark, tagline}` with the defaults filled (`logo.height`; `logo_dark.height`
+    follows the logo's height, else the vocabulary's default) and the text trimmed, an absent part `None`; `None` for a theme
+    without a brand. Assumes a valid brand (see `validate_brand`)."""
+    if brand is None:
+        return None
+    default = _logo_limits(vocabulary)["height"]["default"]
+    logo, dark, mark = brand.get("logo"), brand.get("logo_dark"), brand.get("mark")
+    tagline = brand.get("tagline")
+    logo_height = default if logo is None else logo.get("height", default)
+    return {
+        "logo": None if logo is None else {"src": logo["src"], "alt": _trim_text(logo["alt"]), "height": logo_height},
+        "logo_dark": None if dark is None else {"src": dark["src"], "alt": _trim_text(dark["alt"]), "height": dark.get("height", logo_height)},
+        "mark": None if mark is None else {"src": mark["src"], "alt": _trim_text(mark["alt"])},
+        "tagline": None if tagline is None else _trim_text(tagline),
+    }
+
+
+def brand_logo_for(brand: Optional[dict], on_dark: bool) -> Optional[dict]:
+    """The logo to draw on a background: on a dark one (a dark header, a dark palette) `logo_dark` when the brand has one, else
+    `logo`; on a light one `logo`. `brand` is a normalised brand (`resolve_theme(...)["brand"]`) or None. The result is
+    `{src, alt, height}` or None when there is nothing to draw. Core calls it with the container's tone or the palette mode."""
+    if brand is None:
+        return None
+    if on_dark and brand.get("logo_dark") is not None:
+        return brand["logo_dark"]
+    return brand.get("logo")
+
+
+def brand_of(theme: Any, vocabulary: Optional[dict] = None) -> Optional[dict]:
+    """The normalised brand of a valid theme: its own `brand` at registry revision 4 and later, otherwise None (every v1 theme,
+    and v2 themes of revisions 1 to 3, have none)."""
+    if theme["api_version"] != THEME_API_VERSION_V2 or theme["registry_revision"] < registry.BRAND_SINCE:
+        return None
+    return normalise_brand(theme.get("brand"), vocabulary)
+
+
+def _check_layout(layout: Any, problems: _Problems, revision: int = registry.REGISTRY_REVISION,
+                  vocabulary: Optional[dict] = None, installed_modules: Optional[Any] = None) -> None:
     spec = registry.LAYOUT_SPEC
-    if not isinstance(layout, dict) or set(layout) != set(spec):
-        problems.error("layout", "Layout must supply exactly " + ", ".join(spec))
+    if isinstance(layout, dict) and "shell" in layout and revision < registry.SHELL_SINCE:
+        problems.error("layout.shell", f"layout.shell needs registry_revision {registry.SHELL_SINCE} or later")
+    if not isinstance(layout, dict) or set(layout) - {"shell"} != set(spec):
+        problems.error("layout", "Layout must supply exactly " + ", ".join(spec)
+                       + (" and may add shell" if revision >= registry.SHELL_SINCE else ""))
         return
+    start = len(problems.errors)
     for key, field in spec.items():
         if "type" in field:
             _check_layout_field(layout[key], field, f"layout.{key}", problems)
@@ -474,7 +1228,13 @@ def _check_layout(layout: Any, problems: _Problems) -> None:
             continue
         for name, sub in field.items():
             _check_layout_field(group[name], sub, f"layout.{key}.{name}", problems)
-    if problems.errors and any(e["path"].startswith("layout") for e in problems.errors):
+    scroll = layout["scroll"] if len(problems.errors) == start else None
+    if "shell" in layout and revision >= registry.SHELL_SINCE:
+        found = validate_shell(layout["shell"], vocabulary, "layout.shell", scroll, installed_modules)
+        problems.errors.extend(found["errors"])
+        problems.warnings.extend(found["warnings"])
+    if len(problems.errors) > start and any(e["path"].startswith("layout") and not e["path"].startswith("layout.shell")
+                                            for e in problems.errors[start:]):
         return
     sidebar, navbar = layout["sidebar"], layout["navbar"]
     if navbar["position"] == "hidden" and sidebar["side"] == "hidden":
@@ -581,7 +1341,7 @@ def _check_dark_character(resolved: Dict[str, str], problems: _Problems, where: 
         problems.warn(f"{where}.semantic.scrim", prefix + "the scrim should be darker than the surface in a dark palette")
 
 
-def _check_v2(value: Any) -> dict:
+def _check_v2(value: Any, vocabulary: Optional[dict] = None, installed_modules: Optional[Any] = None) -> dict:
     problems = _Problems()
     if not isinstance(value, dict):
         problems.error("", "Theme must be an object")
@@ -593,14 +1353,19 @@ def _check_v2(value: Any) -> dict:
     else:
         problems.error("tokens", "Theme must contain tokens")
     if "layout" in value:
-        _check_layout(value["layout"], problems)
+        _check_layout(value["layout"], problems, revision, vocabulary, installed_modules)
     else:
         problems.error("layout", "Theme must contain layout")
+    if "brand" in value and revision >= registry.BRAND_SINCE:
+        found = validate_brand(value["brand"], vocabulary)
+        problems.errors.extend(found["errors"])
+        problems.warnings.extend(found["warnings"])
     dark = _check_modes(value, revision, scheme, problems)
     dark_resolved, dark_valid = {}, False
     if dark is not None and tokens_valid:
         dark_resolved, dark_valid = _check_dark_tokens(value["tokens"], dark, revision, problems)
-    if tokens_valid and not any(e["path"].startswith("layout") for e in problems.errors):
+    # A problem in layout.shell does not stop the contrast report: the colours do not depend on the tree.
+    if tokens_valid and not any(e["path"].startswith("layout") and not e["path"].startswith("layout.shell") for e in problems.errors):
         if scheme == "light":
             _check_contrast(resolved, value["layout"], problems, revision=revision)
         elif scheme == "dark":
@@ -620,15 +1385,16 @@ def _first_error(problems: dict) -> ThemeError:
     return ThemeError(first["message"], first["path"] or None, list(problems["errors"]))
 
 
-def validate_theme(value: Any) -> dict:
+def validate_theme(value: Any, vocabulary: Optional[dict] = None, installed_modules: Optional[Any] = None) -> dict:
     """Return a copy of a valid v1 or v2 manifest; raise ThemeError otherwise.
 
     Nothing is ever defaulted or rewritten: the output is the input, so a hash of
     it is stable across SDK releases. v1 follows its frozen rules; v2 rules are
-    fixed per (api_version, registry_revision).
+    fixed per (api_version, registry_revision). A revision 4 `layout.shell` is checked against `vocabulary`
+    (the built-in layout vocabulary when omitted; a host passes the Themes app's newer one).
     """
     if _is_v2(value):
-        problems = _check_v2(value)
+        problems = _check_v2(value, vocabulary, installed_modules)
         if problems["errors"]:
             raise _first_error(problems)
         return copy.deepcopy(value)
@@ -637,10 +1403,14 @@ def validate_theme(value: Any) -> dict:
     return _validate_v1(value)
 
 
-def check_theme(value: Any) -> dict:
-    """Never raises: {errors, warnings, contrast}, each error/warning {path, message}."""
+def check_theme(value: Any, vocabulary: Optional[dict] = None, installed_modules: Optional[Any] = None) -> dict:
+    """Never raises: {errors, warnings, contrast}, each error/warning {path, message}.
+
+    A revision 4 `layout.shell` reports its errors and warnings with the path of the node (`layout.shell.root.children[1].size`).
+    `installed_modules` is for a host: the module ids it has installed, so that a `custom` region naming another one warns
+    ("module not installed"); the SDK itself (None) accepts every well-formed module id."""
     if _is_v2(value):
-        return _check_v2(value)
+        return _check_v2(value, vocabulary, installed_modules)
     try:
         _validate_v1(value)
     except (ThemeError, TypeError) as exc:
@@ -666,7 +1436,8 @@ def default_theme_v2(theme_id: str = "fastlane", version: str = "2.0.0", label: 
     `scheme` "auto" adds the derived default dark palette as `modes.dark`; "dark" makes the
     theme's own tokens that palette. Both need registry revision 2 (the default).
     `registry_revision=1` reproduces what SDK 1.3 produced and `2` what SDK 1.4 produced; revision 3 (SDK 1.5)
-    starts from the accessible palette (registry.REVISION_DEFAULTS) and sets the four optional roles.
+    starts from the accessible palette (registry.REVISION_DEFAULTS) and sets the four optional roles. Revision 4 (the default)
+    starts from the same palette; it only allows the optional `layout.shell`, which a default theme does not set.
     """
     revision = REGISTRY_REVISION if registry_revision is None else registry_revision
     theme = {
@@ -1029,10 +1800,14 @@ def _raw_tokens(theme: dict, mode: str) -> Dict[str, str]:
     return raw
 
 
-def resolve_theme(value: Any, mode: Optional[str] = None) -> dict:
+def resolve_theme(value: Any, mode: Optional[str] = None, vocabulary: Optional[dict] = None) -> dict:
     """Flatten a theme into what the host applies; pure, with no DOM access.
 
-    v2: {api_version, vars, attrs, layout, shell, fonts, enums}. `vars` holds every
+    v2: {api_version, vars, attrs, layout, shell, brand, fonts, enums}. `brand` is the normalised `brand` of a registry revision 4
+    theme (`normalise_brand`: `{logo, logo_dark, mark, tagline}`, an absent part None, `logo.height` filled) and None for a theme without one
+    and for every theme of revision 3 or earlier. `shell` is {attrs, vars, tree}: `tree` is the normalised
+    layout tree (see shell_tree_of): the theme's own `layout.shell` at registry revision 4 and later, otherwise the tree its
+    layout options describe. `vars` holds every
     primitive and semantic token plus the component tokens the theme sets (the
     others follow their registry fallback in the generated defaults). `enums`
     is the effective value of every variant/tone/position token, for the
@@ -1044,14 +1819,15 @@ def resolve_theme(value: Any, mode: Optional[str] = None) -> dict:
     light-only theme resolves to exactly what registry revision 1 produced.
     v1: exactly what the v1 applier sets (27 variables, density and theme).
     """
-    theme = validate_theme(value)
+    theme = validate_theme(value, vocabulary)
     if theme["api_version"] == THEME_API_VERSION:
         return {
             "api_version": 1,
             "vars": {f"--fl-{name}": (_triplet(content) if _COLOR.fullmatch(content) else content)
                      for name, content in theme["tokens"].items()},
             "attrs": {"data-density": theme["layout"]["density"], "data-theme": theme["id"]},
-            "layout": dict(theme["layout"]), "shell": {"attrs": {}, "vars": {}}, "fonts": [], "enums": {},
+            "layout": dict(theme["layout"]), "shell": {"attrs": {}, "vars": {}, "tree": shell_tree_of(theme, vocabulary)},
+            "brand": None, "fonts": [], "enums": {},
         }
     scheme = theme.get("color_scheme", "light")
     chosen = effective_mode(theme, mode)
@@ -1086,7 +1862,8 @@ def resolve_theme(value: Any, mode: Optional[str] = None) -> dict:
     attrs = {"data-density": layout["density"], "data-theme": theme["id"], "data-fl-contract": "2"}
     result = {
         "api_version": 2, "vars": variables, "attrs": attrs,
-        "layout": copy.deepcopy(layout), "shell": {"attrs": shell_attrs, "vars": shell_vars}, "fonts": fonts,
+        "layout": copy.deepcopy(layout), "shell": {"attrs": shell_attrs, "vars": shell_vars, "tree": shell_tree_of(theme, vocabulary)},
+        "brand": brand_of(theme, vocabulary), "fonts": fonts,
         "enums": {t.name: resolved.get(t.name, t.default) for t in registry.COMPONENT_TOKENS if t.type == "enum"},
     }
     if scheme != "light":

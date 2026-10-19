@@ -1,4 +1,4 @@
-from .spec import AppSpec
+from .spec import AppSpec, Feature
 from .config_status import ConfigItem, ConfigStatusFn
 from .graph import AgentGraphContribution
 from .mcp_tools import McpToolHandler, McpToolSpec
@@ -12,6 +12,7 @@ from .chart_schema import (
 
 __all__ = [
     "AppSpec",
+    "Feature",
     "AgentGraphContribution",
     "McpToolSpec",
     "McpToolHandler",

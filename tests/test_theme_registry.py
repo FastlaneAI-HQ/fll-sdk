@@ -22,7 +22,7 @@ def generator():
 
 def test_generated_files_are_current():
     stale = [str(path.relative_to(ROOT)) for path, content in generator().outputs().items()
-             if not path.exists() or path.read_text() != content]
+             if not path.exists() or path.read_bytes() != (content if isinstance(content, bytes) else content.encode())]
     assert stale == [], 'run scripts/gen_theme_registry.py'
 
 
@@ -45,16 +45,16 @@ def test_names_are_unique_kebab_case_and_layered():
     for token in registry.TOKENS:
         assert re.fullmatch(r'[a-z][a-z0-9]*(?:-[a-z0-9]+)*', token.name), token.name
         assert token.layer in registry.LAYERS and token.type in registry.TYPES
-        assert token.since in (1, 3) and (token.since == 1 or token.optional)
+        assert token.since in (1, 3, 4) and (token.since == 1 or token.optional or (token.since == 4 and token.layer == 'component'))
         if token.layer == 'component':
             assert token.name.startswith(token.component + '-'), token.name
             assert token.component in registry.COMPONENTS
     assert {t.layer for t in registry.TOKENS} == set(registry.LAYERS)
-    assert registry.REGISTRY_REVISION == 3 == themes.REGISTRY_REVISION
+    assert registry.REGISTRY_REVISION == registry.REVISION == 4 == themes.REGISTRY_REVISION
 
 
 def test_token_counts_are_what_the_contract_documents():
-    assert (len(registry.PRIMITIVES), len(registry.SEMANTIC), len(registry.COMPONENT_TOKENS)) == (114, 43, 248)
+    assert (len(registry.PRIMITIVES), len(registry.SEMANTIC), len(registry.COMPONENT_TOKENS)) == (114, 43, 251)
 
 
 def defaults_of(token):

@@ -1,0 +1,646 @@
+{
+  "vocabulary_version": 1,
+  "shell_version": 1,
+  "doc": "The layout vocabulary: what a theme's layout.shell tree may say. Owned by the Themes app; the SDK ships a generated built-in copy (fllsdk registry_data/layout-vocabulary.json) as the fallback. See fll-sdk/docs/layout-tree.md.",
+  "steps": [
+    "none",
+    "xs",
+    "sm",
+    "md",
+    "lg",
+    "xl"
+  ],
+  "limits": {
+    "max_nodes": 24,
+    "max_depth": 5,
+    "max_children": 8,
+    "size_px": {
+      "min": 40,
+      "max": 640
+    },
+    "collapse_below": {
+      "min": 480,
+      "max": 1280
+    },
+    "max_fixed_path_px": 960,
+    "max_custom_regions": 4,
+    "max_chrome_per_family": 2,
+    "custom_props_bytes": 2048
+  },
+  "brand": {
+    "logo_limits": {
+      "types": [
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/svg+xml"
+      ],
+      "max_image_bytes": 196608,
+      "max_total_bytes": 327680,
+      "alt_max": 80,
+      "tagline_max": 80,
+      "height": {
+        "min": 16,
+        "max": 64,
+        "default": 32
+      },
+      "max_logo_width_px": 240
+    }
+  },
+  "container": {
+    "direction": {
+      "enum": [
+        "row",
+        "column"
+      ]
+    },
+    "gap": {
+      "step": true,
+      "default": "none"
+    },
+    "padding": {
+      "step": true,
+      "default": "none"
+    },
+    "align": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "stretch"
+      ],
+      "default": "stretch"
+    },
+    "justify": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "between"
+      ],
+      "default": "start"
+    },
+    "chrome": {
+      "enum": [
+        "none",
+        "sidebar",
+        "navbar"
+      ],
+      "default": "none"
+    },
+    "surface": {
+      "enum": [
+        "floating",
+        "flush"
+      ],
+      "default": "flush"
+    },
+    "behavior": {
+      "enum": [
+        "fixed",
+        "sticky",
+        "static"
+      ],
+      "default": "fixed"
+    },
+    "collapse_below": {
+      "int": true,
+      "optional": true
+    }
+  },
+  "size": {
+    "bases": [
+      "fill",
+      "content",
+      "px"
+    ],
+    "default": {
+      "basis": "content"
+    }
+  },
+  "regions": {
+    "brand": {
+      "max": 1,
+      "options": {
+        "name": {
+          "enum": [
+            "show",
+            "hide",
+            "auto"
+          ],
+          "default": "auto"
+        },
+        "logo": {
+          "enum": [
+            "auto",
+            "hide",
+            "only"
+          ],
+          "default": "auto"
+        }
+      }
+    },
+    "navigation": {
+      "max": 1,
+      "required": true,
+      "options": {
+        "style": {
+          "enum": [
+            "icons",
+            "labels",
+            "icons-labels",
+            "launcher"
+          ],
+          "default": "icons-labels"
+        },
+        "orientation": {
+          "enum": [
+            "vertical",
+            "horizontal"
+          ],
+          "default": "vertical"
+        },
+        "groups": {
+          "enum": [
+            "all",
+            "primary",
+            "secondary"
+          ],
+          "default": "all"
+        },
+        "overflow": {
+          "enum": [
+            "menu",
+            "wrap"
+          ],
+          "default": "menu"
+        }
+      }
+    },
+    "actions": {
+      "max": 1,
+      "options": {
+        "style": {
+          "enum": [
+            "icons",
+            "labels"
+          ],
+          "default": "labels"
+        },
+        "orientation": {
+          "enum": [
+            "vertical",
+            "horizontal"
+          ],
+          "default": "vertical"
+        }
+      }
+    },
+    "title": {
+      "max": 1,
+      "options": {
+        "size": {
+          "enum": [
+            "sm",
+            "md",
+            "lg"
+          ],
+          "default": "md"
+        }
+      }
+    },
+    "content": {
+      "max": 1,
+      "required": true,
+      "options": {}
+    },
+    "custom": {
+      "max": 4,
+      "options": {
+        "module": {
+          "pattern": "^[a-z0-9-]+/[a-z0-9-]+@[0-9]+$"
+        },
+        "props": {
+          "json": true,
+          "optional": true
+        }
+      }
+    }
+  },
+  "presets": [
+    {
+      "id": "panel-flush",
+      "label": "Labelled sidebar",
+      "use_when": "The platform default: a full-height labelled sidebar on the page, no top bar. Dense data-heavy tenants, ten or more apps.",
+      "tree": {
+        "version": 1,
+        "root": {
+          "type": "container",
+          "direction": "row",
+          "children": [
+            {
+              "type": "container",
+              "direction": "column",
+              "chrome": "sidebar",
+              "surface": "flush",
+              "size": {
+                "basis": 224
+              },
+              "collapse_below": 760,
+              "padding": "sm",
+              "gap": "xs",
+              "children": [
+                {
+                  "type": "region",
+                  "region": "brand",
+                  "options": {
+                    "name": "auto"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "navigation",
+                  "size": {
+                    "basis": "fill"
+                  },
+                  "options": {
+                    "style": "icons-labels",
+                    "orientation": "vertical"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "actions",
+                  "options": {
+                    "style": "labels",
+                    "orientation": "vertical"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "region",
+              "region": "content",
+              "size": {
+                "basis": "fill"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "rail",
+      "label": "Icon rail",
+      "use_when": "Icon-only navigation on a floating rail: a quiet shell for a few well-known apps.",
+      "tree": {
+        "version": 1,
+        "root": {
+          "type": "container",
+          "direction": "row",
+          "padding": "md",
+          "gap": "md",
+          "children": [
+            {
+              "type": "container",
+              "direction": "column",
+              "chrome": "sidebar",
+              "surface": "floating",
+              "size": {
+                "basis": 56
+              },
+              "collapse_below": 760,
+              "align": "center",
+              "padding": "sm",
+              "gap": "xs",
+              "children": [
+                {
+                  "type": "region",
+                  "region": "brand",
+                  "options": {
+                    "name": "hide"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "navigation",
+                  "size": {
+                    "basis": "fill"
+                  },
+                  "options": {
+                    "style": "icons",
+                    "orientation": "vertical"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "actions",
+                  "options": {
+                    "style": "icons",
+                    "orientation": "vertical"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "region",
+              "region": "content",
+              "size": {
+                "basis": "fill"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "top-bar",
+      "label": "Top bar, no sidebar",
+      "use_when": "A horizontal bar carries the brand, the navigation and the actions; the page gets the full width. Brands with a strong header, few apps.",
+      "tree": {
+        "version": 1,
+        "root": {
+          "type": "container",
+          "direction": "column",
+          "children": [
+            {
+              "type": "container",
+              "direction": "row",
+              "chrome": "navbar",
+              "surface": "flush",
+              "size": {
+                "basis": 64
+              },
+              "behavior": "fixed",
+              "align": "center",
+              "padding": "md",
+              "gap": "md",
+              "children": [
+                {
+                  "type": "region",
+                  "region": "brand",
+                  "options": {
+                    "name": "show"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "navigation",
+                  "size": {
+                    "basis": "fill"
+                  },
+                  "options": {
+                    "style": "icons-labels",
+                    "orientation": "horizontal",
+                    "overflow": "menu"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "actions",
+                  "options": {
+                    "style": "labels",
+                    "orientation": "horizontal"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "region",
+              "region": "content",
+              "size": {
+                "basis": "fill"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "console",
+      "label": "Sidebar under a top bar",
+      "use_when": "A labelled sidebar beneath a fixed top bar that carries the brand, the page title and the actions. Enterprise consoles.",
+      "tree": {
+        "version": 1,
+        "root": {
+          "type": "container",
+          "direction": "column",
+          "children": [
+            {
+              "type": "container",
+              "direction": "row",
+              "chrome": "navbar",
+              "surface": "flush",
+              "size": {
+                "basis": 56
+              },
+              "align": "center",
+              "padding": "md",
+              "gap": "md",
+              "children": [
+                {
+                  "type": "region",
+                  "region": "brand",
+                  "options": {
+                    "name": "show"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "title",
+                  "options": {
+                    "size": "md"
+                  }
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "region",
+                  "region": "actions",
+                  "options": {
+                    "style": "labels",
+                    "orientation": "horizontal"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "container",
+              "direction": "row",
+              "size": {
+                "basis": "fill"
+              },
+              "children": [
+                {
+                  "type": "container",
+                  "direction": "column",
+                  "chrome": "sidebar",
+                  "surface": "flush",
+                  "size": {
+                    "basis": 240
+                  },
+                  "collapse_below": 760,
+                  "padding": "sm",
+                  "gap": "xs",
+                  "children": [
+                    {
+                      "type": "region",
+                      "region": "navigation",
+                      "size": {
+                        "basis": "fill"
+                      },
+                      "options": {
+                        "style": "icons-labels",
+                        "orientation": "vertical"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "region",
+                  "region": "content",
+                  "size": {
+                    "basis": "fill"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "right-sidebar",
+      "label": "Sidebar on the right",
+      "use_when": "The navigation panel sits on the right edge (right-to-left habits, or a brand that keeps the left for content).",
+      "tree": {
+        "version": 1,
+        "root": {
+          "type": "container",
+          "direction": "row",
+          "padding": "md",
+          "gap": "md",
+          "children": [
+            {
+              "type": "region",
+              "region": "content",
+              "size": {
+                "basis": "fill"
+              }
+            },
+            {
+              "type": "container",
+              "direction": "column",
+              "chrome": "sidebar",
+              "surface": "floating",
+              "size": {
+                "basis": 224
+              },
+              "collapse_below": 760,
+              "padding": "sm",
+              "gap": "xs",
+              "children": [
+                {
+                  "type": "region",
+                  "region": "brand",
+                  "options": {
+                    "name": "auto"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "navigation",
+                  "size": {
+                    "basis": "fill"
+                  },
+                  "options": {
+                    "style": "icons-labels",
+                    "orientation": "vertical"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "actions",
+                  "options": {
+                    "style": "labels",
+                    "orientation": "vertical"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "launcher-header",
+      "label": "App launcher header",
+      "use_when": "One slim dark header: an app-launcher (waffle) button, the logo, the current app's name and the actions. Every app lives in the launcher, so the page gets the full width. Enterprise suites with many apps.",
+      "tree": {
+        "version": 1,
+        "root": {
+          "type": "container",
+          "direction": "column",
+          "children": [
+            {
+              "type": "container",
+              "direction": "row",
+              "chrome": "navbar",
+              "surface": "flush",
+              "size": {
+                "basis": 56
+              },
+              "align": "center",
+              "padding": "md",
+              "gap": "md",
+              "children": [
+                {
+                  "type": "region",
+                  "region": "navigation",
+                  "options": {
+                    "style": "launcher",
+                    "orientation": "horizontal"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "brand",
+                  "options": {
+                    "name": "auto",
+                    "logo": "auto"
+                  }
+                },
+                {
+                  "type": "region",
+                  "region": "title",
+                  "options": {
+                    "size": "md"
+                  }
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "region",
+                  "region": "actions",
+                  "options": {
+                    "style": "icons",
+                    "orientation": "horizontal"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "region",
+              "region": "content",
+              "size": {
+                "basis": "fill"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

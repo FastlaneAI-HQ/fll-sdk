@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
+from conftest import without_tree
 from fastlanelabs_sdk import themes
 
 FROZEN = sorted((Path(__file__).parent / 'golden/frozen-r1').glob('*.json'))
@@ -28,13 +29,13 @@ def test_revision_1_results_are_unchanged(path):
     if manifest['api_version'] == 1:
         # Upgrading with the revision pinned reproduces SDK 1.3's upgrade exactly.
         assert json.loads(json.dumps(themes.upgrade_v1_report(manifest, golden['presentation'], registry_revision=1))) == golden['upgrade']
-        assert themes.resolve_theme(manifest) == golden['resolve_v1']
+        assert without_tree(themes.resolve_theme(manifest)) == golden['resolve_v1']
         v2 = golden['upgrade']['theme']
         assert themes.project_v1(v2) == golden['project']
     assert v2['registry_revision'] == 1 and v2['color_scheme'] == 'light' and 'modes' not in v2
     assert themes.check_theme(v2)['errors'] == []
     assert themes.validate_theme(v2) == v2
-    assert json.loads(json.dumps(themes.resolve_theme(v2))) == golden['resolve']
+    assert without_tree(themes.resolve_theme(v2)) == golden['resolve']
     assert json.loads(json.dumps(themes.contrast_report(v2))) == golden['contrast']
     # Light-only output gained nothing: no mode keys in the rows, no scheme, no data-fl-mode.
     assert 'scheme' not in golden['resolve'] and 'data-fl-mode' not in golden['resolve']['attrs']

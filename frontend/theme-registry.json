@@ -1,5 +1,5 @@
 {
-  "registry_revision": 3,
+  "registry_revision": 4,
   "layers": [
     "primitive",
     "semantic",
@@ -2594,9 +2594,14 @@
       "since": 1,
       "options": [
         "plain",
-        "ruled"
+        "ruled",
+        "panel"
       ],
-      "component": "page-header"
+      "component": "page-header",
+      "note": "panel (revision 4): the page header sits in its own bordered card; core draws it.",
+      "option_since": {
+        "panel": 4
+      }
     },
     {
       "name": "table-head-bg",
@@ -3730,9 +3735,14 @@
       "since": 1,
       "options": [
         "square",
-        "pill"
+        "pill",
+        "tab"
       ],
-      "component": "nav-item"
+      "component": "nav-item",
+      "note": "tab (revision 4): a horizontal navigation tab with no fill; the active item has a thick bottom border in the active colour.",
+      "option_since": {
+        "tab": 4
+      }
     },
     {
       "name": "navbar-tone",
@@ -4456,6 +4466,36 @@
       "component": "gate"
     },
     {
+      "name": "gate-shadow",
+      "layer": "component",
+      "type": "shadow",
+      "default": "{shadow-sm}",
+      "group": "component.gate",
+      "label": "Card shadow",
+      "since": 4,
+      "component": "gate"
+    },
+    {
+      "name": "gate-title-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-900}",
+      "group": "component.gate",
+      "label": "Heading text",
+      "since": 4,
+      "component": "gate"
+    },
+    {
+      "name": "gate-tagline-fg",
+      "layer": "component",
+      "type": "color",
+      "default": "{ink-600}",
+      "group": "component.gate",
+      "label": "Tagline text",
+      "since": 4,
+      "component": "gate"
+    },
+    {
       "name": "scrollbar-thumb",
       "layer": "component",
       "type": "color",
@@ -4691,6 +4731,14 @@
       "padding": "md",
       "gap": "md"
     }
+  },
+  "shell": {
+    "since": 4,
+    "vocabulary": "layout-vocabulary.json"
+  },
+  "brand": {
+    "since": 4,
+    "vocabulary": "layout-vocabulary.json"
   },
   "panel_sidebar_width": 224,
   "contrast_pairs": [
@@ -5243,6 +5291,10 @@
     "tokens",
     "layout"
   ],
+  "optional_top_level_keys": [
+    "modes",
+    "brand"
+  ],
   "color_schemes": {
     "1": [
       "light"
@@ -5506,6 +5558,9 @@
       "gate-bg",
       "gate-border",
       "gate-page-bg",
+      "gate-shadow",
+      "gate-title-fg",
+      "gate-tagline-fg",
       "scrollbar-thumb",
       "scrollbar-track",
       "skeleton-base",

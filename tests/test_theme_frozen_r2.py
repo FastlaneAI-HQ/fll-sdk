@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import pytest
+from conftest import without_tree
 from fastlanelabs_sdk import themes
 
 FROZEN = sorted((Path(__file__).parent / 'golden/frozen-r2').glob('*.json'))
@@ -28,18 +29,18 @@ def test_revision_2_results_are_unchanged(path):
     v2 = manifest
     if manifest['api_version'] == 1:
         assert json.loads(json.dumps(themes.upgrade_v1_report(manifest, golden['presentation'], registry_revision=2))) == golden['upgrade']
-        assert themes.resolve_theme(manifest) == golden['resolve_v1']
+        assert without_tree(themes.resolve_theme(manifest)) == golden['resolve_v1']
         v2 = golden['upgrade']['theme']
         assert themes.project_v1(v2) == golden['project']
     assert v2['registry_revision'] == 2
     assert themes.check_theme(v2)['errors'] == []
     assert themes.validate_theme(v2) == v2
-    assert json.loads(json.dumps(themes.resolve_theme(v2))) == golden['resolve']
+    assert without_tree(themes.resolve_theme(v2)) == golden['resolve']
     assert json.loads(json.dumps(themes.contrast_report(v2))) == golden['contrast']
     # None of the revision 3 rows reaches a revision 2 theme.
     assert all('group' not in row for row in golden['contrast'])
     if v2['color_scheme'] != 'light':
-        assert json.loads(json.dumps(themes.resolve_theme(v2, 'dark'))) == golden['resolve_dark']
+        assert without_tree(themes.resolve_theme(v2, 'dark')) == golden['resolve_dark']
         assert json.loads(json.dumps(themes.check_theme(v2))) == golden['check']
         if v2['color_scheme'] == 'auto':
             assert json.loads(json.dumps(themes.derive_dark(v2))) == golden['derive']

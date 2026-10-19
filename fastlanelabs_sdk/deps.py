@@ -30,6 +30,24 @@ class PlatformDeps(Protocol):
 
     def require_app(self, app_id: str) -> Callable: ...
 
+    def can(self, user: Any, app_id: str, feature: str) -> bool:
+        """Whether `user` may use `feature` of `app_id` (role-based access: the client's administrator grants features per role in
+        Identity). True for an administrator and for a member with no role; for a member whose role names features, only those.
+        Pass `None` for the person making the current request: that is how a graph node or a tool, which has no `request`, asks. A machine
+        route that acts as the tenant is not narrowed; with no person and no such route (a thread that lost the request's context) the answer
+        is False. Use it to hide or disable a control, or to branch inside a route; `require_feature` is the dependency for a whole route."""
+        ...
+
+    def require_feature(self, app_id: str, feature: str) -> Callable:
+        """Dependency: this route needs `feature` of `app_id` for the signed-in person (403 with a plain sentence otherwise). It also
+        applies `require_app`'s entitlement and role checks, so it can stand in for it on a route that needs a feature."""
+        ...
+
+    def features_of(self, user: Any, app_id: str) -> Any:
+        """The feature ids `user` may use in `app_id`: a set, or `None` for everything (an administrator, a member with no role, or a
+        role that includes the whole app)."""
+        ...
+
     def entitled(self, app_id: str) -> bool:
         """Whether this tenant has `app_id` enabled, with no session/user in
         hand. `require_app()` already covers the session-authenticated

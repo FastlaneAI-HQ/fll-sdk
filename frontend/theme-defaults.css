@@ -408,6 +408,9 @@
   --fl-gate-max-width: 416px;
   --fl-gate-title-size: var(--fl-fs-2xl);
   --fl-gate-page-bg: var(--fl-surface-page);
+  --fl-gate-shadow: var(--fl-shadow-sm);
+  --fl-gate-title-fg: var(--fl-ink-900);
+  --fl-gate-tagline-fg: var(--fl-ink-600);
   --fl-scrollbar-thumb: var(--fl-ink-200);
   --fl-scrollbar-track: var(--fl-surface);
   --fl-scrollbar-width: 8px;
