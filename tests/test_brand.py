@@ -1,4 +1,4 @@
-"""The brand (registry revision 4): validate_brand, normalise_brand, the theme around it and the registry additions that came with it.
+"""The brand: validate_brand, normalise_brand, the theme around it and the registry additions that came with it.
 
 docs/brand-logo.md is the specification. Every rule has a negative test with the exact path and message; the limits (types, sizes,
 alt, height, tagline) are read from the layout vocabulary's `brand.logo_limits`, which these tests also change to prove nothing is
@@ -14,7 +14,7 @@ import pytest
 
 from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
-from fastlanelabs_sdk.themes import ThemeError, brand_logo_for, brand_of, check_theme, default_theme_v2, normalise_brand, project_v1, resolve_theme, validate_brand, validate_theme
+from fastlanelabs_sdk.themes import ThemeError, brand_logo_for, brand_of, check_theme, default_theme_v2, normalise_brand, resolve_theme, validate_brand, validate_theme
 
 ROOT = Path(__file__).resolve().parents[1]
 VOCAB = registry.layout_vocabulary()
@@ -238,19 +238,15 @@ def test_brand_logo_for_picks_the_logo_for_the_background():
     assert brand_logo_for(both, 0) == both['logo'] and brand_logo_for(both, 1) == both['logo_dark']  # truthiness, as in JavaScript
 
 
-def test_a_theme_with_a_logo_dark_validates_resolves_and_projects_like_one_without():
+def test_a_theme_with_a_logo_dark_validates_and_resolves_like_one_without():
     theme = branded(with_dark(tagline='x'))
     assert check_theme(theme)['errors'] == [] and validate_theme(theme) == theme
     resolved = resolve_theme(theme)
     assert resolved['brand']['logo_dark'] == {'src': DARK_SRC, 'alt': 'Precision Hose (light on dark)', 'height': HEIGHT['default']}
     assert resolved['brand'] == brand_of(theme) and brand_logo_for(resolved['brand'], True) == resolved['brand']['logo_dark']
-    assert project_v1(theme) == project_v1(default_theme_v2('client-precision', '1.0.0', 'Precision Hose'))
     for mode in ('light', 'dark'):
         dual = branded(with_dark(), color_scheme='auto', modes={'dark': themes.derive_dark(default_theme_v2())})
         assert resolve_theme(dual, mode)['brand'] == resolve_theme(branded(with_dark()))['brand']  # both palettes carry both logos
-    older = default_theme_v2('x', '1.0.0', 'X', registry_revision=3)
-    older['brand'] = with_dark()
-    assert [e['path'] for e in check_theme(older)['errors']] == ['brand']
 
 
 def test_the_brand_logo_doc_names_logo_dark_and_its_helper():
@@ -367,9 +363,9 @@ def test_the_limits_are_not_written_in_the_code():
     numbers = re.compile(r'(?<![0-9A-Za-z\\])(%s)(?![0-9A-Za-z])' % '|'.join(map(str, (IMAGE_MAX, TOTAL_MAX, IMAGE_MAX // 1024, TOTAL_MAX // 1024,
                                                                                         ALT_MAX, TAGLINE_MAX, HEIGHT['max']))))  # 16 and 32 are a hex radix and the ASCII case offset here
     source = (ROOT / 'fastlanelabs_sdk/themes.py').read_text()
-    brand = source[source.index('# --- Registry revision 4: the brand'):source.index('def _check_layout(')]
+    brand = source[source.index('# --- The brand (logo)'):source.index('def _check_layout(')]
     ts = (ROOT / 'frontend/theme-resolve.ts').read_text()
-    ts_brand = ts[ts.index('// --- Registry revision 4: the brand'):ts.index('/** The 27 v1-named tokens')]
+    ts_brand = ts[ts.index('// --- The brand (logo)'):ts.index('const luminance = ')]
     for text in (brand, ts_brand):
         assert numbers.findall(text) == [], numbers.findall(text)
 
@@ -541,7 +537,7 @@ def branded(brand=None, **top):
     return theme
 
 
-def test_a_revision_4_theme_may_carry_a_brand_and_it_is_returned_as_is():
+def test_a_theme_may_carry_a_brand_and_it_is_returned_as_is():
     theme = branded()
     assert theme['registry_revision'] == 4
     assert check_theme(theme)['errors'] == [] and check_theme(theme)['warnings'] == []
@@ -549,18 +545,6 @@ def test_a_revision_4_theme_may_carry_a_brand_and_it_is_returned_as_is():
     without = copy.deepcopy(theme)
     del without['brand']
     assert check_theme(theme)['contrast'] == check_theme(without)['contrast']  # the contrast checker does not look at the brand
-
-
-def test_a_brand_in_an_older_revision_is_an_error_at_brand_and_nothing_else_about_it():
-    for revision in (1, 2, 3):
-        theme = default_theme_v2('x', '1.0.0', 'X', registry_revision=revision)
-        theme['brand'] = good()
-        assert check_theme(theme)['errors'] == [{'path': 'brand', 'message': 'brand needs registry_revision 4 or later'}], revision
-        with pytest.raises(ThemeError) as caught:
-            validate_theme(theme)
-        assert caught.value.path == 'brand'
-        theme['brand'] = {'junk': 1}  # the content of a brand that is not allowed is not judged
-        assert [e['path'] for e in check_theme(theme)['errors']] == ['brand'], revision
 
 
 def test_theme_problems_in_the_brand_carry_their_paths():
@@ -576,7 +560,7 @@ def test_theme_problems_in_the_brand_carry_their_paths():
     assert len(caught.value.errors) == 3
 
 
-def test_the_top_level_keys_of_a_revision_4_theme_gain_an_optional_brand():
+def test_the_top_level_keys_of_a_theme_gain_an_optional_brand():
     assert 'brand' not in registry.TOP_LEVEL_KEYS and registry.OPTIONAL_TOP_LEVEL_KEYS == ('modes', 'brand')
     theme = branded()
     theme['extra'] = 1
@@ -610,18 +594,6 @@ def test_a_brand_changes_nothing_but_the_brand_in_the_resolved_theme():
         assert dict(with_brand, brand=None) == resolve_theme(plain, mode)
 
 
-def test_revisions_1_to_3_and_v1_themes_resolve_to_no_brand():
-    for revision in (1, 2, 3):
-        resolved = resolve_theme(default_theme_v2('x', '1.0.0', 'X', registry_revision=revision))
-        assert resolved['brand'] is None
-    v1 = json.loads((ROOT / 'tests/fixtures/themes/fastlane-1.0.0.json').read_text())
-    assert resolve_theme(v1)['brand'] is None
-
-
-def test_the_v1_projection_ignores_the_brand():
-    assert project_v1(branded()) == project_v1(default_theme_v2('client-precision', '1.0.0', 'Precision Hose'))
-
-
 def test_validate_theme_never_rewrites_the_brand():
     theme = branded({'logo': logo(alt='  padded  ')})
     assert validate_theme(theme)['brand']['logo'] == {'src': theme['brand']['logo']['src'], 'alt': '  padded  '}  # normalise_brand trims, validation does not
@@ -633,72 +605,47 @@ def token(name):
     return registry.INDEX[name]
 
 
-def test_nav_item_variant_gains_tab_and_page_header_variant_gains_panel_from_revision_4():
+def test_nav_item_variant_offers_tab_and_page_header_variant_offers_panel():
     nav, header = token('nav-item-variant'), token('page-header-variant')
-    assert nav.options == ('square', 'pill', 'tab') and nav.options_for(4) == nav.options and nav.options_for(3) == ('square', 'pill')
-    assert header.options == ('plain', 'ruled', 'panel') and header.options_for(3) == ('plain', 'ruled') == header.options_for(1)
-    assert dict(nav.option_since) == {'tab': 4} and dict(header.option_since) == {'panel': 4}
-    assert nav.since == header.since == 1 and nav.default == 'square' and header.default == 'plain'
+    assert nav.options == ('square', 'pill', 'tab') and nav.default == 'square'
+    assert header.options == ('plain', 'ruled', 'panel') and header.default == 'plain'
     data = {t['name']: t for t in registry.registry_json()['tokens']}
-    assert data['nav-item-variant']['option_since'] == {'tab': 4} and data['page-header-variant']['option_since'] == {'panel': 4}
-    assert 'option_since' not in data['card-variant']
+    assert data['nav-item-variant']['options'] == ['square', 'pill', 'tab'] and data['page-header-variant']['options'] == ['plain', 'ruled', 'panel']
 
 
-def test_a_revision_4_theme_may_use_the_new_variants_and_an_older_theme_may_not():
+def test_a_theme_may_use_the_tab_and_panel_variants():
     for name, value in (('nav-item-variant', 'tab'), ('page-header-variant', 'panel')):
         theme = default_theme_v2()
         theme['tokens']['components'][name] = value
         assert check_theme(theme)['errors'] == [], name
         assert resolve_theme(theme)['enums'][name] == value
-        for revision in (1, 2, 3):
-            older = default_theme_v2('x', '1.0.0', 'X', registry_revision=revision)
-            older['tokens']['components'][name] = value
-            expected = 'must be one of ' + ', '.join(token(name).options_for(3))
-            assert check_theme(older)['errors'] == [{'path': f'tokens.components.{name}', 'message': 'Invalid value: ' + expected}], (name, revision)
-    # the message an older theme gets is the one it always got
-    older = default_theme_v2(registry_revision=3)
-    older['tokens']['components']['nav-item-variant'] = 'tab'
-    assert check_theme(older)['errors'][0]['message'] == 'Invalid value: must be one of square, pill'
     theme = default_theme_v2()
     theme['tokens']['components']['nav-item-variant'] = 'bar'
     assert check_theme(theme)['errors'][0]['message'] == 'Invalid value: must be one of square, pill, tab'
-
-
-def test_the_existing_options_of_those_tokens_are_valid_in_every_revision():
-    for revision in (1, 2, 3, 4):
-        theme = default_theme_v2('x', '1.0.0', 'X', registry_revision=revision)
-        theme['tokens']['components'].update({'nav-item-variant': 'pill', 'page-header-variant': 'ruled'})
-        assert check_theme(theme)['errors'] == [], revision
-
-
-def test_a_dark_palette_may_not_use_a_variant_its_revision_does_not_offer():
-    theme = default_theme_v2(registry_revision=3, scheme='auto')
-    theme['modes']['dark']['components']['nav-item-variant'] = 'tab'
-    assert [e['path'] for e in check_theme(theme)['errors']] == ['modes.dark.components.nav-item-variant']
 
 
 GATE_NEW = {'gate-shadow': ('shadow', '{shadow-sm}'), 'gate-title-fg': ('color', '{ink-900}'), 'gate-tagline-fg': ('color', '{ink-600}')}
 
 
 def test_the_sign_in_card_already_had_its_page_background_card_background_border_and_radius():
-    existing = {name: (token(name).type, token(name).default, token(name).since) for name in
+    existing = {name: (token(name).type, token(name).default) for name in
                 ('gate-page-bg', 'gate-bg', 'gate-border', 'gate-radius', 'gate-max-width', 'gate-title-size')}
-    assert existing == {'gate-page-bg': ('color', '{surface-page}', 1), 'gate-bg': ('color', '{surface}', 1), 'gate-border': ('color', '{border}', 1),
-                        'gate-radius': ('length', '{radius}*2', 1), 'gate-max-width': ('length', '416px', 1),
-                        'gate-title-size': ('font-size', '{size-2xl}', 1)}
+    assert existing == {'gate-page-bg': ('color', '{surface-page}'), 'gate-bg': ('color', '{surface}'), 'gate-border': ('color', '{border}'),
+                        'gate-radius': ('length', '{radius}*2'), 'gate-max-width': ('length', '416px'),
+                        'gate-title-size': ('font-size', '{size-2xl}')}
 
 
-def test_the_new_gate_tokens_are_revision_4_components_whose_fallbacks_are_what_the_page_drew_before():
+def test_the_new_gate_tokens_are_components_whose_fallbacks_are_what_the_page_drew_before():
     for name, (kind, fallback) in GATE_NEW.items():
         t = token(name)
-        assert (t.layer, t.type, t.default, t.since, t.component, t.optional) == ('component', kind, fallback, 4, 'gate', False), name
+        assert (t.layer, t.type, t.default, t.component, t.optional) == ('component', kind, fallback, 'gate', False), name
     # text-ink-900 heading, text-ink-600 lede and tagline, shadow-sm card (the markup of Gate in core's Field.tsx)
     css = (ROOT / 'frontend/theme-defaults.css').read_text()
     assert '--fl-gate-shadow: var(--fl-shadow-sm);' in css
     assert '--fl-gate-title-fg: var(--fl-ink-900);' in css and '--fl-gate-tagline-fg: var(--fl-ink-600);' in css
 
 
-def test_the_new_gate_tokens_exist_from_revision_4_only_and_a_theme_without_them_stays_valid():
+def test_a_theme_may_set_the_new_gate_tokens_and_a_theme_without_them_stays_valid():
     values = {'gate-shadow': '0 8px 24px 0 rgba(0,0,0,0.12)', 'gate-title-fg': '#1a1b21', 'gate-tagline-fg': '{ink-500}'}
     theme = default_theme_v2()
     theme['tokens']['components'].update(values)
@@ -706,32 +653,18 @@ def test_the_new_gate_tokens_exist_from_revision_4_only_and_a_theme_without_them
     assert resolve_theme(theme)['vars']['--fl-gate-title-fg'] == '26 27 33'
     assert resolve_theme(theme)['vars']['--fl-gate-shadow'] == values['gate-shadow']
     assert check_theme(default_theme_v2())['errors'] == []
-    for revision in (1, 2, 3):
-        older = default_theme_v2('x', '1.0.0', 'X', registry_revision=revision)
-        older['tokens']['components']['gate-shadow'] = values['gate-shadow']
-        assert check_theme(older)['errors'] == [{'path': 'tokens.components.gate-shadow', 'message': 'Unknown token gate-shadow'}], revision
 
 
 def test_the_new_gate_tokens_follow_the_naming_and_layer_conventions_and_reach_every_generated_file():
     for name in GATE_NEW:
         assert name.startswith('gate-') and token(name).group == 'component.gate'
     tokens_doc = (ROOT / 'docs/theme-v2-tokens.md').read_text()
-    assert '| `gate-shadow` (revision 4) | shadow | `{shadow-sm}` |' in tokens_doc
-    assert '| `gate-title-fg` (revision 4) | color | `{ink-900}` |' in tokens_doc
-    assert 'tab (revision 4)' in tokens_doc and 'panel (revision 4)' in tokens_doc
+    assert '| `gate-shadow` | shadow | `{shadow-sm}` |' in tokens_doc
+    assert '| `gate-title-fg` | color | `{ink-900}` |' in tokens_doc
     frontend = {t['name']: t for t in json.loads((ROOT / 'frontend/theme-registry.json').read_text())['tokens']}
-    assert all(frontend[name]['since'] == 4 for name in GATE_NEW)
-    assert json.loads((ROOT / 'frontend/theme-registry.json').read_text())['brand'] == {'since': 4, 'vocabulary': 'layout-vocabulary.json'}
+    assert all(name in frontend for name in GATE_NEW)
+    assert json.loads((ROOT / 'frontend/theme-registry.json').read_text())['brand'] == {'vocabulary': 'layout-vocabulary.json'}
     assert json.loads((ROOT / 'frontend/theme-registry.json').read_text())['optional_top_level_keys'] == ['modes', 'brand']
-
-
-def test_registry_revisions_1_to_3_are_unchanged_by_the_additions():
-    """A theme that targets revision 3 is judged exactly as before: no new token, no new option, no new top-level key."""
-    names = {name for name, t in registry.for_revision(3).items()}
-    assert not names & set(GATE_NEW)
-    assert len(names) == len(registry.INDEX) - len(GATE_NEW)
-    assert {t.name for t in registry.INDEX.values() if t.option_since} == {'nav-item-variant', 'page-header-variant'}
-    assert all(t.options_for(3) == tuple(o for o in t.options if o not in dict(t.option_since)) for t in registry.INDEX.values())
 
 
 # --- Cases the TypeScript twin is run over (tests/test_layout_tree_parity.py) ---------------------------------------------

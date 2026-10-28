@@ -1,5 +1,4 @@
 """Shared test setup."""
-import json
 import os
 import re
 import shutil
@@ -11,15 +10,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 IN_CI = bool(os.environ.get('CI') or os.environ.get('JENKINS_URL'))
 NODE_MAJOR = 20  # package.json engines
-
-
-def without_tree(resolved):
-    """A resolve result without `shell.tree` and `brand`: the revision 1 to 3 goldens were written before the tree existed and are never
-    rewritten, so what they pin is everything else (the tree of those themes is pinned by tests/golden/shell-from-layout.json)."""
-    resolved = json.loads(json.dumps(resolved))
-    assert resolved['shell'].pop('tree')['version'] == 1
-    assert resolved.pop('brand') is None  # revisions 1 to 3 have no brand; the goldens were written before the key existed
-    return resolved
 
 
 @pytest.fixture

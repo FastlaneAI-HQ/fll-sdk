@@ -1,7 +1,7 @@
 /** Run frontend/theme-resolve.ts's layout-tree functions over cases written by tests/test_layout_tree_parity.py.
  *  Usage: node tests/golden/run_shell.mjs CASES.json  (needs the SDK's esbuild dev dependency)
  *  CASES.json: { cases: [{ id, shell, scroll, installed, vocabulary }], layouts: [layout, ...], themes: [theme, ...],
- *  brands: [{ id, brand, vocabulary }], options: [[token, revision], ...] }.
+ *  brands: [{ id, brand, vocabulary }] }.
  *  Prints { results: { id: { errors, warnings, tree } }, layouts: [tree, ...], themes: [{ resolved, tree }, ...] }; `tree` of a case is the
  *  normalised shell, only when it has no error; `brands` is { id: { errors, warnings, brand } }, `brand` the normalised brand, only when it has no error; `logo_for` is { light, dark }, `brandLogoFor(brand, false/true)`, with the same condition. */
 import { build } from 'esbuild'
@@ -29,6 +29,4 @@ for (const item of input.brands ?? []) {
   const brand = found.errors.length ? null : lib.normaliseBrand(item.brand, vocabulary)
   brands[item.id] = { errors: found.errors, warnings: found.warnings, brand, logo_for: brand === null ? null : { light: lib.brandLogoFor(brand, false), dark: lib.brandLogoFor(brand, true) } }
 }
-const specs = new Map(lib.tokenSpecs.map(spec => [spec.name, spec]))
-const options = (input.options ?? []).map(([name, revision]) => lib.optionsFor(specs.get(name), revision))
-console.log(JSON.stringify({ results, layouts: (input.layouts ?? []).map(layout => lib.shellFromLayout(layout)), themes, brands, options }))
+console.log(JSON.stringify({ results, layouts: (input.layouts ?? []).map(layout => lib.shellFromLayout(layout)), themes, brands }))

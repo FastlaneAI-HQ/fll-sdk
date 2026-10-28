@@ -1,11 +1,8 @@
-"""Dark mode (registry revision 2): the data model, its validation, resolution and the derived palette.
+"""Dark mode: the data model, its validation, resolution and the derived palette.
 
-Revision 1 stays frozen (tests/test_theme_frozen_r1.py); everything here is new surface that only revision 2
-themes can use. These tests describe revision 2, so every default theme in this file is pinned to it (revision 3
-changes what a new theme starts from and how its dark palette is derived: tests/test_themes_r3.py).
+How the derived palette re-solves its text steps and lifts the brand's roles is tested in tests/test_themes_palette.py.
 """
 import colorsys
-import hashlib
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -15,17 +12,11 @@ from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 from fastlanelabs_sdk.theme_packs import create_theme_pack_v2, validate_theme_pack
 from fastlanelabs_sdk.themes import (
-    ThemeError, check_theme, contrast_report, derive_dark, effective_mode, offered_modes,
-    project_v1, resolve_theme, validate_theme,
+    ThemeError, check_theme, contrast_report, default_theme_v2, derive_dark, effective_mode, offered_modes,
+    resolve_theme, validate_theme,
 )
 
-
-def default_theme_v2(*args, **kwargs):
-    kwargs.setdefault('registry_revision', 2)
-    return themes.default_theme_v2(*args, **kwargs)
-
-
-FIXTURES = Path(__file__).parent / 'fixtures/themes/v2'
+FIXTURES = Path(__file__).parent / 'fixtures/themes'
 SOURCES = {'website': 'https://example.com', 'retrieved_at': '2026-10-05',
            'observations': [{'url': 'https://example.com', 'kind': 'observed', 'note': 'Dark navy surfaces.'}], 'notes': []}
 
@@ -48,11 +39,9 @@ def luminance(color):
 
 # --- The data model ------------------------------------------------------------------------------
 
-def test_revision_2_added_no_token():
-    assert registry.REGISTRY_REVISION >= 2 and registry.MODE_NAMES == ('dark',)
-    assert registry.color_schemes(1) == ('light',) and registry.color_schemes(2) == ('light', 'dark', 'auto')
-    assert registry.color_schemes(3) == registry.color_schemes(2)
-    assert not [token.name for token in registry.TOKENS if token.since == 2]
+def test_dark_mode_is_a_scheme_and_one_mode_not_a_token():
+    assert registry.MODE_NAMES == ('dark',) and registry.COLOR_SCHEMES == ('light', 'dark', 'auto')
+    assert not [token.name for token in registry.TOKENS if 'dark' in token.name]
     assert set(registry.MODE_EXTRA_TOKENS) <= set(registry.INDEX)
     assert len(registry.DARK_REQUIRED) == 6 * 11 + 2 and {'surface', 'on-primary'} <= set(registry.DARK_REQUIRED)
 
@@ -231,10 +220,9 @@ def test_every_light_pair_is_judged_again_for_the_dark_palette_with_the_same_thr
                                        'focus-ring-on-surface', 'nav-item-fg-on-sidebar-bg', 'success-text-on-soft'}
 
 
-def test_light_only_themes_report_exactly_what_revision_1_reported():
+def test_light_only_themes_report_rows_without_a_mode():
     rows = contrast_report(default_theme_v2())
     assert rows and all('mode' not in row for row in rows)
-    assert contrast_report(default_theme_v2(registry_revision=1)) == rows
 
 
 @pytest.mark.parametrize('layer,name,value,pair', [
@@ -291,7 +279,7 @@ def test_nav_bar_contrast_follows_the_dark_tone():
     derived = row(auto())
     assert (derived['fg_value'], derived['bg_value']) == ('#d9dade', '#15161c') and derived['pass']
     flipped = row(mutate_dark('components', sidebar_tone='dark'))
-    assert (flipped['fg_value'], flipped['bg_value']) == ('#454652', '#f7f7f8')
+    assert (flipped['fg_value'], flipped['bg_value']) == (auto()['modes']['dark']['primitives']['ink-300'], '#f7f7f8')
     # A bar painted by hand is still judged against its nav items.
     painted = mutate_dark('components', sidebar_bg='#d9dade')
     assert any('nav-item-fg on sidebar-bg' in e['message'] and e['message'].startswith('In dark mode') for e in errors(painted))
@@ -362,11 +350,14 @@ def test_resolving_does_not_mutate_the_theme():
 def test_the_default_dark_palette_is_derived_not_inverted():
     dark = derive_dark(default_theme_v2())
     p, s = dark['primitives'], dark['semantic']
-    light = {t.name: t.default for t in registry.PRIMITIVES}
-    # Ramps are reversed, so every ink-*/accent-* class lands on a coherent dark value.
+    light = default_theme_v2()['tokens']['primitives']
+    # Ramps are reversed, so every ink-*/accent-* class lands on a coherent dark value; then the text steps are re-solved to read
+    # on the dark surfaces and the accent tints behind them darkened (tests/test_themes_palette.py).
+    solved = {f'ink-{shade}' for shade, _ in themes.DARK_TEXT_STEPS} | set(themes.DARK_TINT_FLOORS)
     for palette in registry.COLOR_RAMPS:
-        values = [p[f'{palette}-{shade}'] for shade in registry.SHADES]
-        assert values == [light[f'{palette}-{shade}'] for shade in reversed(registry.SHADES)]
+        for shade, mirror in zip(registry.SHADES, reversed(registry.SHADES)):
+            if f'{palette}-{shade}' not in solved:
+                assert p[f'{palette}-{shade}'] == light[f'{palette}-{mirror}'], f'{palette}-{shade}'
     assert [luminance(p[f'ink-{shade}']) for shade in registry.SHADES] == sorted(luminance(p[f'ink-{shade}']) for shade in registry.SHADES)
     # Surfaces are dark, text is light, and the surface sits between the page and ink-100.
     assert luminance(p['ink-50']) < luminance(s['surface']) < luminance(p['ink-100'])
@@ -431,7 +422,7 @@ def test_text_set_as_text_inverse_becomes_plain_text_where_the_fill_under_it_is_
 
 def test_a_bar_painted_by_hand_falls_back_to_the_surface_in_dark():
     value = default_theme_v2('client-acme')
-    value['tokens']['components'].update({'navbar-bg': '{ink-800}', 'sidebar-bg': '#112233'})
+    value['tokens']['components'].update({'navbar-bg': '{ink-950}', 'sidebar-bg': '#112233'})
     value['layout']['navbar']['position'] = 'top'
     dark = derive_dark(value)
     assert dark['components']['navbar-bg'] == dark['components']['sidebar-bg'] == '{surface}'
@@ -464,20 +455,7 @@ def test_derived_dark_passes_every_error_level_pair_for_many_brands():
     assert failures == []
 
 
-# --- v1 projection, packs and the published corpus --------------------------------------------
-
-def test_old_clients_get_the_light_palette_of_an_auto_theme():
-    value = auto()
-    projected = project_v1(value)
-    assert projected == project_v1(default_theme_v2('client-acme', '1.0.0', 'Acme'))
-    assert projected['tokens']['surface'] == '#ffffff' and validate_theme(projected) == projected
-
-
-def test_a_dark_only_theme_projects_its_own_palette_and_stays_a_valid_v1_manifest():
-    projected = project_v1(default_theme_v2('client-acme', scheme='dark'))
-    assert projected['tokens']['surface'] == '#15161c' and projected['tokens']['ink-900'] == '#ececee'
-    assert validate_theme(projected) == projected
-
+# --- Packs and the published corpus --------------------------------------------------------------
 
 @pytest.mark.parametrize('scheme', ['auto', 'dark'])
 def test_packs_carry_dark_themes_and_round_trip(scheme):
@@ -494,21 +472,6 @@ def test_a_pack_with_a_malformed_dark_block_cannot_be_created():
         create_theme_pack_v2(value, SOURCES)
 
 
-RELEASE_HASHES = {
-    'client-dusk-1.0.0': '21ccb4d44aa5e75fecde98c0531639479b1310c2e08cde9b39fe287e7fdd2170',
-    'client-night-1.0.0': '9a6759c82ac1e7d2bec65fda27f18c75a0b0705de5888d06d109e748dffd1877',
-}
-
-
-@pytest.mark.parametrize('name', sorted(RELEASE_HASHES))
-def test_published_dark_releases_hash_exactly_as_published(name):
-    """Registry revision 2 is frozen from here on: these bytes must keep validating and hashing the same."""
-    theme = json.loads((FIXTURES / f'{name}.json').read_text())
-    assert theme['registry_revision'] == 2
-    assert hashlib.sha256((json.dumps(validate_theme(theme), sort_keys=True, indent=2) + '\n').encode()).hexdigest() == RELEASE_HASHES[name]
-    assert errors(theme) == []
-
-
 def test_the_published_corpus_covers_every_scheme():
     schemes = {json.loads(p.read_text()).get('color_scheme') for p in FIXTURES.glob('*.json')}
     assert schemes == {'light', 'auto', 'dark'}
@@ -518,7 +481,7 @@ def test_the_published_corpus_covers_every_scheme():
 
 def test_the_registry_json_carries_what_the_typescript_twin_needs():
     data = registry.registry_json()
-    assert data['registry_revision'] == registry.REGISTRY_REVISION and data['color_schemes'] == {'1': ['light'], '2': ['light', 'dark', 'auto']}
+    assert data['registry_revision'] == registry.REGISTRY_REVISION and data['color_schemes'] == ['light', 'dark', 'auto']
     assert data['modes']['required'] == list(registry.DARK_REQUIRED) and data['modes']['ramps'] == list(registry.COLOR_RAMPS)
     assert set(data['modes']['overridable']) == set(registry.MODE_TOKENS)
     assert 'rose' in data['hues'] and len(data['hues']['rose']) == 11 and data['black'] == {'light': '#000000', 'dark': '#f7f7f8'}

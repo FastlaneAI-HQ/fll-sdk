@@ -1,4 +1,4 @@
-"""The layout tree (registry revision 4): validate_shell, normalise_shell, shell_from_layout and the revision 4 theme.
+"""The layout tree: validate_shell, normalise_shell, shell_from_layout and the theme that carries a tree.
 
 docs/layout-tree.md is the specification. Every rule has a negative test with the exact path of the node it names; the
 limits, enums and defaults are read from the layout vocabulary, which these tests also change to prove nothing is hard-coded.
@@ -12,7 +12,7 @@ import pytest
 from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 from fastlanelabs_sdk.themes import (
-    check_theme, default_theme_v2, normalise_shell, project_v1, resolve_theme, shell_from_layout, shell_tree_of,
+    check_theme, default_theme_v2, normalise_shell, resolve_theme, shell_from_layout, shell_tree_of,
     validate_shell, validate_theme,
 )
 
@@ -133,8 +133,8 @@ def test_the_registry_default_layout_maps_to_the_rail_preset():
 
 
 def test_the_platform_release_layout_maps_to_the_panel_flush_preset():
-    release = json.loads((ROOT / 'fastlanelabs_sdk/registry_data/default-theme-v2.json').read_text())
-    assert release['registry_revision'] == 3
+    release = json.loads((ROOT / 'fastlanelabs_sdk/registry_data/default-theme.json').read_text())
+    assert release['registry_revision'] == 4
     assert shell_from_layout(release['layout']) == normal('panel-flush')
 
 
@@ -145,7 +145,7 @@ def test_a_panel_on_the_right_maps_to_the_right_sidebar_preset():
 
 
 def layouts():
-    """A grid of valid revision 1 to 3 layouts: every side, style, surface, navbar position and alignment, the content options."""
+    """A grid of valid layouts without a tree: every side, style, surface, navbar position and alignment, the content options."""
     out = []
     for side in ('left', 'right', 'hidden'):
         for style, surface, width in (('rail', 'floating', 56), ('panel', 'flush', 224), ('panel', 'floating', 280)):
@@ -445,7 +445,6 @@ def test_a_launcher_header_theme_validates_resolves_and_keeps_its_classic_fallba
     classic = shell_from_layout(theme['layout'])
     navigation = next(c for c in classic['root']['children'][0]['children'] if c.get('region') == 'navigation')
     assert navigation['options']['style'] == 'icons-labels'
-    assert project_v1(theme)['layout']['navigation'] == project_v1(tree_theme(copy.deepcopy(PRESETS['top-bar']), sidebar=top, navbar=bar))['layout']['navigation']
 
 
 def test_title_and_actions_options_come_from_the_vocabulary():
@@ -787,7 +786,7 @@ def tree_theme(shell=None, **layout):
     return theme
 
 
-def test_a_revision_4_theme_may_carry_a_shell_and_keeps_every_other_layout_key():
+def test_a_theme_may_carry_a_shell_and_keeps_every_other_layout_key():
     theme = tree_theme()
     assert theme['registry_revision'] == 4
     assert check_theme(theme)['errors'] == [] and validate_theme(theme) == theme
@@ -796,18 +795,6 @@ def test_a_revision_4_theme_may_carry_a_shell_and_keeps_every_other_layout_key()
             broken = copy.deepcopy(theme)
             del broken['layout'][key]
             assert check_theme(broken)['errors'] == [{'path': 'layout', 'message': 'Layout must supply exactly density, scroll, sidebar, navbar, content and may add shell'}], key
-
-
-def test_a_theme_at_revision_3_or_earlier_must_not_carry_a_shell():
-    for revision in (1, 2, 3):
-        theme = default_theme_v2(registry_revision=revision)
-        theme['layout']['shell'] = copy.deepcopy(PRESETS['panel-flush'])
-        assert check_theme(theme)['errors'] == [{'path': 'layout.shell', 'message': 'layout.shell needs registry_revision 4 or later'}], revision
-        with pytest.raises(themes.ThemeError) as caught:
-            validate_theme(theme)
-        assert caught.value.path == 'layout.shell'
-    # An older theme without it is exactly as before, whatever the validator's revision.
-    assert check_theme(default_theme_v2(registry_revision=3))['errors'] == []
 
 
 def test_shell_errors_in_a_theme_carry_the_full_path_and_do_not_stop_the_contrast_report():
@@ -842,15 +829,10 @@ def test_shell_warnings_follow_the_theme_scroll():
     assert check_theme(tree_theme(shell, scroll='page'))['warnings'] == []
 
 
-def test_a_shell_never_changes_the_contrast_report_or_the_v1_projection():
+def test_a_shell_never_changes_the_contrast_report():
     plain = default_theme_v2()
     shelled = tree_theme()
     assert check_theme(shelled)['contrast'] == check_theme(plain)['contrast']
-    assert project_v1(shelled) == project_v1(plain)
-    right = tree_theme(copy.deepcopy(PRESETS['right-sidebar']), sidebar=dict(registry.default_layout('panel')['sidebar'], side='right'))
-    projected = project_v1(right)
-    assert projected['api_version'] == 1 and projected['layout'] == {'density': 'comfortable', 'navigation': 'sidebar'}
-    assert validate_theme(projected) == projected
 
 
 def test_resolve_theme_returns_the_themes_own_tree_or_the_one_its_options_describe():
@@ -861,8 +843,6 @@ def test_resolve_theme_returns_the_themes_own_tree_or_the_one_its_options_descri
     plain = resolve_theme(default_theme_v2())
     assert plain['shell']['tree'] == normal('rail') == shell_tree_of(default_theme_v2())
     assert plain['shell']['attrs']['data-fl-sidebar-style'] == 'rail'
-    older = resolve_theme(default_theme_v2(registry_revision=3))
-    assert older['shell']['tree'] == normal('rail') and older['shell']['attrs'] == plain['shell']['attrs'] and older['shell']['vars'] == plain['shell']['vars']
 
 
 def test_the_attributes_and_variables_of_the_shell_do_not_depend_on_the_tree():
@@ -878,15 +858,15 @@ def test_the_tree_is_plain_data_with_no_markup_class_names_styles_or_urls():
             assert word not in text, word
 
 
-def test_the_default_release_is_still_registry_revision_3_and_resolves_to_panel_flush():
-    release = json.loads((ROOT / 'fastlanelabs_sdk/registry_data/default-theme-v2.json').read_text())
-    assert release['registry_revision'] == 3 and 'shell' not in release['layout']
+def test_the_default_release_has_no_tree_and_resolves_to_panel_flush():
+    release = json.loads((ROOT / 'fastlanelabs_sdk/registry_data/default-theme.json').read_text())
+    assert (release['id'], release['version'], release['registry_revision']) == ('fastlane', '2.1.0', 4) and 'shell' not in release['layout']
     assert resolve_theme(release)['shell']['tree'] == normal('panel-flush')
 
 
-def test_the_registry_data_names_the_revision_that_introduced_the_shell():
+def test_the_registry_data_names_the_vocabulary_of_the_shell():
     data = json.loads((ROOT / 'frontend/theme-registry.json').read_text())
-    assert data['registry_revision'] == 4 and data['shell'] == {'since': 4, 'vocabulary': 'layout-vocabulary.json'}
+    assert data['registry_revision'] == 4 and data['shell'] == {'vocabulary': 'layout-vocabulary.json'}
     assert 'shell' not in data['layout']  # the skill's vendored reference reads LAYOUT_SPEC as flat fields
     assert themes.CONTENT_PATH_MAX_PX == registry.LAYOUT_SPEC['content']['max_width']['max'] == 1920
 

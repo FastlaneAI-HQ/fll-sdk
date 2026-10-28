@@ -5,7 +5,7 @@ import zipfile
 
 import pytest
 from fastlanelabs_sdk.theme_packs import (
-    MAX_FILE_BYTES, ThemePackError, create_theme_pack, create_theme_pack_v2, validate_theme_pack,
+    MAX_FILE_BYTES, ThemePackError, create_theme_pack_v2, validate_theme_pack,
 )
 from fastlanelabs_sdk.themes import default_theme_v2, validate_theme
 
@@ -49,10 +49,10 @@ def test_v2_pack_round_trip_is_reproducible_and_has_three_files():
     assert data == create_theme_pack_v2(theme, sources)
     assert sorted(payload_of(data)) == ['pack.json', 'sources.json', 'theme.json']
     result = validate_theme_pack(data)
-    assert result['format_version'] == 2 and result['presentation'] is None
+    assert result['format_version'] == 2 and 'presentation' not in result
     assert (result['theme'], result['sources']) == (theme, sources)
     assert result['sha256'] == hashlib.sha256(data).hexdigest()
-    assert result['warnings'] == []  # the revision 3 default palette has accessible input borders and placeholders
+    assert result['warnings'] == []  # the new-theme palette has accessible input borders and placeholders
     pack = json.loads(payload_of(data)['pack.json'])
     assert (pack['format_version'], pack['template_api_version'], sorted(pack['files'])) == (2, 2, ['sources.json', 'theme.json'])
 
@@ -76,15 +76,22 @@ def test_v2_archives_allow_exactly_three_root_files(change, path):
     assert 'three' in failure.value.errors[0]['message']
 
 
-def test_v2_pack_requires_a_v2_theme_and_template_api():
-    v1_theme = json.loads(json.dumps(default_theme_v2()))
-    v1_theme = {'api_version': 1, 'id': 'client-acme', 'version': '1.0.0', 'label': 'Acme',
-                'tokens': {k: v for k, v in {**v1_theme['tokens']['primitives'], **v1_theme['tokens']['semantic']}.items()
-                           if k in ('surface', 'on-primary', 'font-sans', 'font-mono', 'radius') or k[:4] in ('ink-', 'acce')},
-                'layout': {'density': 'comfortable', 'navigation': 'rail'}}
+def test_v2_pack_requires_a_v2_theme_at_the_current_revision_and_template_api():
+    old_api = dict(default_theme_v2('client-acme', '1.0.0', 'Acme'), api_version=1)
     with pytest.raises(ThemePackError) as failure:
-        validate_theme_pack(modified(lambda p: p.update({'theme.json': json.dumps(v1_theme).encode()})))
-    assert failure.value.errors == [{'path': 'theme.json.api_version', 'message': 'Format 2 packs require a v2 theme'}]
+        validate_theme_pack(modified(lambda p: p.update({'theme.json': json.dumps(old_api).encode()})))
+    assert failure.value.errors == [{'path': 'theme.json.api_version', 'message': 'A theme pack requires an API v2 theme'}]
+    old_revision = dict(default_theme_v2('client-acme', '1.0.0', 'Acme'), registry_revision=3)
+    with pytest.raises(ThemePackError) as failure:
+        validate_theme_pack(modified(lambda p: p.update({'theme.json': json.dumps(old_revision).encode()})))
+    assert failure.value.errors[0]['path'] == 'theme.json.registry_revision'
+
+    def old_format(p):
+        pack = json.loads(p['pack.json'])
+        pack['format_version'] = 1
+        p['pack.json'] = json.dumps(pack).encode()
+    with pytest.raises(ThemePackError, match='Unsupported theme pack format or version'):
+        validate_theme_pack(modified(old_format))
 
     def bad_template(p):
         pack = json.loads(p['pack.json'])
@@ -147,15 +154,3 @@ def test_creation_rejects_invalid_input():
     nan['tokens']['primitives']['size-scale'] = float('nan')
     with pytest.raises(ThemePackError):
         create_theme_pack_v2(nan, sources)
-
-
-def test_format_1_packs_still_round_trip_beside_format_2():
-    from fastlanelabs_sdk.themes import project_v1
-    v1 = project_v1(default_theme_v2('client-old', '1.0.0', 'Old'))
-    presentation = {'api_version': 1, 'workspace': {'type': 'row', 'gap': 'md', 'children': [
-        {'type': 'slot', 'name': 'navigation'}, {'type': 'column', 'gap': 'md', 'children': [
-            {'type': 'slot', 'name': 'actions'}, {'type': 'slot', 'name': 'content'}]}]}, 'styles': {}}
-    _, sources = inputs()
-    data = create_theme_pack(v1, presentation, sources)
-    result = validate_theme_pack(data)
-    assert result['theme'] == v1 and 'format_version' not in result and result['presentation']['api_version'] == 1

@@ -28,7 +28,7 @@
       "width": 56
     }
   },
-  "registry_revision": 2,
+  "registry_revision": 4,
   "tokens": {
     "components": {
       "button-radius": "{radius-pill}",

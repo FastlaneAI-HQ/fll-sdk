@@ -3,7 +3,7 @@
     python scripts/gen_theme_registry.py            # write the files
     python scripts/gen_theme_registry.py --check    # exit 1 if any file is stale
 
-Writes registry_data/theme-registry-v2.json, registry_data/default-theme-v2.json,
+Writes registry_data/theme-registry-v2.json, registry_data/default-theme.json,
 frontend/theme-registry.json, frontend/theme-defaults.css, frontend/tailwind-preset.mjs,
 docs/theme-v2-tokens.md and the two copies of the layout vocabulary
 (registry_data/layout-vocabulary.json and frontend/layout-vocabulary.json). Nothing here is hand edited.
@@ -130,7 +130,7 @@ def preset():
                        for shade, color in zip(shades, hue_ramp)}
     colors.update({
         "page": role("surface-page"), "sunken": role("surface-sunken"),
-        # Registry revision 3. `bg-inverse` was the surface-inverse role (ink-950) and nothing in core or the apps
+        # `bg-inverse` was once the surface-inverse role (ink-950) and nothing in core or the apps
         # used it; it is now the inverse fill (ink-900 unless a theme says otherwise) and the old one is `surface-inverse`.
         "inverse": role("inverse"), "on-inverse": role("on-inverse"), "surface-inverse": role("surface-inverse"),
         "accent-text": role("accent-text"), "accent-ui": role("accent-ui"), "focus": role("focus-ring"),
@@ -210,26 +210,25 @@ def tokens_doc():
            "leaves unset follows its fallback live.", ""]
     for title, tokens in (("Primitives (required, literal)", registry.PRIMITIVES),
                           ("Semantic roles (required unless marked optional)", registry.SEMANTIC)):
-        out += [f"## {title}", "", "| Token | Type | Default | New theme (revision 3) | Range / options |", "| --- | --- | --- | --- | --- |"]
+        out += [f"## {title}", "", "| Token | Type | Default | New theme | Range / options |", "| --- | --- | --- | --- | --- |"]
         for t in tokens:
             fresh = registry.default_for(t)
             changed = f"`{fresh}`" if fresh != t.default else ""
-            note = f"optional, since revision {t.since}; " if t.optional else ""
+            note = "optional; " if t.optional else ""
             out.append(f"| `{t.name}` | {t.type} | `{t.default}` | {changed} | {note}{limits(t)} |")
         out.append("")
-    out += ["`Default` is the generated CSS fallback and what revisions 1 and 2 start a theme from; it never changes. "
-            "`New theme` is what a theme that targets revision 3 starts from (`default_theme_v2`, the Themes editor and the builder).", ""]
+    out += ["`Default` is the generated CSS fallback, what a host without a theme renders. "
+            "`New theme` is what a new theme starts from where it differs (`default_theme_v2`, the Themes editor and the builder).", ""]
     out += ["## Component tokens (optional)", ""]
     for key, label in registry.COMPONENTS.items():
         out += [f"### {label} (`{key}`)", "", "| Token | Type | Fallback | Range / options |", "| --- | --- | --- | --- |"]
         for t in registry.COMPONENT_TOKENS:
             if t.component == key:
                 default = " / ".join(f"{k}: `{v}`" for k, v in t.default.items()) if isinstance(t.default, dict) else f"`{t.default}`"
-                since = f" (revision {t.since})" if t.since > 1 else ""
-                out.append(f"| `{t.name}`{since} | {t.type} | {default} | {limits(t)} |")
+                out.append(f"| `{t.name}` | {t.type} | {default} | {limits(t)} |")
         out.append("")
-    out += ["## Dark mode (registry revision 2)", "",
-            "`color_scheme` is `light`, `dark` or `auto` (revision 1 allows `light` only). A `dark` theme's own tokens are a dark palette. "
+    out += ["## Dark mode", "",
+            "`color_scheme` is `light`, `dark` or `auto`. A `dark` theme's own tokens are a dark palette. "
             "An `auto` theme's tokens are its light palette and `modes.dark` overrides them; the user picks light, dark or the system's.", "",
             f"`modes.dark` must set every colour ramp ({', '.join(registry.COLOR_RAMPS)}; {len(registry.DARK_REQUIRED) - 2} tokens), `surface` and `on-primary`. "
             "It may also override any of these (everything else is the same in both modes):", "",
@@ -241,18 +240,18 @@ def tokens_doc():
         else:
             for name, field in spec.items():
                 out.append(f"| `layout.{key}.{name}` | {layout_values(field)} | `{field['default']}` |")
-    out += ["", "`layout.shell` (optional, registry revision 4) is a validated tree of containers and regions that replaces the "
-            "sidebar and navbar options for rendering; the options above stay required and are the v1 projection. "
+    out += ["", "`layout.shell` (optional) is a validated tree of containers and regions that replaces the "
+            "sidebar and navbar options for rendering; the options above stay required (a theme without a shell renders the tree they describe). "
             "See `docs/layout-tree.md` and `registry_data/layout-vocabulary.json` (limits, enums and defaults).", "",
-            "`brand` (optional, registry revision 4) carries the client's logo, an optional square mark and a tagline as small `data:` images; "
+            "`brand` (optional) carries the client's logo, an optional square mark and a tagline as small `data:` images; "
             "the limits are the layout vocabulary's `brand.logo_limits`. See `docs/brand-logo.md`.",
             "", "## Contrast", "",
-            "A theme is judged only against the pairs of the registry revision it targets. `ui` pairs are the colours the interface "
+            "`ui` pairs are the colours the interface "
             "paints with (a raw ramp step, `text-white` on a dark fill); they are reported apart from the role pairs. "
             "A pair marked *unless* is not judged for a theme that sets that role: the role replaces the raw step.", "",
-            "| Pair | Minimum | Level | Since | Group | Unless |", "| --- | --- | --- | --- | --- | --- |"]
+            "| Pair | Minimum | Level | Group | Unless |", "| --- | --- | --- | --- | --- |"]
     for p in registry.CONTRAST_PAIRS:
-        out.append(f"| `{p.fg}` on `{p.bg}` | {p.min:g}:1 | {p.level} | {p.since} | {p.group} | {('`' + p.unless + '` set') if p.unless else ''} |")
+        out.append(f"| `{p.fg}` on `{p.bg}` | {p.min:g}:1 | {p.level} | {p.group} | {('`' + p.unless + '` set') if p.unless else ''} |")
     for bar, tone, bg in registry.NAV_BARS:
         out.append(f"| `nav-item-fg` on `{bg}` (by `{tone}`) | 4.5:1 | error |")
     return "\n".join(out) + "\n"
@@ -260,9 +259,7 @@ def tokens_doc():
 
 def limits(token):
     if token.options:
-        later = dict(token.option_since)
-        text = ", ".join(f"{name} (revision {later[name]})" if name in later else name for name in token.options)
-        return text + (f". {token.note}" if later and token.note else "")
+        return ", ".join(token.options)
     if token.min is not None or token.max is not None:
         return f"{'' if token.min is None else token.min:g} to {'' if token.max is None else token.max:g}"
     return ""
@@ -277,11 +274,11 @@ def layout_values(field):
 
 
 def default_release():
-    """The platform default theme: fastlane 2.0.0, the registry's revision 3 palette as a v2 manifest.
+    """The platform default theme: fastlane 2.1.0, the registry's new-theme palette as a manifest.
 
-    It stays at registry revision 3 (a published release is not re-versioned): its tree is derived from its layout
-    keys by `themes.shell_from_layout`, which is the `panel-flush` preset."""
-    theme = themes.default_theme_v2("fastlane", "2.0.0", "Fastlane", registry_revision=3)
+    It has no `layout.shell`: its tree is derived from its layout keys by `themes.shell_from_layout`, which is the
+    `panel-flush` preset."""
+    theme = themes.default_theme_v2("fastlane", "2.1.0", "Fastlane")
     # The shell the platform ships: a labelled sidebar on the page, no floating islands, no bar.
     theme["layout"]["sidebar"].update({"style": "panel", "surface": "flush", "width": registry.PANEL_SIDEBAR_WIDTH})
     return json.dumps(theme, indent=2, sort_keys=True) + "\n"
@@ -326,7 +323,7 @@ def outputs(vocabulary=None):
         VOCABULARY_SDK: vocabulary_bytes,
         VOCABULARY_FRONTEND: vocabulary_bytes,
         ROOT / "fastlanelabs_sdk/registry_data/theme-registry-v2.json": registry_json,
-        ROOT / "fastlanelabs_sdk/registry_data/default-theme-v2.json": default_release(),
+        ROOT / "fastlanelabs_sdk/registry_data/default-theme.json": default_release(),
         ROOT / "frontend/theme-registry.json": registry_json,
         ROOT / "frontend/theme-defaults.css": defaults_css(),
         ROOT / "frontend/tailwind-preset.mjs": preset(),

@@ -1,8 +1,5 @@
-"""Registry revision 3 (SDK 1.5): an accessible default palette for new themes, the UI contrast pairs, four optional roles,
-a dark palette whose text steps are solved rather than reversed, and quoted font stacks.
-
-Revisions 1 and 2 are frozen (test_theme_frozen_r1.py, test_theme_frozen_r2.py): nothing here may reach a theme that
-targets them.
+"""The accessible default palette for new themes, the UI contrast pairs, four optional roles, a dark palette whose text steps
+are solved rather than reversed, and quoted font stacks.
 """
 import json
 from copy import deepcopy
@@ -14,7 +11,6 @@ from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 from fastlanelabs_sdk.themes import check_theme, contrast_ratio, contrast_report, default_theme_v2, derive_dark, validate_theme
 
-FIXTURES = Path(__file__).parent / 'fixtures/themes/v2'
 ROLES = ('inverse', 'on-inverse', 'accent-text', 'accent-ui')
 UI_IDS = [p.id for p in registry.CONTRAST_PAIRS if p.group == 'ui']
 
@@ -57,49 +53,32 @@ def test_the_new_default_has_no_error_warning_or_failing_pair(scheme):
     assert {row['id'] for row in result['contrast'] if row.get('group')} >= {'ink-400-on-surface', 'ink-500-on-surface-page', 'on-inverse-on-inverse'}
 
 
-def test_earlier_revisions_still_start_from_the_old_palette():
-    for revision in (1, 2):
-        old = default_theme_v2(registry_revision=revision)
-        assert old['tokens']['primitives']['ink-400'] == '#8f929e' and old['tokens']['semantic']['border-input'] == '{ink-200}'
-        assert not set(ROLES) & set(old['tokens']['semantic'])
-        assert old['tokens']['primitives']['success-600'] == '#059669'
-
-
-def test_the_css_fallbacks_do_not_move_so_published_themes_render_as_before():
+def test_the_css_fallbacks_do_not_move_so_a_host_without_a_theme_renders_as_before():
     assert registry.INDEX['ink-400'].default == '#8f929e' and registry.INDEX['border-input'].default == '{ink-200}'
     css = (Path(__file__).parents[1] / 'frontend/theme-defaults.css').read_text()
     assert '--fl-ink-400: 143 146 158;' in css and '--fl-success-600: 5 150 105;' in css
 
 
-def test_the_platform_default_release_is_fastlane_2_0_0_and_current():
-    data = json.loads(files('fastlanelabs_sdk.registry_data').joinpath('default-theme-v2.json').read_text())
-    assert (data['id'], data['version'], data['api_version'], data['registry_revision']) == ('fastlane', '2.0.0', 2, 3)
+def test_the_platform_default_release_is_fastlane_2_1_0_and_current():
+    data = json.loads(files('fastlanelabs_sdk.registry_data').joinpath('default-theme.json').read_text())
+    assert (data['id'], data['version'], data['api_version'], data['registry_revision']) == ('fastlane', '2.1.0', 2, 4)
     # The registry defaults, plus the shell the platform ships: a labelled sidebar on the page.
-    # The release stays at registry revision 3 (a published release is not re-versioned).
-    expected = default_theme_v2('fastlane', '2.0.0', 'Fastlane', registry_revision=3)
+    expected = default_theme_v2('fastlane', '2.1.0', 'Fastlane')
     expected['layout']['sidebar'].update({'style': 'panel', 'surface': 'flush', 'width': 224})
     assert data == expected == validate_theme(data)
-    # A client that asks for contract 1 gets the 27 tokens, with the accessible ramp.
-    v1 = themes.project_v1(data)
-    assert v1['tokens']['ink-400'] == '#6b6e7d' and len(v1['tokens']) == 27
-    # fastlane 1.0.0 is a separate, untouched release.
-    old = json.loads(files('fastlanelabs_sdk.registry_data').joinpath('default-theme.json').read_text())
-    assert (old['id'], old['version'], old['tokens']['ink-400']) == ('fastlane', '1.0.0', '#8f929e')
+    assert data['tokens']['primitives']['ink-400'] == '#6b6e7d'  # the accessible ramp
 
 
 # --- Optional roles ------------------------------------------------------------------------------
 
-def test_the_four_roles_are_optional_in_revision_3_and_unknown_before():
+def test_the_four_roles_are_optional():
     theme = default_theme_v2()
     for role in ROLES:
-        assert registry.INDEX[role].optional and registry.INDEX[role].since == 3
+        assert registry.INDEX[role].optional
         slim = deepcopy(theme)
         del slim['tokens']['semantic'][role]
         assert check_theme(slim)['errors'] == []
         assert validate_theme(slim) == slim  # nothing is defaulted into the manifest
-    older = deepcopy(theme)
-    older['registry_revision'] = 2
-    assert any('Unknown token inverse' in e['message'] for e in check_theme(older)['errors'])
     assert registry.REF.fullmatch(registry.INDEX['on-inverse'].default)
 
 
@@ -141,11 +120,10 @@ def test_legacy_pairs_are_judged_while_the_role_that_replaces_them_is_unset():
 
 # --- The UI pairs ----------------------------------------------------------------------------------
 
-def test_ui_pairs_are_new_in_revision_3_warnings_except_the_inverse_pair():
+def test_ui_pairs_are_warnings_except_the_inverse_pair():
     ui = [p for p in registry.CONTRAST_PAIRS if p.group == 'ui']
-    assert len(ui) == 33 and all(p.since == 3 for p in ui)
+    assert len(ui) == 33 and len(registry.CONTRAST_PAIRS) == 33 + 16
     assert [p.id for p in ui if p.level == 'error'] == ['on-inverse-on-inverse']
-    assert not [p for p in registry.CONTRAST_PAIRS if p.since < 3 and p.group]
     expected = {'ink-400-on-surface', 'ink-400-on-surface-page', 'ink-500-on-surface', 'ink-500-on-surface-page',
                 'ink-400-on-accent-50', 'ink-500-on-accent-50', 'ink-500-on-accent-100',
                 'accent-600-on-surface', 'accent-600-on-accent-50', 'accent-700-on-surface', 'accent-700-on-accent-50',
@@ -165,15 +143,6 @@ def test_a_failing_ui_pair_is_a_warning_not_an_error():
     assert result['errors'] == []
     assert any(w['path'] == 'tokens.primitives.ink-400' and '4.5:1' in w['message'] for w in result['warnings'])
     assert not next(r for r in result['contrast'] if r['id'] == 'ink-400-on-surface')['pass']
-
-
-def test_ui_pairs_never_reach_a_theme_that_targets_revision_1_or_2():
-    for revision in (1, 2):
-        theme = default_theme_v2(registry_revision=revision)
-        assert not rows(theme) and all('group' not in r for r in contrast_report(theme))
-        assert len(contrast_report(theme)) == 35 + (0 if revision == 1 else 0)
-    published = [json.loads(p.read_text()) for p in sorted(FIXTURES.glob('*.json'))]
-    assert published and all(not rows(t) for t in published)
 
 
 def test_every_pair_is_judged_for_the_dark_palette_too():
@@ -202,13 +171,6 @@ def test_the_dark_text_steps_are_solved_against_the_dark_surface_not_reversed():
     assert dark['ink-800'] == light['ink-200']
 
 
-def test_revision_2_still_reverses_and_leaves_the_steps_at_2_5_to_3_6():
-    theme = default_theme_v2(registry_revision=2)
-    dark = derive_dark(theme)
-    assert dark['primitives']['ink-400'] == theme['tokens']['primitives']['ink-600']
-    assert contrast_ratio(dark['primitives']['ink-400'], dark['semantic']['surface']) < 3
-
-
 def test_dark_accent_text_and_indicator_move_until_they_read():
     theme = default_theme_v2()
     theme['tokens']['semantic'].update({'accent-text': '{accent-700}', 'accent-ui': '{accent-500}'})
@@ -221,7 +183,7 @@ def test_dark_accent_text_and_indicator_move_until_they_read():
 # --- Text on the accent tints (a caption inside a selected row, a chip, a tile) -------------------------------
 
 TINT_PAIRS = ('ink-400-on-accent-50', 'ink-500-on-accent-50', 'ink-500-on-accent-100')
-BRIGHT_TINTS = sorted((Path(__file__).parent / 'fixtures/themes-r3').glob('*-auto.json'), key=lambda p: p.name)  # a neon green, a yellow
+BRIGHT_TINTS = sorted((Path(__file__).parent / 'fixtures/themes-bright').glob('*-auto.json'), key=lambda p: p.name)  # a neon green, a yellow
 
 
 def brights():
@@ -260,7 +222,7 @@ def test_the_default_palette_reads_on_the_light_tints_too():
 def test_the_pair_fixtures_are_the_audited_green_and_yellow_dark_brands():
     assert [p.name for p in BRIGHT_TINTS] == ['green-auto.json', 'yellow-dark-auto.json']
     assert [t['tokens']['primitives']['accent-600'] for t in brights()] == ['#00c853', '#ffd400']
-    assert all(t['color_scheme'] == 'auto' and t['registry_revision'] == 3 for t in brights())
+    assert all(t['color_scheme'] == 'auto' and t['registry_revision'] == 4 for t in brights())
 
 
 @pytest.mark.parametrize('theme', [default_theme_v2(scheme='auto')] + brights(), ids=lambda t: t['id'])
@@ -324,8 +286,11 @@ def test_the_audits_d3_caption_on_a_selected_tile_failed_before_and_reads_now(th
     plain = deepcopy(theme)
     plain['color_scheme'] = 'light'
     del plain['modes']
-    reversed_ramps = derive_dark({**plain, 'registry_revision': 2})  # registry 2 derives by reversal alone
-    surface, primitives = reversed_ramps['semantic']['surface'], dict(reversed_ramps['primitives'])
+    # The ramps reversed, and the surface between the dark page and ink-100: what derive_dark starts from.
+    ramps = plain['tokens']['primitives']
+    primitives = {f'{palette}-{shade}': ramps[f'{palette}-{mirror}'] for palette in registry.COLOR_RAMPS
+                  for shade, mirror in zip(registry.SHADES, reversed(registry.SHADES))}
+    surface = themes._midpoint(primitives['ink-50'], primitives['ink-100'])
     light = resolved(plain)
     for shade, minimum in themes.DARK_TEXT_STEPS:
         primitives[f'ink-{shade}'] = themes._lighten_until(
@@ -335,13 +300,6 @@ def test_the_audits_d3_caption_on_a_selected_tile_failed_before_and_reads_now(th
     assert contrast_ratio(primitives['ink-400'], primitives['accent-50']) < 4.5
     now = derive_dark(plain)['primitives']
     assert contrast_ratio(now['ink-500'], now['accent-50']) >= 4.5 and contrast_ratio(now['ink-400'], now['accent-50']) >= 4.5
-
-
-def test_a_revision_2_theme_still_reverses_and_ignores_the_tints():
-    two = default_theme_v2(registry_revision=2)
-    block = derive_dark(two)
-    assert block['primitives']['accent-50'] == two['tokens']['primitives']['accent-950']
-    assert block['primitives']['ink-400'] == two['tokens']['primitives']['ink-600']
 
 
 def test_derive_dark_is_deterministic_and_the_result_validates():
@@ -365,16 +323,13 @@ def test_a_quoted_stack_of_every_allow_listed_family_validates_and_resolves(font
     assert [f['family'] for f in resolved_theme['fonts']][0] == font['family']
 
 
-def test_an_unquoted_family_with_a_digit_warns_at_revision_3_and_not_before():
+def test_an_unquoted_family_with_a_digit_warns():
     stack = 'Source Sans 3, ui-sans-serif, system-ui, sans-serif'
     theme = default_theme_v2()
     theme['tokens']['primitives']['font-sans'] = stack
     result = check_theme(theme)
     assert result['errors'] == []
     assert [w['path'] for w in result['warnings'] if 'must be quoted' in w['message']] == ['tokens.primitives.font-sans']
-    older = default_theme_v2(registry_revision=2)
-    older['tokens']['primitives']['font-sans'] = stack
-    assert [w for w in check_theme(older)['warnings'] if 'quoted' in w['message']] == [] and check_theme(older)['errors'] == []
     quoted = default_theme_v2()
     quoted['tokens']['primitives']['font-sans'] = "Open Sans, 'Source Serif 4', serif"
     assert [w for w in check_theme(quoted)['warnings'] if 'quoted' in w['message']] == []

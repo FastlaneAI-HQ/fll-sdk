@@ -2,12 +2,9 @@
 
 The validator, the resolver, the generated CSS/Tailwind/TypeScript and the
 editor forms are produced from, or checked against, this module. Every token
-names its layer (primitive, semantic or component), its value type, the value
-that reproduces today's rendering, and the registry revision that introduced
-it. A theme records the revision it targets; a revision never changes meaning
-once released (new tokens are optional and their fallback reproduces the
-previous rendering), so a stored release stays valid under every later
-validator.
+names its layer (primitive, semantic or component), its value type and the value
+that reproduces today's rendering. A theme records the registry revision it
+targets, and this SDK reads exactly one: `REGISTRY_REVISION`.
 
 Defaults:
   primitive  a literal value. A theme supplies every primitive.
@@ -16,17 +13,15 @@ Defaults:
              (or a literal). A theme supplies only the ones it changes; an
              unset component token follows its fallback live.
 
-Revision 3 (SDK 1.5) adds four optional roles (inverse, on-inverse, accent-text, accent-ui; a theme
-may leave them unset and their fallbacks reproduce the rendering of earlier revisions), twenty-two
-contrast checks of the colours the interface really paints with (all warnings except one, and none
-applied to an older revision), and a new palette for NEW themes (`REVISION_DEFAULTS`). A token's
-`default` stays what revisions 1 and 2 produced: it is the generated CSS fallback, so a published
-theme and a host without a theme render exactly as before.
+Four semantic roles are optional (inverse, on-inverse, accent-text, accent-ui): a theme may leave them unset and
+their fallbacks reproduce the rendering of the classes they replace. A token's `default` is the generated CSS
+fallback, what a host without a theme renders; a NEW theme starts from the accessible palette in
+`NEW_THEME_DEFAULTS` instead (see `default_for`). The `ui` contrast pairs judge the colours the interface really
+paints with (all warnings except one).
 
-Revision 4 adds one optional key, `layout.shell`: a validated tree of containers and regions that a host
-renders in place of the fixed sidebar and navbar options (docs/layout-tree.md). Its limits, enums and defaults are
-data, not code: the layout vocabulary (registry_data/layout-vocabulary.json, owned by the Themes app). It adds no token,
-no contrast pair and no palette change, so a revision 4 theme without `shell` resolves exactly as a revision 3 one.
+A theme may add `layout.shell`, a validated tree of containers and regions that a host renders in place of the fixed
+sidebar and navbar options (docs/layout-tree.md), and `brand`, its logo (docs/brand-logo.md). Their limits, enums and
+defaults are data, not code: the layout vocabulary (registry_data/layout-vocabulary.json, owned by the Themes app).
 """
 from __future__ import annotations
 
@@ -37,20 +32,16 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 REGISTRY_REVISION = 4
 REVISION = REGISTRY_REVISION  # the current revision, under the name the docs and the Themes app use
-# The revision that introduced `layout.shell`: a theme that targets an older one must not carry it.
-SHELL_SINCE = 4
-BRAND_SINCE = 4
 SHADES = (50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950)
 STATUSES = ("success", "warning", "danger", "info")
 SIZE_STEPS = ("2xs", "xs", "sm", "md", "base", "lg", "xl", "2xl", "3xl")
 SPACE_STEPS = ("xs", "sm", "md", "lg", "xl", "2xl")
 STEPS = ("none",) + SPACE_STEPS[:-1]
 
-# Dark mode (registry revision 2).
+# Dark mode.
 # light: one palette. dark: the theme's own tokens are a dark palette. auto: the tokens are the
 # light palette and `modes.dark` overrides them; the user chooses light, dark or the system's.
 COLOR_SCHEMES = ("light", "dark", "auto")
-COLOR_SCHEMES_REV1 = ("light",)
 MODE_NAMES = ("dark",)
 # An override of a mode may only change what makes sense to vary with the palette.
 MODE_EXTRA_TOKENS = ("sidebar-tone", "navbar-tone", "modal-scrim-alpha", "drawer-scrim-alpha", "input-focus-ring-alpha")
@@ -75,20 +66,18 @@ class Token(NamedTuple):
     default: Any  # str, or {"dark": ..., "light": ...} when tone-dependent
     group: str
     label: str
-    since: int = 1
     min: Optional[float] = None
     max: Optional[float] = None
     options: Tuple[str, ...] = ()
     component: Optional[str] = None
     tone: Optional[str] = None  # the enum token (e.g. sidebar-tone) selecting a default
-    v1: bool = False  # one of the 27 v1 names: literal values in the v1 grammar only
+    v1: bool = False  # one of the 27 tokens of the first theme API: literal values only, in that API's grammar
     note: str = ""
     optional: bool = False  # a semantic role a theme may leave unset; the default is its fallback
-    option_since: Tuple[Tuple[str, int], ...] = ()  # (option, revision) for an enum option added after the token: older revisions do not offer it
 
     def as_dict(self) -> dict:
         data = {"name": self.name, "layer": self.layer, "type": self.type, "default": self.default,
-                "group": self.group, "label": self.label, "since": self.since}
+                "group": self.group, "label": self.label}
         if self.min is not None:
             data["min"] = self.min
         if self.max is not None:
@@ -105,14 +94,7 @@ class Token(NamedTuple):
             data["note"] = self.note
         if self.optional:
             data["optional"] = True
-        if self.option_since:
-            data["option_since"] = dict(self.option_since)
         return data
-
-    def options_for(self, revision: int) -> Tuple[str, ...]:
-        """The enum options a theme that targets `revision` may use (an option added later is not offered to an older theme)."""
-        later = {name for name, since in self.option_since if since > revision}
-        return tuple(name for name in self.options if name not in later)
 
 
 _TOKENS: List[Token] = []
@@ -206,15 +188,15 @@ _add("focus-ring", "semantic", "color", "{accent-500}", "line", "Focus ring")
 _add("primary", "semantic", "color", "{accent-600}", "brand", "Primary")
 _add("primary-hover", "semantic", "color", "{accent-700}", "brand", "Primary hover")
 _add("primary-soft", "semantic", "color", "{accent-50}", "brand", "Primary tint")
-# Registry revision 3. Optional: a theme that does not set them gets the fallback, which is what the same
-# class painted before (bg-ink-900, white text, the accent-600 step), so nothing changes until a theme opts in.
-_add("inverse", "semantic", "color", "{ink-900}", "surface", "Inverse fill", since=3, optional=True,
+# Optional: a theme that does not set them gets the fallback, which is what the same class painted before (bg-ink-900,
+# white text, the accent-600 step), so nothing changes until a theme opts in.
+_add("inverse", "semantic", "color", "{ink-900}", "surface", "Inverse fill", optional=True,
      note="A dark fill that carries on-inverse text: dark buttons, the user's message, solid status fills. Fallback: ink-900.")
-_add("on-inverse", "semantic", "color", "{surface}", "text", "Text on the inverse fill", since=3, optional=True,
+_add("on-inverse", "semantic", "color", "{surface}", "text", "Text on the inverse fill", optional=True,
      note="Readable on inverse and on a solid status fill. Fallback: surface (text-white on bg-ink-900 is on-primary, which is dark for a light brand).")
-_add("accent-text", "semantic", "color", "{accent-600}", "brand", "Brand as text", since=3, optional=True,
+_add("accent-text", "semantic", "color", "{accent-600}", "brand", "Brand as text", optional=True,
      note="The brand colour where it is text: at least 4.5:1 on surface and on accent-50. Fallback: accent-600.")
-_add("accent-ui", "semantic", "color", "{accent-600}", "brand", "Brand as indicator", since=3, optional=True,
+_add("accent-ui", "semantic", "color", "{accent-600}", "brand", "Brand as indicator", optional=True,
      note="The brand colour where it is a control or indicator (a selected border, a progress bar): at least 3:1 on surface. Fallback: accent-600.")
 for _status in STATUSES:
     for _role, _shade in (("solid", 600), ("soft", 50), ("border", 200), ("text", 700), ("strong", 900)):
@@ -239,22 +221,21 @@ _TRANSFORMS = ("none", "uppercase", "capitalize")
 
 def _c(component: str, prop: str, type_: str, default: Any, part: str = "", label: str = "",
        options: Tuple[str, ...] = (), min_: Optional[float] = None, max_: Optional[float] = None,
-       tone: Optional[str] = None, note: str = "", since: int = 1, option_since: Tuple[Tuple[str, int], ...] = ()) -> None:
+       tone: Optional[str] = None, note: str = "") -> None:
     name = "-".join(x for x in (component, part, prop) if x)
     if type_ == "font-size" and min_ is None:
         min_, max_ = 8, 64
     text = label or (" ".join(x for x in (part.capitalize().replace("-", " "), _PROP_LABELS.get(prop, prop)) if x))
     _add(name, "component", type_, default, "component." + component, text, min=min_, max=max_,
-         options=options, component=component, tone=tone, note=note, since=since, option_since=option_since)
+         options=options, component=component, tone=tone, note=note)
 
 
 def _component(component: str, label: str) -> None:
     COMPONENTS[component] = label
 
 
-def _variant(component: str, options: Tuple[str, ...], default: str, note: str = "",
-             option_since: Tuple[Tuple[str, int], ...] = ()) -> None:
-    _c(component, "variant", "enum", default, options=options, note=note, option_since=option_since)
+def _variant(component: str, options: Tuple[str, ...], default: str, note: str = "") -> None:
+    _c(component, "variant", "enum", default, options=options, note=note)
 
 
 _component("button", "Button")
@@ -336,9 +317,9 @@ _c("page-header", "size", "font-size", "{size-base}", "sub")
 _c("page-header", "gap", "length", "{space-lg}", min_=0, max_=64)
 _c("page-header", "align", "enum", "start", options=("start", "center"))
 _c("page-header", "rule-color", "color", "{border-strong}", label="Rule color")
-# `panel` (registry revision 4): the header sits in its own bordered card, like a highlights panel; core draws it.
-_variant("page-header", ("plain", "ruled", "panel"), "plain", option_since=(("panel", 4),),
-         note="panel (revision 4): the page header sits in its own bordered card; core draws it.")
+# `panel`: the header sits in its own bordered card, like a highlights panel; core draws it.
+_variant("page-header", ("plain", "ruled", "panel"), "plain",
+         note="panel: the page header sits in its own bordered card; core draws it.")
 
 _component("table", "Table")
 _c("table", "bg", "color", "{surface-sunken}", "head")
@@ -454,9 +435,9 @@ _c("nav-item", "gap", "length", "{space-md}", min_=0, max_=48)
 _c("nav-item", "size", "font-size", "{size-base}")
 _c("nav-item", "weight", "weight", "{weight-medium}")
 _c("nav-item", "transform", "enum", "none", options=_TRANSFORMS)
-# `tab` (registry revision 4): a horizontal navigation tab with no fill; the active item is marked by a thick bottom border in the active colour.
-_variant("nav-item", ("square", "pill", "tab"), "square", option_since=(("tab", 4),),
-         note="tab (revision 4): a horizontal navigation tab with no fill; the active item has a thick bottom border in the active colour.")
+# `tab`: a horizontal navigation tab with no fill; the active item is marked by a thick bottom border in the active colour.
+_variant("nav-item", ("square", "pill", "tab"), "square",
+         note="tab: a horizontal navigation tab with no fill; the active item has a thick bottom border in the active colour.")
 
 _component("navbar", "Navbar")
 _c("navbar", "tone", "enum", "dark", options=("dark", "light"))
@@ -546,12 +527,12 @@ _c("gate", "radius", "length", "{radius}*2", min_=0, max_=9999)
 _c("gate", "max-width", "length", "416px", min_=320, max_=640)
 _c("gate", "size", "font-size", "{size-2xl}", "title")
 _c("gate", "bg", "color", "{surface-page}", "page")
-# Registry revision 4, for a branded sign-in page (the logo, the tagline and the theme's own colours): the card's shadow and
+# For a branded sign-in page (the logo, the tagline and the theme's own colours): the card's shadow and
 # the heading and tagline colours. The fallbacks are what the sign-in page drew before they existed (text-ink-900 heading,
 # shadow-sm card, text-ink-600 lede/tagline). The page, card background, border and radius were already tokens above.
-_c("gate", "shadow", "shadow", "{shadow-sm}", since=4, label="Card shadow")
-_c("gate", "fg", "color", "{ink-900}", "title", since=4, label="Heading text")
-_c("gate", "fg", "color", "{ink-600}", "tagline", since=4, label="Tagline text")
+_c("gate", "shadow", "shadow", "{shadow-sm}", label="Card shadow")
+_c("gate", "fg", "color", "{ink-900}", "title", label="Heading text")
+_c("gate", "fg", "color", "{ink-600}", "tagline", label="Tagline text")
 
 _component("scrollbar", "Scrollbar")
 _c("scrollbar", "thumb", "color", "{ink-200}", label="Thumb")
@@ -596,38 +577,30 @@ TOKENS: Tuple[Token, ...] = tuple(_TOKENS)
 INDEX: Dict[str, Token] = {token.name: token for token in TOKENS}
 assert len(INDEX) == len(TOKENS), "duplicate token names"
 
-# The palette a NEW theme starts from, by registry revision (what default_theme_v2 writes, what the Themes editor and
-# the theme builder begin with). `Token.default` is not touched: it is the generated CSS fallback, so every published
-# theme and every host without a theme renders as before. Only revision 3 differs from it:
+# The palette a NEW theme starts from where it differs from `Token.default` (what default_theme_v2 writes, what the Themes
+# editor and the theme builder begin with). `Token.default` is not touched: it is the generated CSS fallback, so a host
+# without a theme renders as before. The differences:
 #   ink-300  3:1 on surface-page: a control boundary, an icon (it was 1.9:1)
 #   ink-400  4.5:1 on surface-page and on accent-50: the third text step (it was 3.1:1; 93 sub-12px labels use it, some on a
 #            selected row)
 #   ink-500  one step darker so the ramp keeps its three text steps (4.7 -> 5.7 on surface-page)
 #   *-600    status text and solid fills with white text reach 4.5:1 (success, warning and info were 3.2 to 4.1)
 #   border-input  the ink-300 step: 3:1 for a form control's boundary (it was ink-200, 1.4:1)
-REVISION_DEFAULTS: Dict[int, Dict[str, str]] = {
-    3: {
-        "ink-300": "#898c98", "ink-400": "#6b6e7d", "ink-500": "#5f626e",
-        "success-600": "#04855f", "warning-600": "#bb5908", "info-600": "#027bbb",
-        "border-input": "{ink-300}",
-    },
+NEW_THEME_DEFAULTS: Dict[str, str] = {
+    "ink-300": "#898c98", "ink-400": "#6b6e7d", "ink-500": "#5f626e",
+    "success-600": "#04855f", "warning-600": "#bb5908", "info-600": "#027bbb",
+    "border-input": "{ink-300}",
 }
 
 
-def default_for(token: "Token", revision: Optional[int] = None) -> Any:
-    """The default of `token` for a new theme that targets `revision` (the current one when omitted)."""
-    revision = REGISTRY_REVISION if revision is None else revision
-    value = token.default
-    for step in sorted(REVISION_DEFAULTS):
-        if step <= revision and token.name in REVISION_DEFAULTS[step]:
-            value = REVISION_DEFAULTS[step][token.name]
-    return value
+def default_for(token: "Token") -> Any:
+    """The default of `token` for a new theme."""
+    return NEW_THEME_DEFAULTS.get(token.name, token.default)
 
 
 PRIMITIVES = tuple(t for t in TOKENS if t.layer == "primitive")
 SEMANTIC = tuple(t for t in TOKENS if t.layer == "semantic")
 COMPONENT_TOKENS = tuple(t for t in TOKENS if t.layer == "component")
-V1_TOKEN_NAMES = frozenset(t.name for t in TOKENS if t.v1)
 # Tokens a mode may override, and the colours every dark palette must supply (see themes._check_modes).
 MODE_TOKENS = tuple(t.name for t in TOKENS if t.type in MODE_TYPES or t.name in MODE_EXTRA_TOKENS)
 DARK_REQUIRED = tuple(t.name for t in TOKENS if t.layer == "primitive" and t.type == "color") + ("surface", "on-primary")
@@ -678,24 +651,21 @@ def default_layout(style: str = "rail") -> dict:
 # --- Contrast -------------------------------------------------------------
 
 class Pair(NamedTuple):
-    """One contrast check. `since` is the registry revision that introduced it: a theme that targets an older
-    revision is never judged against it. `group` is "ui" for a pair the interface really paints (a raw ramp step,
+    """One contrast check. `group` is "ui" for a pair the interface really paints (a raw ramp step,
     text-white on a dark fill), reported apart from the role pairs. `unless` names a role: a theme that sets it
-    has taken over from the raw step, so the legacy pair is not judged for it."""
+    has taken over from the raw step, so the pair is not judged for it."""
     id: str
     fg: str
     bg: str
     min: float
     level: str
-    since: int = 1
     group: str = ""
     unless: str = ""
 
 
-# Hard errors apply to v2 manifests only; v1 manifests are never re-judged against them. The two "legacy" pairs
-# are the v1 validator's own, so project_v1() always passes it. Revision 3 adds the UI pairs (the steps and
-# classes the apps use instead of the roles: text-ink-400, text-accent-600, text-white on bg-ink-900 ...).
-_UI = dict(since=3, group="ui")
+# The two "legacy" pairs keep their ids from the first theme API (the same two checks, on the raw ramp steps). The `ui`
+# pairs are the steps and classes the apps use instead of the roles: text-ink-400, text-accent-600, text-white on bg-ink-900 ...
+_UI = dict(group="ui")
 CONTRAST_PAIRS: Tuple[Pair, ...] = (
     Pair("legacy-ink-900-on-surface", "ink-900", "surface", 4.5, "error"),
     Pair("legacy-on-primary-on-accent-600", "on-primary", "accent-600", 4.5, "error"),
@@ -714,7 +684,7 @@ CONTRAST_PAIRS: Tuple[Pair, ...] = (
     Pair("focus-ring-on-surface", "focus-ring", "surface", 3.0, "error"),
     # The default input border (ink-200) is about 1.4:1, so this can only warn.
     Pair("border-input-on-surface", "border-input", "surface", 3.0, "warning"),
-    # --- Registry revision 3: the pairs the interface really uses ---
+    # --- The pairs the interface really uses ---
     Pair("ink-400-on-surface", "ink-400", "surface", 4.5, "warning", **_UI),
     Pair("ink-400-on-surface-page", "ink-400", "surface-page", 4.5, "warning", **_UI),
     Pair("ink-500-on-surface", "ink-500", "surface", 4.5, "warning", **_UI),
@@ -772,19 +742,9 @@ NAV_BARS = (("sidebar", "sidebar-tone", "sidebar-bg"), ("navbar", "navbar-tone",
 
 SELF_REFERENCE_DEPTH = 3
 TOP_LEVEL_KEYS = ("api_version", "registry_revision", "id", "version", "label", "color_scheme", "tokens", "layout")
-# Top-level keys a theme may add: `modes` (revision 2, dark palettes) and `brand` (revision 4, the logo).
+# Top-level keys a theme may add: `modes` (dark palettes) and `brand` (the logo).
 OPTIONAL_TOP_LEVEL_KEYS = ("modes", "brand")
 LAYER_KEYS = ("primitives", "semantic", "components")
-
-
-def color_schemes(revision: int) -> Tuple[str, ...]:
-    """The `color_scheme` values a theme targeting `revision` may use."""
-    return COLOR_SCHEMES if revision >= 2 else COLOR_SCHEMES_REV1
-
-
-def for_revision(revision: int) -> Dict[str, Token]:
-    """The tokens a theme targeting `revision` may use."""
-    return {name: token for name, token in INDEX.items() if token.since <= revision}
 
 
 def _data(name: str) -> str:
@@ -819,16 +779,15 @@ def registry_json() -> dict:
         "size_steps": list(SIZE_STEPS),
         "space_steps": list(SPACE_STEPS),
         "steps": list(STEPS),
-        "v1_tokens": sorted(V1_TOKEN_NAMES),
         "components": [{"id": key, "label": label} for key, label in COMPONENTS.items()],
         "tokens": [token.as_dict() for token in TOKENS],
-        "revision_defaults": {str(revision): values for revision, values in sorted(REVISION_DEFAULTS.items())},
+        "new_theme_defaults": NEW_THEME_DEFAULTS,
         "layout": LAYOUT_SPEC,
         "layout_defaults": default_layout("rail"),
-        "shell": {"since": SHELL_SINCE, "vocabulary": "layout-vocabulary.json"},
-        "brand": {"since": BRAND_SINCE, "vocabulary": "layout-vocabulary.json"},
+        "shell": {"vocabulary": "layout-vocabulary.json"},
+        "brand": {"vocabulary": "layout-vocabulary.json"},
         "panel_sidebar_width": PANEL_SIDEBAR_WIDTH,
-        "contrast_pairs": [dict({"id": p.id, "fg": p.fg, "bg": p.bg, "min": p.min, "level": p.level, "since": p.since},
+        "contrast_pairs": [dict({"id": p.id, "fg": p.fg, "bg": p.bg, "min": p.min, "level": p.level},
                                 **({"group": p.group} if p.group else {}), **({"unless": p.unless} if p.unless else {}))
                            for p in CONTRAST_PAIRS],
         "component_contrast_pairs": [{"id": i, "fg": f, "bg": b} for i, f, b in COMPONENT_CONTRAST_PAIRS],
@@ -836,8 +795,8 @@ def registry_json() -> dict:
         "reference_depth": SELF_REFERENCE_DEPTH,
         "top_level_keys": list(TOP_LEVEL_KEYS),
         "optional_top_level_keys": list(OPTIONAL_TOP_LEVEL_KEYS),
-        "color_schemes": {"1": list(COLOR_SCHEMES_REV1), "2": list(COLOR_SCHEMES)},
-        "modes": {"names": list(MODE_NAMES), "since": 2, "overridable": list(MODE_TOKENS), "required": list(DARK_REQUIRED),
+        "color_schemes": list(COLOR_SCHEMES),
+        "modes": {"names": list(MODE_NAMES), "overridable": list(MODE_TOKENS), "required": list(DARK_REQUIRED),
                   "ramps": list(COLOR_RAMPS)},
         "hues": {name: list(ramp) for name, ramp in HUE_RAMPS.items()},
         "black": {"light": BLACK_LIGHT, "dark": BLACK_DARK},

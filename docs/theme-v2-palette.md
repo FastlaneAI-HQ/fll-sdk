@@ -1,4 +1,4 @@
-# Theme v2 revision 3 (SDK 1.5): fit for every theme
+# Theme v2 palette and contrast: fit for every theme
 
 Written after a UI/UX audit of the default theme and of 14 generated themes (and 4 dark renders) found that the
 validator said "ready" for themes in which 200 to 290 text runs failed WCAG AA. Decisions, in the order they were made.
@@ -6,23 +6,21 @@ validator said "ready" for themes in which 200 to 290 text runs failed WCAG AA. 
 ## What the audit found
 
 * The default theme's secondary text (`text-ink-400`, 3.1:1 on white, at 10.5 to 11.5px) caused most of its 355 AA failures, and form
-  controls had 1.4:1 borders (the default was still a v1 theme, so `border-input` fell back to `ink-200`).
+  controls had 1.4:1 borders (`border-input` fell back to `ink-200`).
 * Apps and core colour text with raw ramp steps (`text-ink-400/500`, `text-accent-600/700`) and `text-white` (an alias of
   `on-primary`) on `bg-ink-800/900` fills; the semantic roles the validator checks have no uses at all.
 * The builder kept HLS lightness constant, so for yellow, green, teal and orange brands `ink-500` landed at 3.6 to 3.8:1.
 * A dark palette was a mechanical reversal: `ink-400`/`ink-500` became 2.5 and 3.6:1 on the dark surface.
 
-## Rules for a published revision
+## What changes and what does not
 
-A revision never tightens. Revision 3 adds optional tokens (their fallback reproduces today's rendering), pairs that only a
-theme that targets revision 3 is judged against (`Pair.since`), and a palette that only a NEW theme starts from
-(`REVISION_DEFAULTS`). `Token.default` stays what it was: it is the generated CSS fallback, so a v1 theme (which sets 27
-tokens and takes the rest from the fallback), every published v2 release and a host without a theme render as before.
-`tests/golden/frozen-r1` and `tests/golden/frozen-r2` pin that, byte for byte, in Python and in the TypeScript twin.
+The optional roles' fallbacks reproduce the rendering of the classes they replace, and the new palette is only what a NEW
+theme starts from (`NEW_THEME_DEFAULTS`, read through `theme_registry.default_for`). `Token.default` stays what it was: it is
+the generated CSS fallback, so a host without a theme renders as before.
 
-## The new default palette
+## The default palette for new themes
 
-| step | revision 1 and 2 | revision 3 | on white | on `surface-page` |
+| step | CSS fallback (`Token.default`) | new themes | on white | on `surface-page` |
 | --- | --- | --- | --- | --- |
 | `ink-300` | `#b8bac2` | `#898c98` | 3.35 (was 1.94) | 3.13 |
 | `ink-400` | `#8f929e` | `#6b6e7d` | 5.06 (was 3.10) | 4.72 |
@@ -36,7 +34,7 @@ tokens and takes the rest from the fallback), every published v2 release and a h
 `ink-300` is the icon, separator-with-boundary and control-boundary step (3:1 wherever a control draws its edge: apps
 hard-code `border-ink-300`); `ink-200` stays the divider (1.4:1, decorative). `ink-400` and `ink-500` are text. The ramp stays
 monotone in luminance, `ink-600` upward is untouched, and `danger-600` already met 4.5:1. Because apps read `var(--fl-ink-400)`
-at run time, a tenant that pins the new `fastlane` 2.0.0 gets these values in every installed app without a rebuild.
+at run time, a tenant on the platform default (`fastlane` 2.1.0) gets these values in every installed app without a rebuild.
 A dark-tone navigation rail uses `ink-300` for its idle text; on the dark rail that is now 5.5:1 (it was 9:1).
 
 ## The UI pairs
@@ -77,7 +75,7 @@ resolves as before; `tests/test_theme_frontend.py` compares them with the 1.2 pr
 
 ## Dark palette
 
-`derive_dark` for a revision 3 theme re-solves `ink-300` to `ink-700` against the dark surface, the dark page and the dark accent tints: each
+`derive_dark` re-solves `ink-300` to `ink-700` against the dark surface, the dark page and the dark accent tints: each
 step gets at least the contrast the light palette gives it on its own surface (so the three-step hierarchy survives: 5.06, 6.12, ... on
 the default), and never less than its floor (3:1 for `ink-300`, 4.5:1 for the text steps); a step that already reads is untouched. The steps
 move toward white in whole percents (integer arithmetic, mirrored in `theme-resolve.ts`).
@@ -88,10 +86,10 @@ and lifting the text until it reads on them would put `ink-400` to `ink-700` on 
 (channels scaled toward black, hue kept) until the steps that sit on it read, but never closer to the surface than 1.15:1 (`accent-50`) and 1.3:1
 (`accent-100`), and `accent-50` stays darker than `accent-100`; only what is still short is lifted. `accent-text` and `accent-ui`, when they
 point at an accent step, are lifted until they read on the dark surface (and on the dark `accent-50` for the text). The derived default palette
-now has no contrast warning (revision 2: five).
+has no contrast warning (a reversal alone left five).
 
 ## Fonts
 
 A family with a word that starts with a digit (`Source Sans 3`, `Source Serif 4`) is not a valid unquoted CSS name: the browser drops the whole
-`font-family`, and the UI renders in Times. The v2 grammar already allows single quotes. Revision 3 warns when such a family is unquoted;
+`font-family`, and the UI renders in Times. The v2 grammar allows single quotes. The validator warns when such a family is unquoted;
 the builder and the editor quote them.

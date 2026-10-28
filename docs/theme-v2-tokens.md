@@ -5,7 +5,7 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 
 ## Primitives (required, literal)
 
-| Token | Type | Default | New theme (revision 3) | Range / options |
+| Token | Type | Default | New theme | Range / options |
 | --- | --- | --- | --- | --- |
 | `ink-50` | color | `#f7f7f8` |  |  |
 | `ink-100` | color | `#ececee` |  |  |
@@ -124,7 +124,7 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 
 ## Semantic roles (required unless marked optional)
 
-| Token | Type | Default | New theme (revision 3) | Range / options |
+| Token | Type | Default | New theme | Range / options |
 | --- | --- | --- | --- | --- |
 | `surface` | color | `#ffffff` |  |  |
 | `surface-page` | color | `{ink-50}` |  |  |
@@ -145,10 +145,10 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `primary` | color | `{accent-600}` |  |  |
 | `primary-hover` | color | `{accent-700}` |  |  |
 | `primary-soft` | color | `{accent-50}` |  |  |
-| `inverse` | color | `{ink-900}` |  | optional, since revision 3;  |
-| `on-inverse` | color | `{surface}` |  | optional, since revision 3;  |
-| `accent-text` | color | `{accent-600}` |  | optional, since revision 3;  |
-| `accent-ui` | color | `{accent-600}` |  | optional, since revision 3;  |
+| `inverse` | color | `{ink-900}` |  | optional;  |
+| `on-inverse` | color | `{surface}` |  | optional;  |
+| `accent-text` | color | `{accent-600}` |  | optional;  |
+| `accent-ui` | color | `{accent-600}` |  | optional;  |
 | `success-solid` | color | `{success-600}` |  |  |
 | `success-soft` | color | `{success-50}` |  |  |
 | `success-border` | color | `{success-200}` |  |  |
@@ -170,7 +170,7 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `info-text` | color | `{info-700}` |  |  |
 | `info-strong` | color | `{info-900}` |  |  |
 
-`Default` is the generated CSS fallback and what revisions 1 and 2 start a theme from; it never changes. `New theme` is what a theme that targets revision 3 starts from (`default_theme_v2`, the Themes editor and the builder).
+`Default` is the generated CSS fallback, what a host without a theme renders. `New theme` is what a new theme starts from where it differs (`default_theme_v2`, the Themes editor and the builder).
 
 ## Component tokens (optional)
 
@@ -280,7 +280,7 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `page-header-gap` | length | `{space-lg}` | 0 to 64 |
 | `page-header-align` | enum | `start` | start, center |
 | `page-header-rule-color` | color | `{border-strong}` |  |
-| `page-header-variant` | enum | `plain` | plain, ruled, panel (revision 4). panel (revision 4): the page header sits in its own bordered card; core draws it. |
+| `page-header-variant` | enum | `plain` | plain, ruled, panel |
 
 ### Table (`table`)
 
@@ -425,7 +425,7 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `nav-item-size` | font-size | `{size-base}` | 8 to 64 |
 | `nav-item-weight` | weight | `{weight-medium}` |  |
 | `nav-item-transform` | enum | `none` | none, uppercase, capitalize |
-| `nav-item-variant` | enum | `square` | square, pill, tab (revision 4). tab (revision 4): a horizontal navigation tab with no fill; the active item has a thick bottom border in the active colour. |
+| `nav-item-variant` | enum | `square` | square, pill, tab |
 
 ### Navbar (`navbar`)
 
@@ -551,9 +551,9 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `gate-max-width` | length | `416px` | 320 to 640 |
 | `gate-title-size` | font-size | `{size-2xl}` | 8 to 64 |
 | `gate-page-bg` | color | `{surface-page}` |  |
-| `gate-shadow` (revision 4) | shadow | `{shadow-sm}` |  |
-| `gate-title-fg` (revision 4) | color | `{ink-900}` |  |
-| `gate-tagline-fg` (revision 4) | color | `{ink-600}` |  |
+| `gate-shadow` | shadow | `{shadow-sm}` |  |
+| `gate-title-fg` | color | `{ink-900}` |  |
+| `gate-tagline-fg` | color | `{ink-600}` |  |
 
 ### Scrollbar (`scrollbar`)
 
@@ -570,9 +570,9 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `skeleton-base` | color | `{ink-100}` |  |
 | `skeleton-highlight` | color | `{ink-50}` |  |
 
-## Dark mode (registry revision 2)
+## Dark mode
 
-`color_scheme` is `light`, `dark` or `auto` (revision 1 allows `light` only). A `dark` theme's own tokens are a dark palette. An `auto` theme's tokens are its light palette and `modes.dark` overrides them; the user picks light, dark or the system's.
+`color_scheme` is `light`, `dark` or `auto`. A `dark` theme's own tokens are a dark palette. An `auto` theme's tokens are its light palette and `modes.dark` overrides them; the user picks light, dark or the system's.
 
 `modes.dark` must set every colour ramp (ink, accent, success, warning, danger, info; 66 tokens), `surface` and `on-primary`. It may also override any of these (everything else is the same in both modes):
 
@@ -600,64 +600,64 @@ Registry revision 4. `{name}` is a reference; a component token that a theme lea
 | `layout.content.padding` | none, xs, sm, md, lg, xl | `md` |
 | `layout.content.gap` | none, xs, sm, md, lg, xl | `md` |
 
-`layout.shell` (optional, registry revision 4) is a validated tree of containers and regions that replaces the sidebar and navbar options for rendering; the options above stay required and are the v1 projection. See `docs/layout-tree.md` and `registry_data/layout-vocabulary.json` (limits, enums and defaults).
+`layout.shell` (optional) is a validated tree of containers and regions that replaces the sidebar and navbar options for rendering; the options above stay required (a theme without a shell renders the tree they describe). See `docs/layout-tree.md` and `registry_data/layout-vocabulary.json` (limits, enums and defaults).
 
-`brand` (optional, registry revision 4) carries the client's logo, an optional square mark and a tagline as small `data:` images; the limits are the layout vocabulary's `brand.logo_limits`. See `docs/brand-logo.md`.
+`brand` (optional) carries the client's logo, an optional square mark and a tagline as small `data:` images; the limits are the layout vocabulary's `brand.logo_limits`. See `docs/brand-logo.md`.
 
 ## Contrast
 
-A theme is judged only against the pairs of the registry revision it targets. `ui` pairs are the colours the interface paints with (a raw ramp step, `text-white` on a dark fill); they are reported apart from the role pairs. A pair marked *unless* is not judged for a theme that sets that role: the role replaces the raw step.
+`ui` pairs are the colours the interface paints with (a raw ramp step, `text-white` on a dark fill); they are reported apart from the role pairs. A pair marked *unless* is not judged for a theme that sets that role: the role replaces the raw step.
 
-| Pair | Minimum | Level | Since | Group | Unless |
-| --- | --- | --- | --- | --- | --- |
-| `ink-900` on `surface` | 4.5:1 | error | 1 |  |  |
-| `on-primary` on `accent-600` | 4.5:1 | error | 1 |  |  |
-| `text` on `surface` | 4.5:1 | error | 1 |  |  |
-| `text` on `surface-page` | 4.5:1 | error | 1 |  |  |
-| `text` on `surface-sunken` | 4.5:1 | error | 1 |  |  |
-| `text-muted` on `surface` | 4.5:1 | error | 1 |  |  |
-| `text-muted` on `surface-page` | 4.5:1 | error | 1 |  |  |
-| `text-inverse` on `surface-inverse` | 4.5:1 | error | 1 |  |  |
-| `text-link` on `surface` | 4.5:1 | error | 1 |  |  |
-| `on-primary` on `primary` | 4.5:1 | error | 1 |  |  |
-| `success-text` on `success-soft` | 4.5:1 | error | 1 |  |  |
-| `warning-text` on `warning-soft` | 4.5:1 | error | 1 |  |  |
-| `danger-text` on `danger-soft` | 4.5:1 | error | 1 |  |  |
-| `info-text` on `info-soft` | 4.5:1 | error | 1 |  |  |
-| `focus-ring` on `surface` | 3:1 | error | 1 |  |  |
-| `border-input` on `surface` | 3:1 | warning | 1 |  |  |
-| `ink-400` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `ink-400` on `surface-page` | 4.5:1 | warning | 3 | ui |  |
-| `ink-500` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `ink-500` on `surface-page` | 4.5:1 | warning | 3 | ui |  |
-| `ink-400` on `accent-50` | 4.5:1 | warning | 3 | ui |  |
-| `ink-500` on `accent-50` | 4.5:1 | warning | 3 | ui |  |
-| `ink-500` on `accent-100` | 4.5:1 | warning | 3 | ui |  |
-| `accent-600` on `surface` | 4.5:1 | warning | 3 | ui | `accent-text` set |
-| `accent-600` on `accent-50` | 4.5:1 | warning | 3 | ui | `accent-text` set |
-| `accent-700` on `surface` | 4.5:1 | warning | 3 | ui | `accent-text` set |
-| `accent-700` on `accent-50` | 4.5:1 | warning | 3 | ui | `accent-text` set |
-| `accent-text` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `accent-text` on `accent-50` | 4.5:1 | warning | 3 | ui |  |
-| `accent-ui` on `surface` | 3:1 | warning | 3 | ui |  |
-| `on-primary` on `ink-900` | 4.5:1 | warning | 3 | ui | `on-inverse` set |
-| `on-primary` on `ink-800` | 4.5:1 | warning | 3 | ui | `on-inverse` set |
-| `on-primary` on `danger-600` | 4.5:1 | warning | 3 | ui | `on-inverse` set |
-| `on-primary` on `success-600` | 4.5:1 | warning | 3 | ui | `on-inverse` set |
-| `on-inverse` on `inverse` | 4.5:1 | error | 3 | ui |  |
-| `on-inverse` on `danger-600` | 4.5:1 | warning | 3 | ui |  |
-| `on-inverse` on `success-600` | 4.5:1 | warning | 3 | ui |  |
-| `success-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `warning-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `danger-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `info-600` on `surface` | 4.5:1 | warning | 3 | ui |  |
-| `success-700` on `success-100` | 4.5:1 | warning | 3 | ui |  |
-| `success-700` on `success-50` | 4.5:1 | warning | 3 | ui |  |
-| `warning-700` on `warning-100` | 4.5:1 | warning | 3 | ui |  |
-| `warning-700` on `warning-50` | 4.5:1 | warning | 3 | ui |  |
-| `danger-700` on `danger-100` | 4.5:1 | warning | 3 | ui |  |
-| `danger-700` on `danger-50` | 4.5:1 | warning | 3 | ui |  |
-| `info-700` on `info-100` | 4.5:1 | warning | 3 | ui |  |
-| `info-700` on `info-50` | 4.5:1 | warning | 3 | ui |  |
+| Pair | Minimum | Level | Group | Unless |
+| --- | --- | --- | --- | --- |
+| `ink-900` on `surface` | 4.5:1 | error |  |  |
+| `on-primary` on `accent-600` | 4.5:1 | error |  |  |
+| `text` on `surface` | 4.5:1 | error |  |  |
+| `text` on `surface-page` | 4.5:1 | error |  |  |
+| `text` on `surface-sunken` | 4.5:1 | error |  |  |
+| `text-muted` on `surface` | 4.5:1 | error |  |  |
+| `text-muted` on `surface-page` | 4.5:1 | error |  |  |
+| `text-inverse` on `surface-inverse` | 4.5:1 | error |  |  |
+| `text-link` on `surface` | 4.5:1 | error |  |  |
+| `on-primary` on `primary` | 4.5:1 | error |  |  |
+| `success-text` on `success-soft` | 4.5:1 | error |  |  |
+| `warning-text` on `warning-soft` | 4.5:1 | error |  |  |
+| `danger-text` on `danger-soft` | 4.5:1 | error |  |  |
+| `info-text` on `info-soft` | 4.5:1 | error |  |  |
+| `focus-ring` on `surface` | 3:1 | error |  |  |
+| `border-input` on `surface` | 3:1 | warning |  |  |
+| `ink-400` on `surface` | 4.5:1 | warning | ui |  |
+| `ink-400` on `surface-page` | 4.5:1 | warning | ui |  |
+| `ink-500` on `surface` | 4.5:1 | warning | ui |  |
+| `ink-500` on `surface-page` | 4.5:1 | warning | ui |  |
+| `ink-400` on `accent-50` | 4.5:1 | warning | ui |  |
+| `ink-500` on `accent-50` | 4.5:1 | warning | ui |  |
+| `ink-500` on `accent-100` | 4.5:1 | warning | ui |  |
+| `accent-600` on `surface` | 4.5:1 | warning | ui | `accent-text` set |
+| `accent-600` on `accent-50` | 4.5:1 | warning | ui | `accent-text` set |
+| `accent-700` on `surface` | 4.5:1 | warning | ui | `accent-text` set |
+| `accent-700` on `accent-50` | 4.5:1 | warning | ui | `accent-text` set |
+| `accent-text` on `surface` | 4.5:1 | warning | ui |  |
+| `accent-text` on `accent-50` | 4.5:1 | warning | ui |  |
+| `accent-ui` on `surface` | 3:1 | warning | ui |  |
+| `on-primary` on `ink-900` | 4.5:1 | warning | ui | `on-inverse` set |
+| `on-primary` on `ink-800` | 4.5:1 | warning | ui | `on-inverse` set |
+| `on-primary` on `danger-600` | 4.5:1 | warning | ui | `on-inverse` set |
+| `on-primary` on `success-600` | 4.5:1 | warning | ui | `on-inverse` set |
+| `on-inverse` on `inverse` | 4.5:1 | error | ui |  |
+| `on-inverse` on `danger-600` | 4.5:1 | warning | ui |  |
+| `on-inverse` on `success-600` | 4.5:1 | warning | ui |  |
+| `success-600` on `surface` | 4.5:1 | warning | ui |  |
+| `warning-600` on `surface` | 4.5:1 | warning | ui |  |
+| `danger-600` on `surface` | 4.5:1 | warning | ui |  |
+| `info-600` on `surface` | 4.5:1 | warning | ui |  |
+| `success-700` on `success-100` | 4.5:1 | warning | ui |  |
+| `success-700` on `success-50` | 4.5:1 | warning | ui |  |
+| `warning-700` on `warning-100` | 4.5:1 | warning | ui |  |
+| `warning-700` on `warning-50` | 4.5:1 | warning | ui |  |
+| `danger-700` on `danger-100` | 4.5:1 | warning | ui |  |
+| `danger-700` on `danger-50` | 4.5:1 | warning | ui |  |
+| `info-700` on `info-100` | 4.5:1 | warning | ui |  |
+| `info-700` on `info-50` | 4.5:1 | warning | ui |  |
 | `nav-item-fg` on `sidebar-bg` (by `sidebar-tone`) | 4.5:1 | error |
 | `nav-item-fg` on `navbar-bg` (by `navbar-tone`) | 4.5:1 | error |

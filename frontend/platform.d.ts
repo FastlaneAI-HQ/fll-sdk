@@ -363,43 +363,37 @@ declare module 'fastlanelabs/ui' {
   export type { Dayjs }
 }
 declare module 'fastlanelabs/theme' {
-  export function installPackTemplates(library: import('./theme-contract').TemplateLibrary): void
-  export function ThemeSlot<K extends import('./theme-contract').ThemeComponentId>(props: {
-    id: K; props: import('./theme-contract').ThemeProps[K]; fallback: import('react').ComponentType<import('./theme-contract').ThemeProps[K]>
-  }): import('react').ReactNode
-  /** A v1 pack previews by id, version and tokens. A v2 draft passes `theme`: its variables and layout are scoped to
-   *  the wrapper (data-fl-theme-root) and its template key never matches a v1 template; `mode` previews its light or dark palette. */
-  export function ThemePreview(props: ({id:string;version:string;tokens:Record<string,string>;density:string} | {theme: import('./theme-contract').ThemeManifestV2; mode?: import('./theme-contract').ColorMode}) & {children:import('react').ReactNode}): import('react').ReactNode
-  export function themeStyle(tokens: Record<string,string>): import('react').CSSProperties
+  /** A theme shown inside the page without applying it: its variables and layout are scoped to the wrapper
+   *  (data-fl-theme-root); `mode` previews its light or dark palette. */
+  export function ThemePreview(props: {theme: import('./theme-contract').ThemeManifestV2; mode?: import('./theme-contract').ColorMode; children:import('react').ReactNode}): import('react').ReactNode
   /** The next three exist only on hosts that support theme API v2 (feature-detect `resolveTheme`). */
-  export const resolveTheme: undefined | ((theme: import('./theme-pack-contract').ThemeManifest | import('./theme-contract').ThemeManifestV2, mode?: import('./theme-contract').ColorMode | null) => import('./theme-contract').ResolvedTheme)
+  export const resolveTheme: undefined | ((theme: import('./theme-contract').ThemeManifestV2, mode?: import('./theme-contract').ColorMode | null) => import('./theme-contract').ResolvedTheme)
   export const applyResolved: undefined | ((resolved: import('./theme-contract').ResolvedTheme) => void)
-  /** Dark mode (registry revision 2): present only on hosts that support it (feature-detect `deriveDark`).
+  /** Dark mode: present only on hosts that support it (feature-detect `deriveDark`).
    *  `deriveDark` returns the `modes.dark` block for a theme's light tokens; `offeredModes` and `effectiveMode`
    *  say which palettes a theme has and which one a user's choice selects. */
   export const deriveDark: undefined | ((theme: { tokens: import('./theme-contract').TokenLayers }) => import('./theme-contract').TokenLayers)
-  export const offeredModes: undefined | ((theme: { api_version: number; color_scheme?: import('./theme-contract').ColorScheme }) => import('./theme-contract').ColorMode[])
-  export const effectiveMode: undefined | ((theme: { api_version: number; color_scheme?: import('./theme-contract').ColorScheme }, preference?: string | null, systemDark?: boolean) => import('./theme-contract').ColorMode)
+  export const offeredModes: undefined | ((theme: { color_scheme?: import('./theme-contract').ColorScheme }) => import('./theme-contract').ColorMode[])
+  export const effectiveMode: undefined | ((theme: { color_scheme?: import('./theme-contract').ColorScheme }, preference?: string | null, systemDark?: boolean) => import('./theme-contract').ColorMode)
   /** Scopes a layout for a preview, so a draft's layout renders without changing the tenant's. */
   export const ShellLayoutProvider: undefined | ((props: { layout: import('./theme-contract').LayoutV2; children: import('react').ReactNode }) => import('react').ReactNode)
-  /** The layout tree (registry revision 4, docs/layout-tree.md): present only on hosts that draw it (feature-detect `shellTreeOf`).
+  /** The layout tree (docs/layout-tree.md): present only on hosts that draw it (feature-detect `shellTreeOf`).
    *  `validateShell` checks a `layout.shell` against the vocabulary, `normaliseShell` fills its defaults, `shellFromLayout` is the tree
-   *  a revision 1 to 3 layout's options describe, `shellTreeOf` the tree a theme renders, and `layoutVocabulary` the vocabulary itself. */
+   *  a theme's layout options describe (when it has no `layout.shell`), `shellTreeOf` the tree a theme renders, and `layoutVocabulary` the vocabulary itself. */
   export const validateShell: undefined | ((shell: unknown, vocabulary?: import('./theme-contract').LayoutVocabulary, path?: string, scroll?: string | null, installedModules?: Iterable<string> | null) => { errors: import('./theme-contract').ShellProblem[]; warnings: import('./theme-contract').ShellProblem[] })
   export const normaliseShell: undefined | ((shell: import('./theme-contract').ShellTree, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedShellTree)
   export const shellFromLayout: undefined | ((layout: import('./theme-contract').LayoutV2, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedShellTree)
-  export const shellTreeOf: undefined | ((theme: import('./theme-pack-contract').ThemeManifest | import('./theme-contract').ThemeManifestV2, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedShellTree)
+  export const shellTreeOf: undefined | ((theme: import('./theme-contract').ThemeManifestV2, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedShellTree)
   export const layoutVocabulary: undefined | import('./theme-contract').LayoutVocabulary
-  /** The brand (registry revision 4, docs/brand-logo.md): present only on hosts that draw it (feature-detect `brandOf`).
-   *  `validateBrand` checks a theme's `brand`, `normaliseBrand` fills its defaults, `brandOf` is the brand a theme resolves to
-   *  (null without one), and `optionsFor` the options an enum token offers at a registry revision (`nav-item-variant` gains `tab` at 4). */
+  /** The brand (docs/brand-logo.md): present only on hosts that draw it (feature-detect `brandOf`).
+   *  `validateBrand` checks a theme's `brand`, `normaliseBrand` fills its defaults and `brandOf` is the brand a theme resolves to
+   *  (null without one). */
   export const validateBrand: undefined | ((brand: unknown, vocabulary?: import('./theme-contract').LayoutVocabulary, path?: string) => { errors: import('./theme-contract').ShellProblem[]; warnings: import('./theme-contract').ShellProblem[] })
   export const normaliseBrand: undefined | ((brand: import('./theme-contract').ThemeBrand | null | undefined, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedBrand | null)
-  export const brandOf: undefined | ((theme: import('./theme-pack-contract').ThemeManifest | import('./theme-contract').ThemeManifestV2, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedBrand | null)
+  export const brandOf: undefined | ((theme: import('./theme-contract').ThemeManifestV2, vocabulary?: import('./theme-contract').LayoutVocabulary) => import('./theme-contract').ResolvedBrand | null)
   /** The logo to draw on a background (docs/brand-logo.md): `logo_dark` on a dark one (a dark header or sidebar, a dark palette) when the brand has one, else `logo`;
    *  `logo` on a light one; `null` when there is no logo. Feature-detect it with `brandOf`. */
   export const brandLogoFor: undefined | ((brand: import('./theme-contract').ResolvedBrand | null, onDark: boolean) => (import('./theme-contract').BrandImage & { height: number }) | null)
-  export const optionsFor: undefined | ((spec: { options?: string[]; option_since?: Record<string, number> }, revision?: number) => string[])
   /** Try a font on the whole workspace at once, kept in this browser only (feature-detect `fontChoices`). `fontChoices` lists every reviewed
    *  web font and the system stacks, `currentFontTryout` is the id being tried (or null for the theme's own), and `applyFontTryout(id)` draws
    *  everything in it now (`null` goes back to the theme's font). It never changes the theme itself. */

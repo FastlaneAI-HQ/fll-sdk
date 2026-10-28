@@ -1,16 +1,16 @@
-# Brand logo (registry revision 4)
+# Brand logo
 
 A theme can carry the client's logo. It is data: a small image embedded in the manifest, drawn by the host as an `<img>`.
 Nothing a theme carries can run code.
 
-Status: part of registry revision 4 (not yet released), together with the layout tree. Implemented in `fastlanelabs_sdk.themes`
+Status: implemented in `fastlanelabs_sdk.themes`
 (`validate_brand`, `normalise_brand`, `brand_of`, `brand_logo_for`) and `frontend/theme-resolve.ts` (`validateBrand`, `normaliseBrand`, `brandOf`, `brandLogoFor`); the two
 give identical results (same errors, paths, messages and order: `tests/test_layout_tree_parity.py` runs both over the cases of
 `tests/test_brand.py`).
 
 ## Shape
 
-A revision 4 theme may carry an optional top-level `brand` object. A theme at revision 3 or earlier must not (error at `brand`).
+A theme may carry an optional top-level `brand` object.
 
 ```jsonc
 "brand": {
@@ -62,15 +62,12 @@ A revision 4 theme may carry an optional top-level `brand` object. A theme at re
   (`brand.zzz`, `brand.logo.zoom`).
 * Every error carries a path (`brand.logo.src`). Problems come in a fixed order: unknown keys of the brand (alphabetical), then `logo`, `logo_dark`, `mark`
   and `tagline` in that order (inside an image: its unknown keys, `src`, `alt`, `height`), then the size of all the images together.
-* Revisions: `brand` in a theme that targets revision 3 or earlier is an error at `brand` (`brand needs registry_revision 4 or later`) and
-  its content is not judged. `validate_theme` returns a valid theme unchanged (nothing is trimmed or defaulted in the manifest). The v1
-  projection (`project_v1`) and the contrast report ignore the brand.
+* `validate_theme` returns a valid theme unchanged (nothing is trimmed or defaulted in the manifest). The contrast report ignores the brand.
 
 ## What the host does with it
 
 * `resolveTheme` returns `brand: { logo, logo_dark, mark, tagline } | null` next to `shell`. A theme with a brand gets all four keys, an absent part is
-  `null`, `logo.height` and `logo_dark.height` are filled (the latter from the logo's height) and `alt` and `tagline` are trimmed (`normalise_brand`); a theme without a brand, every theme of revision 3
-  or earlier and every v1 theme gets `null`. The goldens of revisions 1 to 3 do not contain the key and are compared without it.
+  `null`, `logo.height` and `logo_dark.height` are filled (the latter from the logo's height) and `alt` and `tagline` are trimmed (`normalise_brand`); a theme without a brand gets `null`.
 * The layout tree's `brand` region (and the classic sidebar/navbar brand) draws `logo` when present, else `mark` in a narrow
   region (a rail, a collapsed bar), else the tenant's initials badge and name as before. The region option `logo` is
   `auto` (default: the logo, when the theme has one) / `hide` (never the logo: badge and name) / `only` (the logo alone, no name).
@@ -102,14 +99,12 @@ Types (`theme-contract.ts`): `ThemeBrand` (as written), `BrandImage`, `ResolvedB
 and `ResolvedTheme.brand`. `validateBrand` never throws; `normaliseBrand` assumes a valid brand. There are no warnings today (the key is there
 for symmetry with `validate_shell`).
 
-## Registry additions that came with it (revision 4)
+## Registry entries that go with it
 
-A branded theme usually also wants these; they are ordinary registry entries, `since: 4`, and a revision 4 theme written before them stays valid.
+A branded theme usually also wants these; they are ordinary registry entries.
 
-* `nav-item-variant` gains `tab`: a horizontal navigation tab with no fill; the active item is marked by a thick bottom border in the active
-  colour. `page-header-variant` gains `panel`: the page header sits in its own bordered card (a highlights panel); core draws it.
-  The token entry carries `option_since` (`{ "tab": 4 }`): a theme that targets revision 3 or earlier gets the error it always got
-  (`must be one of square, pill`). `Token.options_for(revision)` / `optionsFor(spec, revision)` give the options a revision offers.
-* The sign-in card (`gate`) already had `gate-page-bg`, `gate-bg`, `gate-border`, `gate-radius`, `gate-max-width` and `gate-title-size`. New:
+* `nav-item-variant` offers `tab`: a horizontal navigation tab with no fill; the active item is marked by a thick bottom border in the active
+  colour. `page-header-variant` offers `panel`: the page header sits in its own bordered card (a highlights panel); core draws it.
+* The sign-in card (`gate`) has `gate-page-bg`, `gate-bg`, `gate-border`, `gate-radius`, `gate-max-width` and `gate-title-size`, and:
   `gate-shadow` (fallback `{shadow-sm}`), `gate-title-fg` (`{ink-900}`) and `gate-tagline-fg` (`{ink-600}`): what the sign-in page drew before they
   existed (the card's `shadow-sm`, the heading's `text-ink-900`, the lede's `text-ink-600`).

@@ -1,22 +1,12 @@
-import hashlib
 import json
 from copy import deepcopy
-from pathlib import Path
 
 import pytest
 from fastlanelabs_sdk import theme_registry as registry
 from fastlanelabs_sdk import themes
 from fastlanelabs_sdk.themes import (
-    ThemeError, check_theme, contrast_report, default_theme_v2, project_v1, resolve_theme, shell_from_layout,
-    upgrade_v1, upgrade_v1_report, validate_theme,
+    ThemeError, check_theme, contrast_report, default_theme_v2, resolve_theme, validate_theme,
 )
-
-FIXTURES = Path(__file__).parent / 'fixtures/themes'
-V1_FIXTURES = ['fastlane-1.0.0', 'precision-hose-1.0.0', 'precision-hose-1.1.0']
-
-
-def v1(name):
-    return json.loads((FIXTURES / f'{name}.json').read_text())
 
 
 def theme(**changes):
@@ -67,12 +57,18 @@ def test_validation_never_injects_defaults_so_hashes_are_stable():
         validate_theme(value)
 
 
-def test_validate_theme_dispatches_on_api_version():
-    assert validate_theme(v1('fastlane-1.0.0'))['api_version'] == 1
-    assert validate_theme(theme())['api_version'] == 2
-    with pytest.raises(ThemeError, match='Unsupported theme API version'):
-        validate_theme(dict(theme(), api_version=3))
-    assert themes.theme_contracts == (1, 2)
+def test_validate_theme_reads_only_the_current_api_version_and_revision():
+    assert validate_theme(theme())['api_version'] == themes.THEME_API_VERSION == 2
+    for api_version in (1, 3):
+        with pytest.raises(ThemeError, match='Unsupported theme API version') as caught:
+            validate_theme(dict(theme(), api_version=api_version))
+        assert caught.value.path == 'api_version'
+    assert check_theme({'api_version': 1, 'id': 'fastlane'})['errors'] == [
+        {'path': 'api_version', 'message': 'Unsupported theme API version; only API v2 themes are supported'}]
+    for revision in (1, 2, 3):
+        errors = check_theme(theme(registry_revision=revision))['errors']
+        assert errors == [{'path': 'registry_revision', 'message': f'Theme targets registry revision {revision}, which is no longer '
+                                                                   'supported; rebuild it at revision 4'}], revision
 
 
 @pytest.mark.parametrize('change,path', [
@@ -87,8 +83,6 @@ def test_validate_theme_dispatches_on_api_version():
     (lambda t: t.update(version='1.0'), 'version'),
     (lambda t: t.update(label=''), 'label'),
     (lambda t: t.update(label='x' * 81), 'label'),
-    (lambda t: t.update(registry_revision=1, color_scheme='dark'), 'color_scheme'),
-    (lambda t: t.update(registry_revision=1, color_scheme='auto'), 'color_scheme'),
     (lambda t: t.update(color_scheme='both'), 'color_scheme'),
     (lambda t: t.update(modes={'dark': {}}), 'modes'),
     (lambda t: t['tokens'].pop('components'), 'tokens'),
@@ -277,11 +271,6 @@ def test_contrast_hard_errors_apply_to_v2_only():
     ]:
         errors = check_theme(mutate(change))['errors']
         assert any(text in e['message'] for e in errors), (text, errors)
-    # v1 manifests are never re-judged: a legacy-passing v1 theme that fails v2's text-muted still validates.
-    legacy = v1('fastlane-1.0.0')
-    legacy['tokens']['ink-600'] = '#dddddd'
-    assert validate_theme(legacy)['tokens']['ink-600'] == '#dddddd'
-    assert any('text-muted' in e['message'] for e in check_theme(upgrade_v1(legacy))['errors'])
 
 
 def test_nav_contrast_follows_the_bar_tone_and_visibility():
@@ -310,7 +299,7 @@ def test_component_contrast_only_warns_and_a_report_lists_every_pair():
     report = contrast_report(value)
     row = next(r for r in report if r['id'] == 'button-primary')
     assert row['pass'] is False and row['level'] == 'warning' and row['ratio'] < 4.5
-    assert contrast_report(v1('fastlane-1.0.0')) == [] and contrast_report(mutate(lambda t: t.pop('layout'))) == []
+    assert contrast_report(dict(theme(), api_version=1)) == [] and contrast_report(mutate(lambda t: t.pop('layout'))) == []
     legacy = next(r for r in contrast_report(theme()) if r['id'] == 'legacy-ink-900-on-surface')
     assert legacy['min'] == 4.5 and legacy['pass'] is True and legacy['fg_value'] == '#1a1b21'
 
@@ -318,128 +307,6 @@ def test_component_contrast_only_warns_and_a_report_lists_every_pair():
 def test_a_theme_from_a_newer_registry_asks_for_a_workspace_update():
     errors = check_theme(theme(registry_revision=5))['errors']
     assert 'Update the workspace' in errors[0]['message']
-
-
-def test_project_v1_is_always_a_valid_v1_manifest():
-    value = mutate(lambda t: (t['layout']['sidebar'].update(style='panel', width=224),
-                              t['tokens']['primitives'].update({'accent-600': '#aa0000'}),
-                              t['tokens']['components'].update({'button-radius': '{radius-pill}'})))
-    projected = project_v1(value)
-    assert projected['api_version'] == 1 and projected['layout'] == {'density': 'comfortable', 'navigation': 'sidebar'}
-    assert set(projected['tokens']) == registry.V1_TOKEN_NAMES
-    assert projected['tokens']['accent-600'] == '#aa0000'
-    assert validate_theme(projected) == projected
-    assert project_v1(projected) == projected
-
-
-@pytest.mark.parametrize('name', V1_FIXTURES)
-def test_v1_upgrades_to_v2_with_identical_tokens_and_layout(name):
-    original = v1(name)
-    snapshot = deepcopy(original)
-    upgraded = upgrade_v1(original)
-    assert original == snapshot, 'upgrade must not mutate its input'
-    assert check_theme(upgraded)['errors'] == []
-    assert validate_theme(upgraded) == upgraded
-    assert (upgraded['id'], upgraded['version'], upgraded['label']) == (original['id'], original['version'], original['label'])
-    # Round trip: identical manifest, identical published hash.
-    assert project_v1(upgraded) == validate_theme(original)
-    assert hashlib.sha256(json.dumps(project_v1(upgraded), sort_keys=True, indent=2).encode()).hexdigest() == \
-        hashlib.sha256(json.dumps(validate_theme(original), sort_keys=True, indent=2).encode()).hexdigest()
-    # The 27 v1 variables resolve to exactly what the v1 applier sets.
-    legacy = resolve_theme(original)['vars']
-    modern = resolve_theme(upgraded)['vars']
-    assert len(legacy) == 27 and all(modern[key] == value for key, value in legacy.items())
-    assert resolve_theme(upgraded)['attrs']['data-density'] == original['layout']['density']
-    expected_style = 'panel' if original['layout']['navigation'] == 'sidebar' else 'rail'
-    assert upgraded['layout']['sidebar']['style'] == expected_style
-    assert upgraded['tokens']['components'] == {}
-    assert upgraded['tokens']['primitives']['font-display'] == original['tokens']['font-sans']
-
-
-def test_the_fastlane_upgrade_is_exactly_the_registry_default():
-    upgraded = upgrade_v1(v1('fastlane-1.0.0'), registry_revision=2)
-    default = default_theme_v2('fastlane', '1.0.0', 'Fastlane', registry_revision=2)
-    assert upgraded == default
-    assert resolve_theme(upgraded)['vars'] == resolve_theme(default)['vars']
-    # Revision 3 starts a NEW theme from the accessible palette; an upgrade keeps fastlane 1.0.0's own ramp.
-    upgraded3 = upgrade_v1(v1('fastlane-1.0.0'))
-    assert upgraded3['registry_revision'] == registry.REGISTRY_REVISION
-    assert upgraded3['tokens']['primitives']['ink-400'] == '#8f929e' != default_theme_v2()['tokens']['primitives']['ink-400']
-
-
-def test_v1_resolution_matches_what_the_v1_applier_sets():
-    resolved = resolve_theme(v1('precision-hose-1.1.0'))
-    assert resolved['api_version'] == 1
-    assert resolved['vars']['--fl-accent-600'] == '179 38 30'
-    assert resolved['vars']['--fl-radius'] == '2px' and resolved['vars']['--fl-font-sans'] == 'Arial, Helvetica, sans-serif'
-    assert resolved['attrs'] == {'data-density': 'comfortable', 'data-theme': 'precision-hose'}
-    assert 'data-fl-contract' not in resolved['attrs']
-    assert (resolved['shell']['attrs'], resolved['shell']['vars']) == ({}, {})
-    # The tree a v1 theme's `navigation` choice describes (the registry's default layout of that style).
-    assert resolved['shell']['tree'] == shell_from_layout(registry.default_layout('panel' if v1('precision-hose-1.1.0')['layout']['navigation'] == 'sidebar' else 'rail'))
-
-
-def test_upgrade_notes_say_a_fork_is_an_approximation():
-    report = upgrade_v1_report(v1('fastlane-1.0.0'))
-    assert 'approximates' in report['notes'][0] and report['theme'] == upgrade_v1(v1('fastlane-1.0.0'))
-
-
-def presentation(workspace, **styles):
-    from fastlanelabs_sdk.theme_packs import validate_presentation
-    return validate_presentation({'api_version': 1, 'workspace': workspace, 'styles': styles})
-
-
-def slot(name, **extra):
-    return dict({'type': 'slot', 'name': name}, **extra)
-
-
-@pytest.mark.parametrize('nav_first,side', [(True, 'left'), (False, 'right')])
-@pytest.mark.parametrize('actions_first,position', [(True, 'top'), (False, 'bottom')])
-def test_pack_layouts_map_onto_sidebar_side_and_navbar_position(nav_first, side, actions_first, position):
-    row = {'type': 'row', 'gap': 'sm', 'children': [slot('navigation', width=240), slot('content')] if nav_first
-           else [slot('content'), slot('navigation', width=240)]}
-    children = [slot('actions'), row] if actions_first else [row, slot('actions')]
-    upgraded = upgrade_v1(v1('fastlane-1.0.0'), presentation({'type': 'column', 'gap': 'lg', 'children': children}))
-    layout = upgraded['layout']
-    assert (layout['sidebar']['side'], layout['navbar']['position']) == (side, position)
-    assert layout['sidebar']['width'] == 240 and layout['sidebar']['surface'] == 'flush'
-    assert layout['content']['gap'] == 'lg'
-    assert check_theme(upgraded)['errors'] == []
-
-
-def test_pack_styles_become_component_tokens():
-    pack = presentation(
-        {'type': 'row', 'gap': 'md', 'children': [slot('navigation'), {'type': 'column', 'gap': 'none', 'children': [slot('actions'), slot('content')]}]},
-        **{'navigation.sidebar': {'variant': 'panel', 'tone': 'dark'}, 'navigation.topbar': {'tone': 'dark'},
-           'navigation.item': {'variant': 'pill', 'mode': 'label'}, 'control.button': {'variant': 'outline', 'radius': 'square'},
-           'surface.card': {'variant': 'raised'}, 'page.header': {'variant': 'ruled'}, 'chat.message': {'variant': 'ruled'},
-           'control.input': {'variant': 'filled'}, 'control.field': {'variant': 'inline'}, 'chat.composer': {'variant': 'plain'}})
-    upgraded = upgrade_v1(v1('fastlane-1.0.0'), pack)
-    tokens = upgraded['tokens']['components']
-    assert upgraded['layout']['sidebar']['style'] == 'panel' and upgraded['layout']['sidebar']['width'] == 224
-    assert tokens['sidebar-tone'] == 'dark' and tokens['navbar-tone'] == 'dark' and tokens['nav-item-fg'] == '{ink-200}'
-    assert tokens['nav-item-radius'] == '{radius-pill}' and tokens['nav-item-variant'] == 'pill'
-    assert tokens['button-variant'] == 'outline' and tokens['button-radius'] == '{radius-sm}' and tokens['button-height'] == '44px'
-    assert tokens['card-variant'] == 'raised' and tokens['card-shadow'] == '{shadow-sm}'
-    assert tokens['page-header-variant'] == 'ruled' and tokens['chat-message-variant'] == 'ruled'
-    assert tokens['input-variant'] == 'filled' and tokens['field-variant'] == 'inline' and tokens['composer-variant'] == 'plain'
-    assert check_theme(upgraded)['errors'] == []
-    assert resolve_theme(upgraded)['enums']['button-variant'] == 'outline'
-
-
-def test_a_pack_without_styles_defaults_to_the_compilers_light_bars():
-    pack = presentation({'type': 'row', 'gap': 'md', 'children': [slot('navigation'), {'type': 'column', 'gap': 'md', 'children': [slot('actions'), slot('content')]}]})
-    tokens = upgrade_v1(v1('fastlane-1.0.0'), pack)['tokens']['components']
-    assert (tokens['sidebar-tone'], tokens['navbar-tone']) == ('light', 'light') and 'nav-item-fg' not in tokens
-
-
-def test_navigation_above_content_becomes_a_navbar_that_carries_the_items():
-    pack = presentation({'type': 'column', 'gap': 'md', 'children': [slot('navigation'), slot('content'), slot('actions')]})
-    report = upgrade_v1_report(v1('fastlane-1.0.0'), pack)
-    layout = report['theme']['layout']
-    assert (layout['sidebar']['side'], layout['navbar']['position']) == ('hidden', 'top')
-    assert any('navbar that carries the navigation items' in note for note in report['notes'])
-    assert check_theme(report['theme'])['errors'] == []
 
 
 def test_resolution_flattens_references_and_tags_font_sizes():

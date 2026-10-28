@@ -32,11 +32,11 @@ def test_registry_json_in_the_package_and_frontend_match_python():
     assert (ROOT / 'frontend/theme-registry.json').read_bytes() == files('fastlanelabs_sdk.registry_data').joinpath('theme-registry-v2.json').read_bytes()
 
 
-def test_the_27_v1_tokens_are_unchanged():
+def test_the_27_tokens_of_the_first_api_keep_its_grammar():
     expected = {'surface', 'on-primary', 'font-sans', 'font-mono', 'radius'} | {
         f'{palette}-{shade}' for palette in ('ink', 'accent') for shade in themes.SHADES}
-    assert registry.V1_TOKEN_NAMES == expected == set(themes.TOKEN_NAMES)
-    assert len(registry.V1_TOKEN_NAMES) == 27
+    assert {t.name for t in registry.TOKENS if t.v1} == expected
+    assert len(expected) == 27
 
 
 def test_names_are_unique_kebab_case_and_layered():
@@ -45,7 +45,6 @@ def test_names_are_unique_kebab_case_and_layered():
     for token in registry.TOKENS:
         assert re.fullmatch(r'[a-z][a-z0-9]*(?:-[a-z0-9]+)*', token.name), token.name
         assert token.layer in registry.LAYERS and token.type in registry.TYPES
-        assert token.since in (1, 3, 4) and (token.since == 1 or token.optional or (token.since == 4 and token.layer == 'component'))
         if token.layer == 'component':
             assert token.name.startswith(token.component + '-'), token.name
             assert token.component in registry.COMPONENTS

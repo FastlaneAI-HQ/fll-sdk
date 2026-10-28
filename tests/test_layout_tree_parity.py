@@ -181,12 +181,12 @@ def mutants(count, seed=4):
     return out
 
 
-def typescript(cases, grid, require_node, tmp_path, themes=(), brands=(), options=()):
+def typescript(cases, grid, require_node, tmp_path, themes=(), brands=()):
     require_node('esbuild')
     path = tmp_path / 'cases.json'
     path.write_text(json.dumps({'cases': [{'id': i, 'shell': s, 'scroll': sc, 'installed': inst, 'vocabulary': v} for i, s, sc, inst, v in cases],
                                 'layouts': grid, 'themes': list(themes),
-                                'brands': [{'id': i, 'brand': b, 'vocabulary': v} for i, b, v in brands], 'options': list(options)}, allow_nan=False))
+                                'brands': [{'id': i, 'brand': b, 'vocabulary': v} for i, b, v in brands]}, allow_nan=False))
     run = subprocess.run(['node', str(RUNNER), str(path)], capture_output=True, text=True, timeout=300)
     assert run.returncode == 0, run.stderr
     return json.loads(run.stdout)
@@ -253,7 +253,7 @@ def test_every_layout_the_options_express_validates_in_typescript_too(require_no
     assert [produced[f'layout-{i}']['tree'] for i in range(len(trees))] == trees
 
 
-def test_typescript_resolves_a_revision_4_theme_to_its_own_tree_and_older_ones_to_the_derived_tree(require_node, tmp_path):
+def test_typescript_resolves_a_theme_to_its_own_tree_or_the_one_its_options_describe(require_node, tmp_path):
     """resolveTheme(...).shell.tree and shellTreeOf are what core renders; the goldens (tests/golden/layout-tree) hold the exact
     trees, this checks a theme edited on the spot: `layout.shell` changes the resolved tree and nothing else."""
     from fastlanelabs_sdk.themes import default_theme_v2, resolve_theme
@@ -261,7 +261,7 @@ def test_typescript_resolves_a_revision_4_theme_to_its_own_tree_and_older_ones_t
     theme['layout']['shell'] = copy.deepcopy(PRESETS['top-bar'])
     theme['layout']['sidebar']['side'] = 'hidden'
     theme['layout']['navbar']['position'] = 'top'
-    older = default_theme_v2(registry_revision=3)
+    older = default_theme_v2()
     first, second = typescript([], [], require_node, tmp_path, [theme, older])['themes']
     assert first['resolved']['shell']['tree'] == first['tree'] == resolve_theme(theme)['shell']['tree'] == normalise_shell(PRESETS['top-bar'])
     assert second['resolved']['shell']['tree'] == second['tree'] == resolve_theme(older)['shell']['tree'] == normalise_shell(PRESETS['rail'])
@@ -269,7 +269,7 @@ def test_typescript_resolves_a_revision_4_theme_to_its_own_tree_and_older_ones_t
     assert second['resolved']['shell']['vars'] == resolve_theme(older)['shell']['vars']
 
 
-# --- Registry revision 4: the brand -------------------------------------------------------------------------------------
+# --- The brand -------------------------------------------------------------------------------------
 
 def test_python_and_typescript_agree_on_every_brand_rule_and_on_generated_brands(require_node, tmp_path):
     """validateBrand / normaliseBrand give the same errors (same paths, messages and ORDER) and the same normalised brand as
@@ -293,24 +293,15 @@ def test_python_and_typescript_agree_on_every_brand_rule_and_on_generated_brands
     assert valid >= 20 and invalid >= 100, (valid, invalid)
 
 
-def test_typescript_resolves_the_brand_of_a_revision_4_theme_and_nothing_for_older_ones(require_node, tmp_path):
+def test_typescript_resolves_the_brand_of_a_theme_and_nothing_for_one_without(require_node, tmp_path):
     from fastlanelabs_sdk.themes import default_theme_v2, resolve_theme
     from test_brand import good
     theme = default_theme_v2()
     theme['brand'] = good()
     theme['brand']['tagline'] = '  padded  '
-    older = default_theme_v2(registry_revision=3)
     plain = default_theme_v2()
-    first, second, third = typescript([], [], require_node, tmp_path, [theme, older, plain])['themes']
+    first, third = typescript([], [], require_node, tmp_path, [theme, plain])['themes']
     assert first['resolved']['brand'] == resolve_theme(theme)['brand'] and first['resolved']['brand']['tagline'] == 'padded'
-    assert second['resolved']['brand'] is None and third['resolved']['brand'] is None
+    assert third['resolved']['brand'] is None
     assert first['resolved'] == json.loads(json.dumps(resolve_theme(theme)))
     assert third['resolved'] == json.loads(json.dumps(resolve_theme(plain)))
-
-
-def test_typescript_offers_the_same_enum_options_per_revision_as_python(require_node, tmp_path):
-    asked = [[token.name, revision] for token in registry.INDEX.values() if token.type == 'enum' for revision in (1, 2, 3, 4)]
-    produced = typescript([], [], require_node, tmp_path, options=asked)['options']
-    assert produced == [list(registry.INDEX[name].options_for(revision)) for name, revision in asked]
-    assert ['nav-item-variant', 3] in asked and produced[asked.index(['nav-item-variant', 3])] == ['square', 'pill']
-    assert produced[asked.index(['nav-item-variant', 4])] == ['square', 'pill', 'tab']

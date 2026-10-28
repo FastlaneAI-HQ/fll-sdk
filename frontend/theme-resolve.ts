@@ -1,5 +1,5 @@
 /** Pure theme v2 resolver: no DOM access. Mirrors fastlanelabs_sdk.themes (resolve_theme,
- *  upgrade_v1, project_v1, contrast_report, validate_shell, normalise_shell, shell_from_layout); shared golden fixtures keep the two in step.
+ *  contrast_report, derive_dark, validate_shell, normalise_shell, shell_from_layout, validate_brand); shared golden fixtures keep the two in step.
  *  Inputs are assumed valid: the server validates, and the editor validates before it applies. */
 import registryData from './theme-registry.json'
 import vocabularyData from './layout-vocabulary.json'
@@ -7,35 +7,27 @@ import type {
   ColorMode, ColorScheme, LayoutV2, LayoutVocabulary, ResolvedShellContainer, ResolvedShellNode, ResolvedShellRegion, ResolvedShellTree,
   BrandImage, BrandLogoLimits, ResolvedBrand, ResolvedTheme, ShellProblem, ShellSize, ShellTree, ThemeBrand, ThemeManifestV2, TokenLayers,
 } from './theme-contract'
-import type { LayoutNode, ThemeManifest, ThemePackPresentation } from './theme-pack-contract'
 
 interface TokenSpec {
   name: string; layer: 'primitive' | 'semantic' | 'component'; type: string
   default: string | { dark: string; light: string }
   tone?: string; v1?: boolean; min?: number; max?: number; options?: string[]
-  since?: number; optional?: boolean
-  /** Enum options added after the token: `{ tab: 4 }` means the option needs registry revision 4. */
-  option_since?: Record<string, number>
+  optional?: boolean
 }
 interface Registry {
   registry_revision: number
   tokens: TokenSpec[]
-  /** The palette a new theme starts from, by registry revision (a token's `default` is the CSS fallback and never changes). */
-  revision_defaults: Record<string, Record<string, string>>
-  v1_tokens: string[]
+  /** The palette a new theme starts from where it differs from a token's `default` (the CSS fallback). */
+  new_theme_defaults: Record<string, string>
   shades: number[]
   panel_sidebar_width: number
   layout_defaults: LayoutV2
   layout: { content: { max_width: { max: number } } }
-  /** The registry revision that introduced `layout.shell`. */
-  shell: { since: number }
-  /** The registry revision that introduced `brand`. */
-  brand: { since: number }
-  contrast_pairs: { id: string; fg: string; bg: string; min: number; level: 'error' | 'warning'; since: number; group?: string; unless?: string }[]
+  contrast_pairs: { id: string; fg: string; bg: string; min: number; level: 'error' | 'warning'; group?: string; unless?: string }[]
   component_contrast_pairs: { id: string; fg: string; bg: string }[]
   nav_bars: { bar: 'sidebar' | 'navbar'; tone: string; bg: string }[]
   webfonts: { family: string; weights: number[] }[]
-  modes: { names: string[]; since: number; overridable: string[]; required: string[]; ramps: string[] }
+  modes: { names: string[]; overridable: string[]; required: string[]; ramps: string[] }
   hues: Record<string, string[]>
   black: { light: string; dark: string }
 }
@@ -51,14 +43,13 @@ const isColor = (value: string) => /^#[0-9a-fA-F]{6}$/.test(value)
 
 const LAYERS = ['primitives', 'semantic', 'components'] as const
 
-/** The modes a theme offers: light only, dark only, or both (a v1 theme offers light). */
-export function offeredModes(theme: { api_version: number; color_scheme?: ColorScheme }): ColorMode[] {
-  if (theme.api_version !== 2) return ['light']
+/** The modes a theme offers: light only, dark only, or both. */
+export function offeredModes(theme: { color_scheme?: ColorScheme }): ColorMode[] {
   return theme.color_scheme === 'dark' ? ['dark'] : theme.color_scheme === 'auto' ? ['light', 'dark'] : ['light']
 }
 
 /** The mode to show: the only one a theme offers, else the user's choice (`system`/undefined follows the OS). */
-export function effectiveMode(theme: { api_version: number; color_scheme?: ColorScheme }, preference?: string | null, systemDark = false): ColorMode {
+export function effectiveMode(theme: { color_scheme?: ColorScheme }, preference?: string | null, systemDark = false): ColorMode {
   const offered = offeredModes(theme)
   if (offered.length === 1) return offered[0]
   if (preference === 'light' || preference === 'dark') return preference
@@ -102,16 +93,8 @@ function cssValue(spec: TokenSpec, literal: string, raw: string): string {
 }
 
 /** What the host applies for a theme. `shell.tree` is the normalised layout tree (see `shellTreeOf`); `shell.attrs` and `shell.vars`
- *  are the classic data-* attributes and variables, unchanged for registry revisions 1 to 3. */
-export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: ColorMode | null, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedTheme {
-  if (theme.api_version === 1) {
-    return {
-      api_version: 1,
-      vars: Object.fromEntries(Object.entries(theme.tokens).map(([name, value]) => [`--fl-${name}`, isColor(value) ? triplet(value) : value])),
-      attrs: { 'data-density': theme.layout.density, 'data-theme': theme.id },
-      layout: { ...theme.layout }, shell: { attrs: {}, vars: {}, tree: shellTreeOf(theme, vocabulary) }, brand: null, fonts: [], enums: {},
-    }
-  }
+ *  are the classic data-* attributes and variables of the layout options. */
+export function resolveTheme(theme: ThemeManifestV2, mode?: ColorMode | null, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedTheme {
   const scheme = theme.color_scheme ?? 'light'
   const chosen = effectiveMode(theme, mode)
   const raw = rawTokens(theme, chosen)
@@ -157,24 +140,19 @@ export function resolveTheme(theme: ThemeManifest | ThemeManifestV2, mode?: Colo
   return result
 }
 
-/** The default of a token for a new theme that targets `revision` (the current one when omitted). */
-export function defaultFor(spec: TokenSpec, revision = REGISTRY_REVISION): string | { dark: string; light: string } {
-  let value = spec.default
-  for (const step of Object.keys(registry.revision_defaults).map(Number).sort((a, b) => a - b)) {
-    if (step <= revision && spec.name in registry.revision_defaults[String(step)]) value = registry.revision_defaults[String(step)][spec.name]
-  }
-  return value
+/** The default of a token for a new theme. */
+export function defaultFor(spec: TokenSpec): string | { dark: string; light: string } {
+  return registry.new_theme_defaults[spec.name] ?? spec.default
 }
 
-export function defaultThemeV2(id = 'fastlane', version = '2.0.0', label = 'Fastlane', scheme: ColorScheme = 'light', registryRevision = REGISTRY_REVISION): ThemeManifestV2 {
-  const layer = (name: string) => Object.fromEntries(registry.tokens.filter(t => t.layer === name && (t.since ?? 1) <= registryRevision).map(t => [t.name, defaultFor(t, registryRevision) as string]))
+export function defaultThemeV2(id = 'fastlane', version = '2.0.0', label = 'Fastlane', scheme: ColorScheme = 'light'): ThemeManifestV2 {
+  const layer = (name: string) => Object.fromEntries(registry.tokens.filter(t => t.layer === name).map(t => [t.name, defaultFor(t) as string]))
   const theme: ThemeManifestV2 = {
-    api_version: 2, registry_revision: registryRevision, id, version, label, color_scheme: 'light',
+    api_version: 2, registry_revision: REGISTRY_REVISION, id, version, label, color_scheme: 'light',
     tokens: { primitives: layer('primitive'), semantic: layer('semantic'), components: {} },
     layout: JSON.parse(JSON.stringify(registry.layout_defaults)),
   }
   if (scheme !== 'light') {
-    if (registryRevision < 2) throw new Error('Dark mode needs registry revision 2')
     const dark = deriveDark(theme)
     theme.color_scheme = scheme
     if (scheme === 'auto') theme.modes = { dark }
@@ -190,7 +168,7 @@ export function defaultLayout(style: 'rail' | 'panel' = 'rail'): LayoutV2 {
   return layout
 }
 
-// --- Layout tree (registry revision 4): the same rules as themes.validate_shell, step for step. ---------------------------
+// --- Layout tree: the same rules as themes.validate_shell, step for step. ---------------------------
 //
 // docs/layout-tree.md is the specification; every limit, enum, default and region option is read from the layout
 // vocabulary (layout-vocabulary.json), so a newer vocabulary changes what is accepted without a code change. Messages,
@@ -491,7 +469,7 @@ export function validateShell(shell: unknown, vocabulary: LayoutVocabulary = lay
   return { errors, warnings }
 }
 
-/** The tree a revision 1 to 3 layout describes (normalised); the same mapping as themes.shell_from_layout, see
+/** The tree a theme's layout options describe (normalised), what a theme without `layout.shell` renders; the same mapping as themes.shell_from_layout, see
  *  docs/layout-tree.md ("From the options to a tree"). A sidebar carries the brand, the navigation and (with no navbar) the
  *  actions; a navbar sits above or below the content and carries the brand and the navigation only when there is no sidebar. */
 export function shellFromLayout(layout: LayoutV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedShellTree {
@@ -549,16 +527,14 @@ export function shellFromLayout(layout: LayoutV2, vocabulary: LayoutVocabulary =
   return normaliseShell({ version: vocabulary.shell_version as 1, root } as unknown as ShellTree, vocabulary)
 }
 
-/** The normalised tree a host renders for a valid theme: its own `layout.shell` at registry revision 4 and later, otherwise
- *  the tree its layout options describe (`shellFromLayout`). A v1 theme is mapped from its `navigation` choice with the
- *  registry's default layout (what `upgradeV1` starts from). Same as `resolveTheme(theme).shell.tree`. */
-export function shellTreeOf(theme: ThemeManifest | ThemeManifestV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedShellTree {
-  if (theme.api_version === 1) return shellFromLayout(defaultLayout(theme.layout.navigation === 'sidebar' ? 'panel' : 'rail'), vocabulary)
-  if (theme.registry_revision >= registry.shell.since && theme.layout.shell !== undefined) return normaliseShell(theme.layout.shell, vocabulary)
+/** The normalised tree a host renders for a valid theme: its own `layout.shell` when it has one, otherwise
+ *  the tree its layout options describe (`shellFromLayout`). Same as `resolveTheme(theme).shell.tree`. */
+export function shellTreeOf(theme: ThemeManifestV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedShellTree {
+  if (theme.layout.shell !== undefined) return normaliseShell(theme.layout.shell, vocabulary)
   return shellFromLayout(theme.layout, vocabulary)
 }
 
-// --- Registry revision 4: the brand (logo). The same rules as themes.validate_brand, step for step. -----------------------
+// --- The brand (logo). The same rules as themes.validate_brand, step for step. -----------------------
 //
 // docs/brand-logo.md is the specification; the limits come from the layout vocabulary's `brand.logo_limits`. Messages, paths and
 // their ORDER match the Python twin (tests/test_brand.py runs both over the same cases), so everything here avoids what differs
@@ -703,7 +679,7 @@ function textProblem(value: unknown, limit: number): string | null {
   return length >= 1 && length <= limit ? null : `Must be 1 to ${limit} characters`
 }
 
-/** Check a theme's `brand` (registry revision 4): `{ errors, warnings }` with the path of every problem (`brand.logo.src`). Never throws.
+/** Check a theme's `brand`: `{ errors, warnings }` with the path of every problem (`brand.logo.src`). Never throws.
  *  `vocabulary` supplies `brand.logo_limits` (the built-in one when omitted). Problems come in a fixed order: unknown keys
  *  (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`; inside an image its unknown keys, `src`, `alt`, `height`; last the
  *  size of all the images together. `logo_dark` (the logo drawn on dark backgrounds) follows the rules of `logo` and needs a `logo`. */
@@ -768,144 +744,9 @@ export function brandLogoFor(brand: ResolvedBrand | null, onDark: boolean): (Bra
   return onDark && brand.logo_dark !== null ? brand.logo_dark : brand.logo
 }
 
-/** The normalised brand of a valid theme: its own `brand` at registry revision 4 and later, otherwise null (every v1 theme, and
- *  v2 themes of revisions 1 to 3, have none). Same as `resolveTheme(theme).brand`. */
-export function brandOf(theme: ThemeManifest | ThemeManifestV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedBrand | null {
-  if (theme.api_version === 1 || theme.registry_revision < registry.brand.since) return null
+/** The normalised brand of a valid theme, or null for a theme without one. Same as `resolveTheme(theme).brand`. */
+export function brandOf(theme: ThemeManifestV2, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedBrand | null {
   return normaliseBrand(theme.brand, vocabulary)
-}
-
-/** The enum options of a token that a theme targeting `revision` may use: an option added later (`option_since`) is not offered to an older theme. */
-export function optionsFor(spec: TokenSpec, revision = REGISTRY_REVISION): string[] {
-  return (spec.options ?? []).filter(name => (spec.option_since?.[name] ?? 1) <= revision)
-}
-
-/** The 27 v1-named tokens in a v1 manifest, as the v2 layers they live in. */
-const V1_COLOR_TOKENS = ['ink', 'accent'].flatMap(palette => registry.shades.map(shade => `${palette}-${shade}`))
-const STYLE_TOKENS: Record<string, string> = {
-  'page.header': 'page-header-variant', 'surface.card': 'card-variant', 'control.button': 'button-variant',
-  'control.input': 'input-variant', 'control.field': 'field-variant', 'chat.message': 'chat-message-variant',
-  'chat.composer': 'composer-variant',
-}
-
-type Trail = [LayoutNode, number][]
-function slotTrails(node: LayoutNode, trail: Trail, out: Record<string, Trail>) {
-  if (node.type === 'slot') { out[node.name] = trail; return }
-  node.children.forEach((child, i) => slotTrails(child, [...trail, [node, i]], out))
-}
-function relation(trails: Record<string, Trail>, first: string, second: string): ['row' | 'column', boolean] {
-  const a = trails[first], b = trails[second]
-  for (let i = 0; i < Math.min(a.length, b.length); i++) {
-    if (a[i][0] === b[i][0] && a[i][1] !== b[i][1]) return [(a[i][0] as { type: 'row' | 'column' }).type, a[i][1] < b[i][1]]
-  }
-  return ['column', true]
-}
-function findSlot(node: LayoutNode, name: string): (LayoutNode & { type: 'slot' }) | undefined {
-  if (node.type === 'slot') return node.name === name ? node : undefined
-  for (const child of node.children) { const found = findSlot(child, name); if (found) return found }
-  return undefined
-}
-
-export function upgradeV1Report(theme: ThemeManifest, presentation?: ThemePackPresentation | null, registryRevision = REGISTRY_REVISION): { theme: ThemeManifestV2; notes: string[] } {
-  const notes = ['A v2 fork approximates the v1 original; compare them before publishing.']
-  const result = defaultThemeV2(theme.id, theme.version, theme.label, 'light', registryRevision)
-  const { primitives, semantic, components } = result.tokens
-  for (const name of [...V1_COLOR_TOKENS, 'font-sans', 'font-mono', 'radius']) primitives[name] = theme.tokens[name]
-  primitives['font-display'] = theme.tokens['font-sans']
-  semantic['surface'] = theme.tokens['surface']
-  semantic['on-primary'] = theme.tokens['on-primary']
-  const layout = defaultLayout(theme.layout.navigation === 'sidebar' ? 'panel' : 'rail')
-  layout.density = theme.layout.density
-  result.layout = layout
-  if (presentation) upgradePresentation(presentation, layout, components, notes)
-  return { theme: result, notes }
-}
-
-function upgradePresentation(presentation: ThemePackPresentation, layout: LayoutV2, components: Record<string, string>, notes: string[]) {
-  const styles = presentation.styles, workspace = presentation.workspace
-  const trails: Record<string, Trail> = {}
-  slotTrails(workspace, [], trails)
-  const { sidebar, navbar, content } = layout
-  sidebar.surface = 'flush'
-  components['sidebar-radius'] = '0px'
-  components['sidebar-border-width'] = '{border-width}'
-  components['sidebar-brand-radius'] = '{radius-sm}'
-  const nav = styles['navigation.sidebar']
-  if (nav) {
-    sidebar.style = nav.variant
-    sidebar.width = nav.variant === 'panel' ? registry.panel_sidebar_width : 56
-  }
-  components['sidebar-tone'] = nav ? nav.tone : 'light'
-  const topbar = styles['navigation.topbar']
-  components['navbar-tone'] = topbar ? topbar.tone : 'light'
-  // nav-item-fg is shared by both bars, so it is only pinned when they agree.
-  if (components['sidebar-tone'] === 'dark' && components['navbar-tone'] === 'dark') components['nav-item-fg'] = '{ink-200}'
-  let [kind, before] = relation(trails, 'navigation', 'content')
-  if (kind === 'row') {
-    sidebar.side = before ? 'left' : 'right'
-    const slot = findSlot(workspace, 'navigation')
-    if (slot && slot.width !== undefined) sidebar.width = slot.width
-    ;[kind, before] = relation(trails, 'actions', 'content')
-    navbar.position = before ? 'top' : 'bottom'
-    if (kind === 'row') notes.push('The actions slot sits beside the content; it was mapped to a navbar at the top.')
-  } else {
-    // The navbar carries the navigation items, so it follows where the navigation sat.
-    sidebar.side = 'hidden'
-    navbar.position = before ? 'top' : 'bottom'
-    notes.push('Navigation sits above or below the content, so it was mapped to a navbar that carries the navigation items and actions.')
-  }
-  if (workspace.type !== 'slot' && ['none', 'sm', 'md', 'lg'].includes(workspace.gap)) {
-    content.gap = workspace.gap
-    if (workspace.gap === 'lg') notes.push('Workspace gap lg (20px) was approximated by the lg step (16px).')
-  }
-  const item = styles['navigation.item']
-  if (item) {
-    components['nav-item-radius'] = item.variant === 'pill' ? '{radius-pill}' : '{radius-sm}'
-    components['nav-item-variant'] = item.variant
-  }
-  for (const [key, token] of Object.entries(STYLE_TOKENS)) {
-    const style = (styles as Record<string, { variant: string } | undefined>)[key]
-    if (style) components[token] = style.variant
-  }
-  const button = styles['control.button']
-  if (button) {
-    Object.assign(components, {
-      'button-height': '44px', 'button-weight': '{weight-semibold}', 'button-pad-x': '16px', 'button-size': '{size-base}',
-      'button-radius': button.radius === 'square' ? '{radius-sm}' : '{radius}',
-      'button-secondary-border': '{border-strong}', 'button-secondary-fg': '{ink-800}', 'button-secondary-hover-bg': '{ink-100}',
-      'button-danger-border': '{danger-700}', 'button-danger-fg': '{danger-800}',
-    })
-  }
-  if (styles['control.input']) Object.assign(components, { 'input-height': '44px', 'input-border': '{ink-400}', 'input-placeholder': '{ink-500}', 'input-size': '{size-base}' })
-  if (styles['control.field']) {
-    Object.assign(components, {
-      'field-label-fg': '{ink-800}', 'field-label-size': '{size-base}', 'field-label-weight': '{weight-semibold}',
-      'field-hint-fg': '{ink-600}', 'field-hint-size': '{size-sm}',
-    })
-  }
-  if (styles['surface.card']) {
-    Object.assign(components, { 'card-border': '{border-strong}', 'card-radius': '{radius}', 'card-title-size': '{size-base}' })
-    if (styles['surface.card'].variant === 'raised') components['card-shadow'] = '{shadow-sm}'
-  }
-  if (styles['page.header']) components['page-header-rule-color'] = '{border-strong}'
-  if (styles['chat.message']) Object.assign(components, { 'chat-message-user-bg': '{primary}', 'chat-message-user-radius': '{radius}' })
-  notes.push('Layout, tones and component variants were mapped from presentation.json; unmapped details use registry defaults.')
-}
-
-export function upgradeV1(theme: ThemeManifest, presentation?: ThemePackPresentation | null, registryRevision = REGISTRY_REVISION): ThemeManifestV2 {
-  return upgradeV1Report(theme, presentation, registryRevision).theme
-}
-
-/** The v1 manifest an old client can apply: 27 literal tokens, density and navigation. */
-export function projectV1(theme: ThemeManifestV2): ThemeManifest {
-  const tokens: Record<string, string> = {}
-  for (const name of [...registry.v1_tokens].sort()) {
-    tokens[name] = (index.get(name)!.layer === 'semantic' ? theme.tokens.semantic : theme.tokens.primitives)[name]
-  }
-  return {
-    api_version: 1, id: theme.id, version: theme.version, label: theme.label, tokens,
-    layout: { density: theme.layout.density, navigation: theme.layout.sidebar.style === 'panel' ? 'sidebar' : 'rail' },
-  }
 }
 
 const luminance = (color: string) => {
@@ -923,14 +764,14 @@ export function contrastRatio(first: string, second: string): number {
 export interface ContrastRow {
   id: string; fg: string; bg: string; fg_value: string; bg_value: string
   ratio: number; min: number | null; level: 'error' | 'warning'; pass: boolean
-  /** `ui` for a pair the interface really paints with (registry revision 3); absent for the role pairs. */
+  /** `ui` for a pair the interface really paints with; absent for the role pairs. */
   group?: string
   /** Present only for a theme with a dark palette. */
   mode?: ColorMode
 }
 
-/** Every contrast pair judged for a v2 theme (same rows as contrast_report in Python): a light-only
- *  theme's rows as registry revision 1 produced them, a theme with a dark palette also its dark rows. */
+/** Every contrast pair judged for a theme (same rows as contrast_report in Python): a light-only
+ *  theme's rows carry no mode, a theme with a dark palette also has its dark rows. */
 export function contrastReport(theme: ThemeManifestV2): ContrastRow[] {
   const scheme = theme.color_scheme ?? 'light'
   if (scheme === 'light') return contrastRows(theme, 'light', false)
@@ -939,7 +780,6 @@ export function contrastReport(theme: ThemeManifestV2): ContrastRow[] {
 }
 
 function contrastRows(theme: ThemeManifestV2, mode: ColorMode, label: boolean): ContrastRow[] {
-  const revision = theme.registry_revision
   const resolved = flatten(theme, mode)
   const enumValue = (name: string) => resolved[name] ?? (index.get(name)!.default as string)
   const effective = (name: string, tone?: string, depth = 0): string | undefined => {
@@ -961,9 +801,9 @@ function contrastRows(theme: ThemeManifestV2, mode: ColorMode, label: boolean): 
     if (label) row.mode = mode
     rows.push(row)
   }
-  // A pair is judged only for a theme that targets the revision that introduced it; `unless` names a role that replaces it.
+  // `unless` names a role that replaces the pair.
   for (const p of registry.contrast_pairs) {
-    if (p.since <= revision && !(p.unless && p.unless in resolved)) pair(p.id, p.fg, p.bg, p.min, p.level, undefined, p.group)
+    if (!(p.unless && p.unless in resolved)) pair(p.id, p.fg, p.bg, p.min, p.level, undefined, p.group)
   }
   const { sidebar, navbar } = theme.layout
   const visible = { sidebar: sidebar.side !== 'hidden', navbar: navbar.position !== 'hidden' }
@@ -1057,7 +897,7 @@ function lightenUntilAll(color: string, needs: [string, number][]): string {
 /** The ink steps the interface paints text and icons with, and the least contrast each may have on a dark surface. */
 export const DARK_TEXT_STEPS: readonly [number, number][] = [[300, 3.0], [400, 4.5], [500, 4.5], [600, 4.5], [700, 4.5]]
 
-/** The dark accent tints the interface prints a text step on (a selected row, a chip, a tile). Revision 3 and later. */
+/** The dark accent tints the interface prints a text step on (a selected row, a chip, a tile). */
 export const DARK_TEXT_TINTS: Record<number, readonly string[]> = {
   400: ['accent-50'], 500: ['accent-50', 'accent-100'], 600: ['accent-50', 'accent-100'], 700: ['accent-50', 'accent-100'],
 }
@@ -1092,8 +932,8 @@ function settleTint(primitives: Record<string, string>, tint: string, surface: s
   primitives[tint] = best
 }
 
-/** Re-solve the dark ramp's text steps against the dark surface, the page and the dark accent tints, in place (registry
- *  revision 3 and later): the surface and page first, then the tints are settled, then what is still short is lifted. */
+/** Re-solve the dark ramp's text steps against the dark surface, the page and the dark accent tints, in place: the surface
+ *  and page first, then the tints are settled, then what is still short is lifted. */
 export function solveDarkText(primitives: Record<string, string>, lightRatios: Record<number, number>, surface: string, page: string): void {
   const wanted: Record<number, number> = {}
   for (const [shade, minimum] of DARK_TEXT_STEPS) wanted[shade] = Math.max(minimum, lightRatios[shade] ?? minimum)
@@ -1110,12 +950,12 @@ export function solveDarkText(primitives: Record<string, string>, lightRatios: R
   }
 }
 
-/** The `modes.dark` block derived from a v2 theme's own (light) tokens: every ramp reversed, the
- *  surface between the page and ink-100, readable `on-primary`, a dark scrim, stronger shadows and the
- *  `light` bar tone (the dark-looking one on reversed ramps). Complete in color, sparse elsewhere. */
-export function deriveDark(theme: { tokens: TokenLayers; registry_revision?: number }): TokenLayers {
+/** The `modes.dark` block derived from a theme's own (light) tokens: every ramp reversed, the
+ *  surface between the page and ink-100, readable `on-primary`, a dark scrim, stronger shadows, the
+ *  `light` bar tone (the dark-looking one on reversed ramps), text steps re-solved to read and the brand's text and
+ *  indicator steps lifted. Complete in color, sparse elsewhere. */
+export function deriveDark(theme: { tokens: TokenLayers }): TokenLayers {
   const tokens = theme.tokens
-  const revision = typeof theme.registry_revision === 'number' ? theme.registry_revision : 1
   const primitives: Record<string, string> = {}
   const rampStep = new Map<string, string>()
   for (const palette of registry.modes.ramps) {
@@ -1157,18 +997,16 @@ export function deriveDark(theme: { tokens: TokenLayers; registry_revision?: num
   for (const [role, minimum] of [['text-link', 4.5], ['focus-ring', 3.0]] as const) {
     if (role in steps) primitives[steps[role]] = moveUntil(primitives[steps[role]], '#ffffff', surface, minimum)
   }
-  if (revision >= 3) {
-    const lightSurface = flattenRaw({ ...tokens.primitives, ...tokens.semantic, ...tokens.components })['surface']
-    const lightRatios: Record<number, number> = {}
-    for (const [shade] of DARK_TEXT_STEPS) lightRatios[shade] = contrastRatio(tokens.primitives[`ink-${shade}`], lightSurface)
-    solveDarkText(primitives, lightRatios, surface, primitives['ink-50'])
-    // The brand as text and as an indicator: the step the role points at moves toward white until it reads on the dark
-    // surface and on the (dark) tint behind a chip.
-    for (const [role, minimum] of [['accent-text', 4.5], ['accent-ui', 3.0]] as const) {
-      const match = REF.exec(tokens.semantic[role] ?? '')
-      if (match && match[1].startsWith('accent-') && match[1] in primitives) {
-        primitives[match[1]] = lightenUntil(primitives[match[1]], role === 'accent-text' ? [surface, primitives['accent-50']] : [surface], minimum)
-      }
+  const lightSurface = flattenRaw({ ...tokens.primitives, ...tokens.semantic, ...tokens.components })['surface']
+  const lightRatios: Record<number, number> = {}
+  for (const [shade] of DARK_TEXT_STEPS) lightRatios[shade] = contrastRatio(tokens.primitives[`ink-${shade}`], lightSurface)
+  solveDarkText(primitives, lightRatios, surface, primitives['ink-50'])
+  // The brand as text and as an indicator: the step the role points at moves toward white until it reads on the dark
+  // surface and on the (dark) tint behind a chip.
+  for (const [role, minimum] of [['accent-text', 4.5], ['accent-ui', 3.0]] as const) {
+    const match = REF.exec(tokens.semantic[role] ?? '')
+    if (match && match[1].startsWith('accent-') && match[1] in primitives) {
+      primitives[match[1]] = lightenUntil(primitives[match[1]], role === 'accent-text' ? [surface, primitives['accent-50']] : [surface], minimum)
     }
   }
   // Text on the primary color: the darker or the lighter end of the dark ramp, whichever reads better.

@@ -1,6 +1,6 @@
-/** SDK-owned presentation contract v1. Application behavior remains in the host. */
-import type { ComponentType, InputHTMLAttributes, ReactNode } from 'react'
-export const TEMPLATE_API_VERSION = 1 as const
+/** SDK-owned theme contract: the props of the host's themed components and the theme manifest (API v2, registry
+ *  revision 4). Application behavior remains in the host. */
+import type { InputHTMLAttributes, ReactNode } from 'react'
 export interface WorkspaceAction {
   id: string
   label: string
@@ -21,12 +21,12 @@ export interface WorkspaceNavigation {
 export interface ThemeProps {
   /** `pageTitle` (the title of the page on screen) is read by the `title` region of a layout tree. */
   'layout.workspace': WorkspaceNavigation & { children: ReactNode; pageTitle?: string }
-  /** `style`, `side` and `collapsed` are passed only while a v2 theme is active; v1 templates ignore them. */
+  /** `style`, `side` and `collapsed` follow the theme's layout. */
   'navigation.sidebar': Omit<WorkspaceNavigation, 'actions'> & {
     actions?: WorkspaceAction[]; style?: 'rail' | 'panel'; side?: 'left' | 'right'; collapsed?: boolean
   }
   'navigation.item': { item: NavigationItem | WorkspaceAction; mode: 'icon' | 'label' }
-  /** `items` carries the primary navigation when a v2 layout hides the sidebar. */
+  /** `items` carries the primary navigation when the layout hides the sidebar. */
   'navigation.topbar': Pick<WorkspaceNavigation, 'tenantName' | 'actions'> & { items?: NavigationItem[] }
   'page.header': { title: string; description?: ReactNode; actions?: ReactNode }
   'surface.card': { children: ReactNode; title?: string; className?: string }
@@ -38,23 +38,8 @@ export interface ThemeProps {
   'chat.composer': { children: ReactNode; busy?: boolean; disabled?: boolean }
 }
 export type ThemeComponentId = keyof ThemeProps
-export type ThemeComponents = { [K in ThemeComponentId]?: ComponentType<ThemeProps[K]> }
-export interface ThemeTemplate {
-  api_version: 1
-  id: string
-  version: string
-  components: ThemeComponents
-}
-export interface TemplateLibrary { api_version: 1; templates: ThemeTemplate[] }
 
-/** Authoritative IDs used by build tools and the host resolver. */
-export const THEME_COMPONENT_IDS = [
-  'layout.workspace', 'navigation.sidebar', 'navigation.item', 'navigation.topbar', 'page.header', 'surface.card',
-  'control.button', 'control.input', 'control.field', 'feedback.notice',
-  'chat.message', 'chat.composer',
-] as const satisfies readonly ThemeComponentId[]
-
-/** Theme API v2 (registry revisions 1 to 4): data only, three token layers plus layout variants.
+/** Theme API v2 (registry revision 4): data only, three token layers plus layout variants, an optional layout tree and brand.
  *  The field list lives in theme-registry.json; theme-resolve.ts applies it. */
 export const THEME_API_VERSION_V2 = 2 as const
 export type LayoutStep = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -68,12 +53,11 @@ export interface LayoutV2 {
   }
   navbar: { position: 'hidden' | 'top' | 'bottom'; behavior: BarBehavior; height: number; align: 'start' | 'center' | 'between'; show_brand: boolean }
   content: { max_width: number; align: 'start' | 'center'; padding: LayoutStep; gap: LayoutStep }
-  /** Registry revision 4 and later, optional: the shell as a validated tree (docs/layout-tree.md). A theme that targets an
-   *  older revision must not carry it. When absent the host renders `shellFromLayout(layout)`. */
+  /** Optional: the shell as a validated tree (docs/layout-tree.md). When absent the host renders `shellFromLayout(layout)`. */
   shell?: ShellTree
 }
 
-// --- Layout tree (registry revision 4). The limits, enums and defaults live in layout-vocabulary.json. ---------------
+// --- Layout tree. The limits, enums and defaults live in layout-vocabulary.json. ---------------
 export type ShellRegionName = 'brand' | 'navigation' | 'actions' | 'title' | 'content' | 'custom'
 /** Along the parent's main axis. `basis` a number is px (40 to 640). `min` and `max` apply to any basis (`max` may reach the
  *  content-path limit, 1920, on the content path). */
@@ -151,7 +135,7 @@ export interface LayoutVocabulary {
   size: { bases: string[]; default: ShellSize }
   regions: Record<string, { max: number; required?: boolean; options: Record<string, { enum?: string[]; pattern?: string; json?: boolean; default?: string; optional?: boolean }> }>
   presets: { id: string; label: string; use_when: string; tree: ShellTree }[]
-  /** The limits of a theme's `brand` (registry revision 4). Absent in a vocabulary that predates the brand: the built-in one applies. */
+  /** The limits of a theme's `brand`. Absent in a vocabulary that predates the brand: the built-in one applies. */
   brand?: { logo_limits: BrandLogoLimits }
 }
 /** `brand.logo_limits` of the layout vocabulary: what `validateBrand` accepts. */
@@ -170,7 +154,7 @@ export interface BrandLogoLimits {
 /** One error or warning: where (`layout.shell.root.children[1].size`) and why. */
 export interface ShellProblem { path: string; message: string }
 /** `light` and `dark` themes have one palette (the tokens); an `auto` theme's tokens are its light
- *  palette and `modes.dark` overrides them. Registry revision 1 allows `light` only. */
+ *  palette and `modes.dark` overrides them. */
 export type ColorScheme = 'light' | 'dark' | 'auto'
 export type ColorMode = 'light' | 'dark'
 export interface TokenLayers {
@@ -183,7 +167,7 @@ export interface TokenLayers {
 }
 /** One image of a brand: a `data:image/(png|jpeg|webp|svg+xml);base64,` URI and its accessible name. */
 export interface BrandImage { src: string; alt: string }
-/** A theme's brand as written (registry revision 4, optional): at least one of the three. */
+/** A theme's brand as written (optional): at least one of the three. */
 export interface ThemeBrand {
   /** A wide logo; `height` (px, 16 to 64, default 32) is the height the host draws it at. */
   logo?: BrandImage & { height?: number }
@@ -209,27 +193,26 @@ export interface ThemeManifestV2 {
   version: string
   label: string
   color_scheme: ColorScheme
-  /** Registry revision 2, `color_scheme: 'auto'` only. Each layer is a sparse override of `tokens`;
+  /** `color_scheme: 'auto'` only. Each layer is a sparse override of `tokens`;
    *  the dark palette must set every color ramp and `surface`. */
   modes?: { dark: TokenLayers }
   tokens: TokenLayers
   layout: LayoutV2
-  /** Registry revision 4 and later, optional (docs/brand-logo.md). A theme that targets an older revision must not carry it. */
+  /** Optional (docs/brand-logo.md). */
   brand?: ThemeBrand
 }
 /** What the host applies; produced by resolveTheme with no DOM access. */
 export interface ResolvedTheme {
-  api_version: 1 | 2
+  api_version: 2
   /** CSS custom properties for the root (colors as `r g b`). */
   vars: Record<string, string>
   /** Attributes for the root element (data-density, data-theme, data-fl-contract). */
   attrs: Record<string, string>
   layout: Record<string, unknown>
   /** Attributes and variables for the workspace frame's own root element, and the layout tree the host renders: the theme's
-   *  own `layout.shell` (registry revision 4 and later) or the tree its layout options describe, normalised, plain data. */
+   *  own `layout.shell` or the tree its layout options describe, normalised, plain data. */
   shell: { attrs: Record<string, string>; vars: Record<string, string>; tree: ResolvedShellTree }
-  /** The theme's logo, mark and tagline, normalised; null for a theme without a brand and for every theme of registry revision 3 or
-   *  earlier (and every v1 theme). Draw it as an `<img>`: the sources are `data:` URIs the validator has checked. */
+  /** The theme's logo, mark and tagline, normalised; null for a theme without a brand. Draw it as an `<img>`: the sources are `data:` URIs the validator has checked. */
   brand: ResolvedBrand | null
   /** Allow-listed webfont families the theme names. */
   fonts: { family: string; weights: number[] }[]

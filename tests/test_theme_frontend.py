@@ -5,32 +5,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-from fastlanelabs_sdk.theme_packs import STYLE_OPTIONS
-from fastlanelabs_sdk.themes import check_theme, project_v1, validate_theme
+from fastlanelabs_sdk.themes import check_theme, validate_theme
 
 ROOT = Path(__file__).resolve().parents[1]
-CORPUS = Path(__file__).parent / 'fixtures/themes/v2'
+CORPUS = Path(__file__).parent / 'fixtures/themes'
 
 
-def test_every_published_v2_release_stays_valid_under_the_current_validator():
-    """Add each v2 manifest as it is published. Rules for a (api_version, registry_revision) never tighten."""
+def test_every_release_in_the_corpus_is_valid_under_the_current_validator():
+    """Add each manifest as it is published."""
     releases = sorted(CORPUS.glob('*.json'))
     assert releases
     for path in releases:
         theme = json.loads(path.read_text())
         assert check_theme(theme)['errors'] == [], path.name
         assert validate_theme(theme) == theme
-        assert validate_theme(project_v1(theme))['api_version'] == 1, path.name
-
-
-def test_python_style_options_match_the_typescript_pack_contract():
-    source = (ROOT / 'frontend/theme-pack-contract.ts').read_text()
-    block = source[source.index('interface PresentationStyles'):source.index('export interface ThemePackPresentation')]
-    declared = {}
-    for name, body in re.findall(r"'([a-z.]+)'\?: \{([^}]*)\}", block):
-        declared[name] = {key: tuple(re.findall(r"'([a-z]+)'", options)) for key, options in
-                          (field.split(':') for field in body.split(';') if field.strip())}
-    assert declared == {name: {key: tuple(values) for key, values in options.items()} for name, options in STYLE_OPTIONS.items()}
 
 
 def test_typescript_layout_and_registry_types_follow_the_registry():
@@ -47,11 +35,11 @@ def test_typescript_layout_and_registry_types_follow_the_registry():
     assert [f"'{step}'" in source for step in registry.STEPS] == [True] * len(registry.STEPS)
 
 
-def test_sync_script_copies_the_v2_runtime_files(tmp_path):
+def test_sync_script_copies_the_runtime_files(tmp_path):
     subprocess.run([sys.executable, str(ROOT / 'scripts/sync_theme_contract.py'), str(tmp_path)], check=True)
     generated = tmp_path / 'frontend/src/generated'
     assert sorted(path.name for path in generated.iterdir()) == [
-        'layout-vocabulary.json', 'tailwind-preset.mjs', 'theme-contract.ts', 'theme-defaults.css', 'theme-pack-contract.ts',
+        'layout-vocabulary.json', 'tailwind-preset.mjs', 'theme-contract.ts', 'theme-defaults.css',
         'theme-registry.json', 'theme-resolve.ts']
     for path in generated.iterdir():
         assert path.read_bytes() == (ROOT / 'frontend' / path.name).read_bytes()
@@ -76,7 +64,7 @@ console.log(JSON.stringify({old: await run(old), new: await run({...old, theme:{
 UNCHANGED = ['bg-ink-50', 'text-ink-900/60', 'border-ink-200', 'bg-accent-600', 'hover:bg-accent-700', 'bg-white', 'text-white',
              'rounded-lg', 'rounded-xl', 'rounded-2xl', 'font-sans', 'font-mono', 'leading-relaxed', 'tracking-tight', 'p-4', 'h-9',
              'w-14', 'gap-3', 'text-[12px]', 'text-[13.5px]', 'rounded-full', 'font-normal', 'shadow',
-             # Revision 3 adds roles beside these; what they resolve to does not move.
+             # The optional roles sit beside these; what they resolve to does not move.
              'bg-ink-900', 'bg-ink-800', 'text-ink-400', 'text-ink-500', 'border-ink-300', 'text-accent-600', 'text-accent-700', 'bg-accent-50']
 FOLLOW_THE_THEME = ['border', 'rounded', 'rounded-md', 'rounded-sm', 'shadow-sm', 'shadow-lg', 'shadow-xl', 'transition', 'text-xs', 'text-sm',
                     'text-base', 'text-lg', 'text-xl', 'text-2xl', 'font-medium', 'font-semibold', 'font-bold', 'bg-red-50', 'text-emerald-700',
@@ -193,7 +181,7 @@ def test_platform_hues_are_tailwind_3_colors_and_reverse_in_dark(require_node):
     assert f"--fl-hue-rose-50: {' '.join(str(int(rose[10][i:i + 2], 16)) for i in (1, 3, 5))};" in css
 
 
-def test_revision_3_roles_get_tailwind_keys_with_the_fallback_that_reproduces_todays_rendering(require_node):
+def test_the_optional_roles_get_tailwind_keys_with_the_fallback_that_reproduces_todays_rendering(require_node):
     require_node('tailwindcss')
     _, new = compare(['bg-inverse', 'text-on-inverse', 'text-accent-text', 'bg-accent-ui', 'border-accent-ui', 'ring-focus',
                       'bg-surface-inverse', 'text-accent-text/50'])

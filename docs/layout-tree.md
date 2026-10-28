@@ -1,39 +1,38 @@
-# Layout tree (registry revision 4)
+# Layout tree
 
 A theme can describe its whole shell as a small validated tree instead of choosing from a fixed list of sidebar
 and navbar options. A client's pack carries its own layout; the default layout is the fallback.
 
-Status: registry revision 4, implemented in `fastlanelabs_sdk.themes` (Python) and `frontend/theme-resolve.ts` (TypeScript twin).
-Revisions 1 to 3 and every published theme stay valid and unchanged: a theme that targets revision 3 or earlier must not carry
-`layout.shell` (error `layout.shell`), and its `resolveTheme` output (`attrs`, `vars`, everything but the new `shell.tree`) is what it
-always was. A revision 4 theme without `shell` resolves exactly as the same theme at revision 3 would.
+Status: implemented in `fastlanelabs_sdk.themes` (Python) and `frontend/theme-resolve.ts` (TypeScript twin). A theme without
+`shell` resolves exactly as its layout options describe: its `resolveTheme` output (`attrs`, `vars`) is the classic one, and its tree is
+the one `shell_from_layout` derives.
 
 ## Why
 
-`layout` (revisions 1 to 3) is a fixed list of options: sidebar side, style and surface, a navbar position, content
+`layout` without a tree is a fixed list of options: sidebar side, style and surface, a navbar position, content
 padding. A theme can only pick among them, so every theme has the same skeleton. A client who needs a different
 skeleton (a top bar with the navigation in it and no sidebar, a two-bar shell, a navigation drawer only) cannot have it.
 
 ## Shape
 
-A revision 4 theme may carry `layout.shell`. When it is present the host renders the tree. When it is absent the host
+A theme may carry `layout.shell`. When it is present the host renders the tree. When it is absent the host
 derives the tree from the other `layout` keys with `shell_from_layout` (below), so one renderer serves every theme and
 the default theme is simply the tree its options describe.
 
 ```jsonc
 "layout": {
   "density": "comfortable",   // unchanged: density, scroll, sidebar, navbar, content stay required
-  "scroll": "panel",          //   (a revision 4 theme still supplies them: they are the v1 projection and
-  "sidebar": { ... },         //   the fallback for a host without the renderer; the builder derives them)
+  "scroll": "panel",          //   (a theme with a tree still supplies them: they are the fallback for a host
+  "sidebar": { ... },         //   without the renderer; the builder derives them)
   "navbar":  { ... },
   "content": { ... },
-  "shell": { "version": 1, "root": <Node> }   // optional, registry revision 4 and later
+  "shell": { "version": 1, "root": <Node> }   // optional
 }
 ```
 
 `layout` supplies exactly the existing keys plus, optionally, `shell`. `check_theme` reports `Layout must supply exactly ... and may add shell`
 otherwise. The existing keys stay validated as before (including "at least one of the sidebar and the navbar must be visible"): they are the
-fallback for a host that cannot draw the tree and the source of the v1 projection (`project_v1` ignores `shell`).
+fallback for a host that cannot draw the tree.
 
 ### Nodes
 
@@ -89,7 +88,7 @@ it is accepted and ignored by every rule.
 items themselves; the host decides how the menu looks. It needs no size and works in a horizontal or a vertical container (so no rule is specific to it:
 sizes, fill, the one-navigation-region count and the drawer rule judge it like any other style). The vocabulary's sixth preset, `launcher-header`, is a slim
 navbar holding the launcher, the brand, the page title, a spacer and the actions, over the content. `shell_from_layout` never emits `launcher`: a layout's options
-cannot say it, and a host without the renderer (or a v1 consumer) falls back to the options the theme builder derived, which for `launcher-header` is a top navbar
+cannot say it, and a host without the renderer falls back to the options the theme builder derived, which for `launcher-header` is a top navbar
 of 56px with no sidebar, carrying the navigation items in the classic way.
 
 `custom` renders the reviewed module when the pack carrying it is installed and approved, and nothing otherwise. A theme
@@ -147,7 +146,7 @@ With `page`, the content scrolls as a whole and a `sticky` or `static` container
 
 ## From the options to a tree: `shell_from_layout`
 
-The Python and TypeScript twins both implement it, and the goldens pin the output. For a revision 1 to 3 layout:
+The Python and TypeScript twins both implement it, and the goldens pin the output. For a theme without `layout.shell`:
 
 * **Sidebar visible** (`sidebar.side` is not `hidden`): a root `container` row (`gap` and `padding` from `content.gap` and
   `content.padding` when `sidebar.surface` is `floating`, none when flush) holding, in the order of `sidebar.side`, the sidebar and
@@ -174,7 +173,7 @@ The mapping is total and always valid: every layout the options can express maps
 `layout.scroll: 'page'` (`tests/test_layout_tree.py` checks a grid of more than a hundred). Two facts pin it:
 
 * the registry default layout (`default_layout()`, a floating rail) maps to the vocabulary preset **`rail`**;
-* the platform default release (`fastlane 2.0.0`, a flush panel with no navbar, still registry revision 3) maps to **`panel-flush`**;
+* the platform default release (`fastlane 2.1.0`, a flush panel with no navbar and no tree) maps to **`panel-flush`**;
 
 and a panel on the right with a floating sidebar maps to `right-sidebar`. The sixth preset, `launcher-header`, is not the image of any layout: nothing maps to it. `tests/golden/layout-tree` and `tests/golden/shell-from-layout.json`
 hold the trees; the TypeScript twin produces them byte for byte.
@@ -182,9 +181,8 @@ hold the trees; the TypeScript twin produces them byte for byte.
 ## Resolution (what the host receives)
 
 `resolveTheme` (`resolve_theme` in Python) returns `shell: { attrs, vars, tree }` and, next to it, `brand` (see docs/brand-logo.md). `attrs` and `vars` are the existing attributes and CSS variables,
-computed from the other `layout` keys, for every revision (so classic rendering is unchanged). `tree` is the normalised tree with
-every default filled in: the theme's own `layout.shell` at revision 4 and later, otherwise `shell_from_layout(layout)`; a v1 theme gets the tree of
-its `navigation` choice with the registry's default layout, the same basis as `upgrade_v1`. The tree is plain data: it never contains markup,
+computed from the other `layout` keys, with or without a tree (so classic rendering is unchanged). `tree` is the normalised tree with
+every default filled in: the theme's own `layout.shell`, otherwise `shell_from_layout(layout)`. The tree is plain data: it never contains markup,
 class names, styles or URLs. Core renders `shell.tree`; `shell.attrs` and `shell.vars` remain for the classic frame.
 
 A normalised container carries `direction, gap, padding, align, justify, chrome, surface, size, behavior, children` (and `collapse_below` when
