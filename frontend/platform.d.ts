@@ -185,6 +185,18 @@ declare module 'fastlanelabs/ui' {
   }
   /** A dashboard number: label, big value, the change. */
   export function StatCard(props: StatCardProps): ReactElement
+  export interface SparklineProps {
+    /** Oldest first; `null` is a gap, drawn as a break in the line. */
+    values: Array<number | null>
+    /** The value the top edge stands for (100 for a percentage); the largest value when omitted. */
+    max?: number
+    tone?: 'brand' | 'neutral' | 'success' | 'warning' | 'danger' | 'info'
+    /** What the line shows, for a screen reader. */
+    label: string
+    className?: string
+  }
+  /** A small trend line for a dashboard card: no axes, the shape of the last few hours. Fills its column. */
+  export function Sparkline(props: SparklineProps): ReactElement
   export interface EmptyStateProps { icon?: ReactNode; title: string; description?: ReactNode; action?: ReactNode; compact?: boolean; className?: string }
   /** Nothing here yet: an icon, one sentence, one primary action. */
   export function EmptyState(props: EmptyStateProps): ReactElement

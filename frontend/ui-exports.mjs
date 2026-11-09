@@ -24,7 +24,7 @@ export const LIBRARY_EXPORTS = [
 ]
 /** What the library adds on top of antd: enterprise defaults and the layout primitives. */
 export const PATTERN_EXPORTS = [
-  'DataTable', 'StatusTag', 'EmptyState', 'KeyValue', 'StatCard', 'Stack', 'Toolbar', 'Page', 'PageSection', 'CardSection',
+  'DataTable', 'StatusTag', 'EmptyState', 'KeyValue', 'StatCard', 'Sparkline', 'Stack', 'Toolbar', 'Page', 'PageSection', 'CardSection',
   // table cells
   'CellText', 'Clip', 'numberColumn',
   // forms
