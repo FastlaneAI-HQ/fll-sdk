@@ -39,6 +39,8 @@
       "max_total_bytes": 327680,
       "alt_max": 80,
       "tagline_max": 80,
+      "maintenance_title_max": 80,
+      "maintenance_message_max": 280,
       "height": {
         "min": 16,
         "max": 64,

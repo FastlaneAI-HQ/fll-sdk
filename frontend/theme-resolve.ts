@@ -540,7 +540,14 @@ export function shellTreeOf(theme: ThemeManifestV2, vocabulary: LayoutVocabulary
 // their ORDER match the Python twin (tests/test_brand.py runs both over the same cases), so everything here avoids what differs
 // between the languages: ASCII-only case folding, explicit whitespace classes, code point counts.
 
-const BRAND_KEYS = ['logo', 'logo_dark', 'mark', 'tagline']
+const BRAND_KEYS = ['logo', 'logo_dark', 'mark', 'tagline', 'maintenance']
+/** `maintenance`: the page shown while the instance restarts, in the tenant's own words. Its limits are the vocabulary's. */
+const MAINTENANCE_KEYS = ['title', 'message']
+/** A maintenance text limit; a vocabulary from before the maintenance page has none, and the built-in one's applies. */
+function maintenanceMax(limits: BrandLogoLimits, name: string): number {
+  const key = `maintenance_${name}_max` as 'maintenance_title_max' | 'maintenance_message_max'
+  return (limits[key] ?? logoLimits(layoutVocabulary)[key]) as number
+}
 const IMAGE_KEYS = ['src', 'alt']
 const B64 = /^[A-Za-z0-9+/]*={0,2}$/
 const ALT_CONTROL = /[\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]/
@@ -681,7 +688,7 @@ function textProblem(value: unknown, limit: number): string | null {
 
 /** Check a theme's `brand`: `{ errors, warnings }` with the path of every problem (`brand.logo.src`). Never throws.
  *  `vocabulary` supplies `brand.logo_limits` (the built-in one when omitted). Problems come in a fixed order: unknown keys
- *  (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`; inside an image its unknown keys, `src`, `alt`, `height`; last the
+ *  (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`, `maintenance`; inside an image its unknown keys, `src`, `alt`, `height`; last the
  *  size of all the images together. `logo_dark` (the logo drawn on dark backgrounds) follows the rules of `logo` and needs a `logo`. */
 export function validateBrand(brand: unknown, vocabulary: LayoutVocabulary = layoutVocabulary, path = 'brand'): { errors: ShellProblem[]; warnings: ShellProblem[] } {
   const errors: ShellProblem[] = [], warnings: ShellProblem[] = []
@@ -717,22 +724,38 @@ export function validateBrand(brand: unknown, vocabulary: LayoutVocabulary = lay
     const message = textProblem(brand.tagline, limits.tagline_max)
     if (message) error(`${path}.tagline`, message)
   }
+  if (has(brand, 'maintenance')) {
+    const page = brand.maintenance, where = `${path}.maintenance`
+    if (!isObject(page) || Object.keys(page).length === 0) error(where, 'Must be an object with a title, a message or both')
+    else {
+      for (const name of Object.keys(page).filter(k => !MAINTENANCE_KEYS.includes(k)).sort()) error(`${where}.${name}`, `Unknown key ${name}`)
+      for (const name of MAINTENANCE_KEYS) {
+        if (!has(page, name)) continue
+        const message = textProblem(page[name], maintenanceMax(limits, name))
+        if (message) error(`${where}.${name}`, message)
+      }
+    }
+  }
   if (total > limits.max_total_bytes) error(path, `The images of a brand add up to ${total} bytes; at most ${sizeText(limits.max_total_bytes)}`)
   return { errors, warnings }
 }
 
-/** The brand a host draws: `{ logo, logo_dark, mark, tagline }` with the defaults filled (`logo.height`; `logo_dark.height` follows the
+/** The brand a host draws: `{ logo, logo_dark, mark, tagline, maintenance }` with the defaults filled (`logo.height`; `logo_dark.height` follows the
  *  logo's height, else the vocabulary's default) and the text trimmed, an absent part null; null for a theme without a brand.
  *  Assumes a valid brand (see `validateBrand`). */
 export function normaliseBrand(brand: ThemeBrand | null | undefined, vocabulary: LayoutVocabulary = layoutVocabulary): ResolvedBrand | null {
   if (brand === null || brand === undefined) return null
-  const { logo, mark, tagline } = brand, dark = brand.logo_dark
+  const { logo, mark, tagline } = brand, dark = brand.logo_dark, page = brand.maintenance
   const logoHeight = logo === undefined ? logoLimits(vocabulary).height.default : logo.height ?? logoLimits(vocabulary).height.default
   return {
     logo: logo === undefined ? null : { src: logo.src, alt: trimText(logo.alt), height: logoHeight },
     logo_dark: dark === undefined ? null : { src: dark.src, alt: trimText(dark.alt), height: dark.height ?? logoHeight },
     mark: mark === undefined ? null : { src: mark.src, alt: trimText(mark.alt) },
     tagline: tagline === undefined ? null : trimText(tagline),
+    maintenance: page === undefined ? null : {
+      title: page.title === undefined ? null : trimText(page.title),
+      message: page.message === undefined ? null : trimText(page.message),
+    },
   }
 }
 

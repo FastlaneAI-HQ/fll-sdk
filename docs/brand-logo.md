@@ -58,10 +58,13 @@ A theme may carry an optional top-level `brand` object.
   a bar or sidebar; the width follows the image's aspect ratio, capped at `max_logo_width_px` (240px). `logo_dark` has the same `height` rule. `mark` is drawn square at the host's
   brand-badge size, so it has no `height`.
 * `tagline`: 1 to `tagline_max` (80) characters after trimming, same rules as `alt`.
+* `maintenance`: the page shown while the instance restarts (an update, a restart), in the tenant's own words so it never names the platform:
+  an object with `title` (1 to `maintenance_title_max`, 80, characters) and `message` (1 to `maintenance_message_max`, 280), either or both,
+  same rules as `alt`. Normalised to `{title, message}`, an absent one null; a host with neither uses its own neutral wording.
 * A brand must set at least one of `logo`, `mark`, `tagline` (`{}` is an error at `brand`; `logo_dark` alone does not count, it needs a `logo`). Unknown keys are errors, at every level
   (`brand.zzz`, `brand.logo.zoom`).
-* Every error carries a path (`brand.logo.src`). Problems come in a fixed order: unknown keys of the brand (alphabetical), then `logo`, `logo_dark`, `mark`
-  and `tagline` in that order (inside an image: its unknown keys, `src`, `alt`, `height`), then the size of all the images together.
+* Every error carries a path (`brand.logo.src`). Problems come in a fixed order: unknown keys of the brand (alphabetical), then `logo`, `logo_dark`, `mark`,
+  `tagline` and `maintenance` in that order (inside an image: its unknown keys, `src`, `alt`, `height`), then the size of all the images together.
 * `validate_theme` returns a valid theme unchanged (nothing is trimmed or defaulted in the manifest). The contrast report ignores the brand.
 
 ## What the host does with it
@@ -81,7 +84,7 @@ A theme may carry an optional top-level `brand` object.
 ## Ownership
 
 The limits above live in the layout vocabulary file (the Themes app owns it): `brand.logo_limits` with `types`, `max_image_bytes`,
-`max_total_bytes`, `alt_max`, `tagline_max`, `height: { min, max, default }` and `max_logo_width_px` (the host's drawing cap, not checked by
+`max_total_bytes`, `alt_max`, `tagline_max`, `maintenance_title_max`, `maintenance_message_max`, `height: { min, max, default }` and `max_logo_width_px` (the host's drawing cap, not checked by
 the validator). The SDK reads them from the vocabulary like every other limit; a vocabulary without `brand` (an older Themes app) falls back to
 the built-in copy.
 

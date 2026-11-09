@@ -24,6 +24,18 @@
       {
         "message": "Must be 1 to 80 characters",
         "path": "brand.tagline"
+      },
+      {
+        "message": "Unknown key footer",
+        "path": "brand.maintenance.footer"
+      },
+      {
+        "message": "Must be 1 to 80 characters",
+        "path": "brand.maintenance.title"
+      },
+      {
+        "message": "Must be 1 to 280 characters",
+        "path": "brand.maintenance.message"
       }
     ],
     "warnings": []
@@ -36,6 +48,11 @@
         "alt": "",
         "height": 70,
         "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxzY3JpcHQ+YWxlcnQoMSk8L3NjcmlwdD48L3N2Zz4="
+      },
+      "maintenance": {
+        "footer": "z",
+        "message": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+        "title": ""
       },
       "mark": {
         "alt": "Mark",
@@ -263,6 +280,18 @@
       {
         "message": "Must be 1 to 80 characters",
         "path": "brand.tagline"
+      },
+      {
+        "message": "Unknown key footer",
+        "path": "brand.maintenance.footer"
+      },
+      {
+        "message": "Must be 1 to 80 characters",
+        "path": "brand.maintenance.title"
+      },
+      {
+        "message": "Must be 1 to 280 characters",
+        "path": "brand.maintenance.message"
       }
     ],
     "warnings": []

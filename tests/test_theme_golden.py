@@ -118,10 +118,12 @@ def test_the_brand_goldens_hold_a_full_a_logo_only_and_an_invalid_brand():
     assert full['validate'] == {'errors': [], 'warnings': []} and full['check'] == {'errors': [], 'warnings': []}
     brand = full['resolve']['brand']
     assert brand['logo']['height'] == 40 and brand['mark']['alt'] == 'Precision Hose mark' and brand['tagline'] == 'Hose & expansion joints'
+    assert brand['maintenance'] == {'title': 'Back in a minute', 'message': "We're applying an update. Please try again shortly."}  # trimmed
     assert logo_only['resolve']['brand'] == {'logo': {'src': logo_only['input']['brand']['logo']['src'], 'alt': 'Precision Hose', 'height': 32},
-                                             'logo_dark': None, 'mark': None, 'tagline': None}
+                                             'logo_dark': None, 'mark': None, 'tagline': None, 'maintenance': None}
     assert [(e['path']) for e in invalid['check']['errors']] == ['brand.colour', 'brand.logo.src', 'brand.logo.alt', 'brand.logo.height',
-                                                                  'brand.mark.src', 'brand.tagline']
+                                                                  'brand.mark.src', 'brand.tagline', 'brand.maintenance.footer',
+                                                                  'brand.maintenance.title', 'brand.maintenance.message']
     assert invalid['check']['errors'] == invalid['validate']['errors'] and 'resolve' not in invalid
 
 

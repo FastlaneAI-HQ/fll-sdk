@@ -698,6 +698,10 @@
         "height": 40,
         "src": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMzIiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMGI1ZmE1Ii8+PHRleHQgeD0iMTIiIHk9IjIxIiBmb250LXNpemU9IjE0IiBmaWxsPSIjZmZmIj5QcmVjaXNpb24gSG9zZTwvdGV4dD48L3N2Zz4="
       },
+      "maintenance": {
+        "message": "We're applying an update. Please try again shortly.",
+        "title": "  Back in a minute  "
+      },
       "mark": {
         "alt": "Precision Hose mark",
         "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkqPn/HwAEhgJ/mPsmewAAAABJRU5ErkJggg=="
@@ -913,6 +917,10 @@
         "src": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMzIiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMGI1ZmE1Ii8+PHRleHQgeD0iMTIiIHk9IjIxIiBmb250LXNpemU9IjE0IiBmaWxsPSIjZmZmIj5QcmVjaXNpb24gSG9zZTwvdGV4dD48L3N2Zz4="
       },
       "logo_dark": null,
+      "maintenance": {
+        "message": "We're applying an update. Please try again shortly.",
+        "title": "Back in a minute"
+      },
       "mark": {
         "alt": "Precision Hose mark",
         "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkqPn/HwAEhgJ/mPsmewAAAABJRU5ErkJggg=="

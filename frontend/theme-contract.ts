@@ -147,6 +147,9 @@ export interface BrandLogoLimits {
   max_total_bytes: number
   alt_max: number
   tagline_max: number
+  /** The restarting page's title and message (`brand.maintenance`); absent from a vocabulary that predates it. */
+  maintenance_title_max?: number
+  maintenance_message_max?: number
   height: { min: number; max: number; default: number }
   /** The host never draws a logo wider than this (px); the width follows the aspect ratio. */
   max_logo_width_px: number
@@ -177,6 +180,8 @@ export interface ThemeBrand {
   mark?: BrandImage
   /** Shown on the sign-in page and the pages like it. */
   tagline?: string
+  /** The page shown while the instance restarts (an update, a restart), in the tenant's own words; limits in the vocabulary. */
+  maintenance?: { title?: string; message?: string }
 }
 /** `ResolvedTheme.brand`: the brand normalised (`normaliseBrand`): every part present or null, `logo.height` filled, the text trimmed. */
 export interface ResolvedBrand {
@@ -185,6 +190,7 @@ export interface ResolvedBrand {
   logo_dark: (BrandImage & { height: number }) | null
   mark: BrandImage | null
   tagline: string | null
+  maintenance: { title: string | null; message: string | null } | null
 }
 export interface ThemeManifestV2 {
   api_version: 2

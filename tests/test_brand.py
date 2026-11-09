@@ -88,10 +88,10 @@ def test_every_allowed_type_is_accepted_with_its_own_signature():
 def test_the_default_height_is_filled_and_the_text_is_trimmed_by_normalise_brand():
     brand = {'logo': logo(alt='  Precision Hose  '), 'tagline': '  Hose 　'}
     assert normalise_brand(brand) == {'logo': {'src': brand['logo']['src'], 'alt': 'Precision Hose', 'height': HEIGHT['default']},
-                                      'logo_dark': None, 'mark': None, 'tagline': 'Hose'}
+                                      'logo_dark': None, 'mark': None, 'tagline': 'Hose', 'maintenance': None}
     assert normalise_brand(good())['logo']['height'] == 36
     assert normalise_brand({'mark': {'src': uri(png()), 'alt': ' m '}}) == {'logo': None, 'logo_dark': None, 'mark': {'src': uri(png()), 'alt': 'm'},
-                                                                              'tagline': None}
+                                                                              'tagline': None, 'maintenance': None}
     assert normalise_brand(None) is None
     assert brand == {'logo': logo(alt='  Precision Hose  '), 'tagline': '  Hose 　'}  # the input is not changed
 
@@ -221,7 +221,7 @@ def test_normalise_brand_keeps_logo_dark_trims_its_alt_and_leaves_the_input_alon
     brand = {'logo': logo(), 'logo_dark': dark(alt='  light on dark  ')}
     out = normalise_brand(brand)
     assert out['logo_dark'] == {'src': DARK_SRC, 'alt': 'light on dark', 'height': HEIGHT['default']}
-    assert list(out) == ['logo', 'logo_dark', 'mark', 'tagline']
+    assert list(out) == ['logo', 'logo_dark', 'mark', 'tagline', 'maintenance']
     assert brand['logo_dark']['alt'] == '  light on dark  ' and 'height' not in brand['logo_dark']
     assert normalise_brand({'logo': logo()})['logo_dark'] is None
 
@@ -579,7 +579,7 @@ def test_resolve_theme_returns_the_normalised_brand_next_to_the_shell():
     theme = branded({'logo': logo(alt=' Precision Hose '), 'tagline': ' Hose '})
     resolved = resolve_theme(theme)
     assert resolved['brand'] == {'logo': {'src': theme['brand']['logo']['src'], 'alt': 'Precision Hose', 'height': HEIGHT['default']},
-                                 'logo_dark': None, 'mark': None, 'tagline': 'Hose'}
+                                 'logo_dark': None, 'mark': None, 'tagline': 'Hose', 'maintenance': None}
     assert resolved['brand'] == brand_of(theme) == normalise_brand(theme['brand'])
     assert list(resolved)[:5] == ['api_version', 'vars', 'attrs', 'layout', 'shell'] and 'brand' in resolved
     assert resolve_theme(branded(good()))['brand']['logo']['height'] == 36
@@ -906,3 +906,35 @@ def test_the_corpus_is_large_and_covers_valid_and_invalid_brands_with_unique_ids
         assert wanted in seen, wanted
     assert any(message.startswith('The images of a brand add up to') for message in seen)
     assert any(message.startswith('The image is ') and 'bytes; at most' in message for message in seen)
+
+
+# --- maintenance: the restarting page, in the tenant's own words ------------------------------------------------------------
+
+MAINTENANCE_TITLE_MAX = LIMITS['maintenance_title_max']
+MAINTENANCE_MESSAGE_MAX = LIMITS['maintenance_message_max']
+
+
+def test_the_restarting_page_wording_is_valid_alone_or_beside_a_logo_and_trimmed():
+    page = {'title': '  Back in a minute  ', 'message': "We're applying an update."}
+    assert verdict({'maintenance': page}) == [] and verdict({'logo': logo(), 'maintenance': {'message': 'Soon.'}}) == []
+    assert themes.normalise_brand({'maintenance': page})['maintenance'] == {'title': 'Back in a minute', 'message': "We're applying an update."}
+    assert themes.normalise_brand({'maintenance': {'title': 'Back soon'}})['maintenance'] == {'title': 'Back soon', 'message': None}
+
+
+def test_the_restarting_page_wording_is_checked_against_the_vocabulary_limits():
+    assert verdict({'maintenance': {'title': 'x' * MAINTENANCE_TITLE_MAX, 'message': 'y' * MAINTENANCE_MESSAGE_MAX}}) == []
+    errors = verdict({'maintenance': {'title': 'x' * (MAINTENANCE_TITLE_MAX + 1), 'message': '', 'footer': 'z'}})
+    assert [(e['path'], e['message']) for e in errors] == [
+        ('brand.maintenance.footer', 'Unknown key footer'),
+        ('brand.maintenance.title', 'Must be 1 to {0} characters'.format(MAINTENANCE_TITLE_MAX)),
+        ('brand.maintenance.message', 'Must be 1 to {0} characters'.format(MAINTENANCE_MESSAGE_MAX))]
+    assert only({'maintenance': {}}) == ('brand.maintenance', 'Must be an object with a title, a message or both')
+    assert only({'maintenance': 'Back soon'}) == ('brand.maintenance', 'Must be an object with a title, a message or both')
+
+
+def test_a_vocabulary_from_before_the_restarting_page_still_checks_it():
+    old = copy.deepcopy(registry.layout_vocabulary())
+    for key in ('maintenance_title_max', 'maintenance_message_max'):
+        del old['brand']['logo_limits'][key]
+    assert verdict({'maintenance': {'title': 'x' * MAINTENANCE_TITLE_MAX}}, old) == []
+    assert [e['path'] for e in verdict({'maintenance': {'title': 'x' * (MAINTENANCE_TITLE_MAX + 1)}}, old)] == ['brand.maintenance.title']

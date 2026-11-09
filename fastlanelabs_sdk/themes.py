@@ -875,7 +875,10 @@ def shell_tree_of(theme: Any, vocabulary: Optional[dict] = None) -> dict:
 # paths, messages and order: tests/test_brand.py runs both over the same cases. Everything below is written to behave the same in
 # both languages: ASCII-only case folding, explicit whitespace classes, code point counts.
 
-_BRAND_KEYS = ("logo", "logo_dark", "mark", "tagline")
+_BRAND_KEYS = ("logo", "logo_dark", "mark", "tagline", "maintenance")
+# `maintenance`: the page shown while the instance restarts (an update, a restart), in the tenant's own words, so it never names the
+# platform underneath. Its limits are the vocabulary's `maintenance_title_max` and `maintenance_message_max`.
+_MAINTENANCE_KEYS = ("title", "message")
 _IMAGE_KEYS = ("src", "alt")
 _B64 = re.compile(r"[A-Za-z0-9+/]*={0,2}\Z")
 _ALT_CONTROL = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]")
@@ -898,6 +901,12 @@ def _logo_limits(vocabulary: Optional[dict]) -> dict:
     """The vocabulary's `brand.logo_limits`; a vocabulary that predates the brand falls back to the built-in one."""
     found = ((vocabulary or {}).get("brand") or {}).get("logo_limits")
     return found if found else registry.layout_vocabulary()["brand"]["logo_limits"]
+
+
+def _maintenance_max(limits: dict, name: str) -> int:
+    """A maintenance text limit; a vocabulary from before the maintenance page has none, and the built-in one's applies."""
+    key = f"maintenance_{name}_max"
+    return limits[key] if key in limits else registry.layout_vocabulary()["brand"]["logo_limits"][key]
 
 
 def _size_text(count: int) -> str:
@@ -1052,7 +1061,7 @@ def validate_brand(brand: Any, vocabulary: Optional[dict] = None, path: str = "b
     """Check a theme's `brand`: {errors, warnings} with the path of every problem (`brand.logo.src`).
 
     Never raises. `vocabulary` is the layout vocabulary whose `brand.logo_limits` apply (the built-in one when omitted).
-    Problems come in a fixed order: unknown keys (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`; inside an
+    Problems come in a fixed order: unknown keys (alphabetical), then `logo`, `logo_dark`, `mark`, `tagline`, `maintenance`; inside an
     image its unknown keys, `src`, `alt`, `height`; last the size of all the images together. `logo_dark` (the logo drawn on
     dark backgrounds) follows the rules of `logo` and needs a `logo`."""
     errors: List[dict] = []
@@ -1101,26 +1110,39 @@ def validate_brand(brand: Any, vocabulary: Optional[dict] = None, path: str = "b
         message = _text_problem(brand["tagline"], limits["tagline_max"])
         if message:
             error(f"{path}.tagline", message)
+    if "maintenance" in brand:
+        page, where = brand["maintenance"], f"{path}.maintenance"
+        if not isinstance(page, dict) or not page:
+            error(where, "Must be an object with a title, a message or both")
+        else:
+            for name in sorted(set(page) - set(_MAINTENANCE_KEYS)):
+                error(f"{where}.{name}", f"Unknown key {name}")
+            for name in _MAINTENANCE_KEYS:
+                if name in page:
+                    message = _text_problem(page[name], _maintenance_max(limits, name))
+                    if message:
+                        error(f"{where}.{name}", message)
     if total > limits["max_total_bytes"]:
         error(path, f"The images of a brand add up to {total} bytes; at most {_size_text(limits['max_total_bytes'])}")
     return {"errors": errors, "warnings": warnings}
 
 
 def normalise_brand(brand: Any, vocabulary: Optional[dict] = None) -> Optional[dict]:
-    """The brand a host draws: `{logo, logo_dark, mark, tagline}` with the defaults filled (`logo.height`; `logo_dark.height`
+    """The brand a host draws: `{logo, logo_dark, mark, tagline, maintenance}` with the defaults filled (`logo.height`; `logo_dark.height`
     follows the logo's height, else the vocabulary's default) and the text trimmed, an absent part `None`; `None` for a theme
     without a brand. Assumes a valid brand (see `validate_brand`)."""
     if brand is None:
         return None
     default = _logo_limits(vocabulary)["height"]["default"]
     logo, dark, mark = brand.get("logo"), brand.get("logo_dark"), brand.get("mark")
-    tagline = brand.get("tagline")
+    tagline, page = brand.get("tagline"), brand.get("maintenance")
     logo_height = default if logo is None else logo.get("height", default)
     return {
         "logo": None if logo is None else {"src": logo["src"], "alt": _trim_text(logo["alt"]), "height": logo_height},
         "logo_dark": None if dark is None else {"src": dark["src"], "alt": _trim_text(dark["alt"]), "height": dark.get("height", logo_height)},
         "mark": None if mark is None else {"src": mark["src"], "alt": _trim_text(mark["alt"])},
         "tagline": None if tagline is None else _trim_text(tagline),
+        "maintenance": None if page is None else {name: None if page.get(name) is None else _trim_text(page[name]) for name in _MAINTENANCE_KEYS},
     }
 
 

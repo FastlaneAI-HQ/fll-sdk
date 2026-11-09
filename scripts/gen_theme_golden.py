@@ -205,12 +205,14 @@ def brand_theme(theme_id, label, brand):
 
 def brand_inputs():
     full = {"logo": {"src": svg_uri(WORDMARK), "alt": "Precision Hose", "height": 40},
-            "mark": {"src": PIXEL, "alt": "Precision Hose mark"}, "tagline": "Hose & expansion joints"}
+            "mark": {"src": PIXEL, "alt": "Precision Hose mark"}, "tagline": "Hose & expansion joints",
+            "maintenance": {"title": "  Back in a minute  ", "message": "We're applying an update. Please try again shortly."}}
     logo_only = {"logo": {"src": PIXEL, "alt": "  Precision Hose  "}}
     with_dark = {"logo": {"src": PIXEL, "alt": "Precision Hose", "height": 40},
                  "logo_dark": {"src": svg_uri(WORDMARK_DARK), "alt": "  Precision Hose on dark  "}, "tagline": "Hose & expansion joints"}
     invalid = {"logo": {"src": svg_uri('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'), "alt": "", "height": 70},
-               "mark": {"src": "https://example.com/mark.png", "alt": "Mark"}, "tagline": "x" * 81, "colour": "red"}
+               "mark": {"src": "https://example.com/mark.png", "alt": "Mark"}, "tagline": "x" * 81, "colour": "red",
+               "maintenance": {"title": "", "message": "y" * 281, "footer": "z"}}
     dark_without_logo = {"logo_dark": {"src": PIXEL, "alt": "On dark"}, "tagline": "Hose"}
     return [("brand-full-v4", brand_theme("client-precision", "Precision Hose", full)),
             ("brand-logo-only-v4", brand_theme("client-logo-only", "Logo only", logo_only)),
